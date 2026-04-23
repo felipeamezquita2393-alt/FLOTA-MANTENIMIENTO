@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlotaOps — Coordinador</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Toast global -->
+<div id="toast"></div>
+
+<!-- Top nav -->
+<nav class="topnav">
+  <div style="display:flex;align-items:center;gap:6px">
+    <span class="topnav-brand">FlotaOps</span>
+    <span class="topnav-sub" id="nav-regional">—</span>
+  </div>
+  <span class="topnav-user" id="nav-user">Coordinador</span>
+</nav>
+
+<div class="app-shell">
+
+  <!-- Sidebar -->
+  <nav class="sidenav">
+    <div class="sidenav-section">Principal</div>
+    <a class="sidenav-item active" data-page="dashboard" onclick="navTo('dashboard')">
+      Dashboard
+    </a>
+    <a class="sidenav-item" data-page="fuera" onclick="navTo('fuera')">
+      Fuera de servicio
+      <span class="badge badge-red" id="badge-fuera" style="margin-left:auto;display:none"></span>
+    </a>
+    <a class="sidenav-item" data-page="alertas" onclick="navTo('alertas')">
+      Alertas
+      <span class="badge badge-amber" id="badge-alertas" style="margin-left:auto;display:none"></span>
+    </a>
+    <a class="sidenav-item" data-page="historial" onclick="navTo('historial')">
+      Historial
+    </a>
+    <div class="sidenav-section">Registrar</div>
+    <a class="sidenav-item" data-page="entrada" onclick="navTo('entrada')">
+      Entrada a taller
+    </a>
+    <a class="sidenav-item" data-page="retorno" onclick="navTo('retorno')">
+      Retorno al servicio
+    </a>
+  </nav>
+
+  <!-- Contenido principal -->
+  <main class="main-content">
+
+    <!-- ══════════════════════════════════
+         PÁGINA: Dashboard
+    ══════════════════════════════════ -->
+    <div id="page-dashboard" class="page active">
+      <div class="metrics-grid" id="kpi-grid">
+        <div class="metric"><div class="metric-label">Vehículos</div>
+          <div class="metric-val" id="kpi-total">—</div><div class="metric-sub">En tu regional</div></div>
+        <div class="metric"><div class="metric-label">Disponibles</div>
+          <div class="metric-val" id="kpi-disp" style="color:var(--green)">—</div>
+          <div class="metric-sub" id="kpi-pct">—</div></div>
+        <div class="metric"><div class="metric-label">Fuera de servicio</div>
+          <div class="metric-val" id="kpi-fuera" style="color:var(--red)">—</div>
+          <div class="metric-sub">Hoy activos</div></div>
+        <div class="metric"><div class="metric-label">Días prom. taller</div>
+          <div class="metric-val" id="kpi-dias" style="color:var(--amber)">—</div>
+          <div class="metric-sub">Últimos 30 días</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+        <!-- Checklists hoy -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Checklists de hoy</span>
+            <span class="badge badge-gray" id="badge-cl">—</span>
+          </div>
+          <div id="checklists-list">
+            <div class="loading-wrap"><div class="spinner"></div> Cargando...</div>
+          </div>
+        </div>
+
+        <!-- Alertas activas -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Alertas activas</span>
+            <span class="badge badge-red" id="badge-al-dash">—</span>
+          </div>
+          <div id="alertas-dash-list">
+            <div class="loading-wrap"><div class="spinner"></div> Cargando...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vehículos fuera hoy -->
+      <div class="card" style="margin-top:16px">
+        <div class="card-header">
+          <span class="card-title">Vehículos fuera de servicio</span>
+          <button class="btn btn-sm" onclick="navTo('entrada')">+ Registrar entrada</button>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>Placa</th><th>Tipo taller</th><th>Ingresó</th>
+              <th class="td-center">Días fuera</th><th>Motivo</th><th>Estado</th>
+            </tr></thead>
+            <tbody id="fuera-dash-body">
+              <tr><td colspan="6" class="loading-wrap"><div class="spinner"></div> Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         PÁGINA: Fuera de servicio
+    ══════════════════════════════════ -->
+    <div id="page-fuera" class="page">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Vehículos actualmente fuera</span>
+          <button class="btn btn-sm btn-primary" onclick="navTo('entrada')">+ Entrada a taller</button>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>Placa</th><th>Tipo</th><th>Taller</th><th>Ingresó</th>
+              <th class="td-center">Días fuera</th><th>Descripción</th><th>Prioridad</th><th></th>
+            </tr></thead>
+            <tbody id="fuera-body">
+              <tr><td colspan="8" class="loading-wrap"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         PÁGINA: Alertas
+    ══════════════════════════════════ -->
+    <div id="page-alertas" class="page">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Alertas activas</span>
+          <span class="badge badge-red" id="badge-alertas-page">—</span>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>Placa</th><th>Tipo</th><th>Mantenimiento</th>
+              <th>Vence / KM límite</th><th>Urgencia</th><th></th>
+            </tr></thead>
+            <tbody id="alertas-body">
+              <tr><td colspan="6" class="loading-wrap"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         PÁGINA: Historial
+    ══════════════════════════════════ -->
+    <div id="page-historial" class="page">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header"><span class="card-title">Filtros</span></div>
+        <div class="form-grid">
+          <div class="field"><label>Desde</label>
+            <input type="date" id="hist-desde"></div>
+          <div class="field"><label>Hasta</label>
+            <input type="date" id="hist-hasta"></div>
+          <div class="field"><label>Tipo</label>
+            <select id="hist-tipo">
+              <option value="">Todos</option>
+              <option value="preventivo">Preventivo</option>
+              <option value="correctivo">Correctivo</option>
+              <option value="siniestro">Siniestro</option>
+            </select>
+          </div>
+          <div class="field" style="justify-content:flex-end">
+            <button class="btn btn-primary" onclick="cargarHistorial()" style="margin-top:auto">Buscar</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Historial de mantenimiento</span>
+          <span id="hist-count" style="font-size:12px;color:var(--text2)"></span>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>Placa</th><th>Trabajo</th><th>Taller</th>
+              <th>Entrada</th><th>Salida</th>
+              <th class="td-center">Días</th><th class="td-right">Costo</th><th></th>
+            </tr></thead>
+            <tbody id="historial-body">
+              <tr><td colspan="8" style="padding:20px;color:var(--text2);text-align:center">
+                Selecciona un rango de fechas y presiona Buscar</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Timeline vehículo -->
+      <div class="card" id="timeline-card" style="margin-top:16px;display:none">
+        <div class="card-header">
+          <span class="card-title" id="timeline-title">Historial del vehículo</span>
+          <button class="btn btn-sm" onclick="cerrarTimeline()">Cerrar</button>
+        </div>
+        <div class="timeline" id="timeline-body"></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         PÁGINA: Entrada a taller
+    ══════════════════════════════════ -->
+    <div id="page-entrada" class="page">
+      <div class="card" style="max-width:600px">
+        <div class="card-header"><span class="card-title">Registrar entrada a taller</span></div>
+        <form id="form-entrada" onsubmit="submitEntrada(event)">
+          <div class="form-grid" style="gap:14px">
+            <div class="field">
+              <label>Vehículo *</label>
+              <select id="ent-vehiculo" required>
+                <option value="">Seleccionar...</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Taller *</label>
+              <select id="ent-taller" required>
+                <option value="">Seleccionar...</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Tipo de mantenimiento *</label>
+              <select id="ent-tipo-mant" required>
+                <option value="">Seleccionar...</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Tipo *</label>
+              <select id="ent-tipo" required>
+                <option value="preventivo">Preventivo</option>
+                <option value="correctivo">Correctivo</option>
+                <option value="siniestro">Siniestro</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Fecha de entrada *</label>
+              <input type="date" id="ent-fecha" required>
+            </div>
+            <div class="field">
+              <label>Prioridad</label>
+              <select id="ent-prioridad">
+                <option value="normal">Normal</option>
+                <option value="urgente">Urgente</option>
+                <option value="programado">Programado</option>
+              </select>
+            </div>
+            <div class="field field-full">
+              <label>Descripción del trabajo</label>
+              <textarea id="ent-descripcion" placeholder="Describe brevemente el trabajo a realizar..."></textarea>
+            </div>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:10px">
+            <button type="button" class="btn" onclick="navTo('dashboard')">Cancelar</button>
+            <button type="submit" class="btn btn-primary" id="btn-entrada">Registrar entrada</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         PÁGINA: Retorno al servicio
+    ══════════════════════════════════ -->
+    <div id="page-retorno" class="page">
+      <div class="card" style="max-width:600px">
+        <div class="card-header"><span class="card-title">Registrar retorno al servicio</span></div>
+        <form id="form-retorno" onsubmit="submitRetorno(event)">
+          <div class="form-grid" style="gap:14px">
+            <div class="field field-full">
+              <label>Evento activo (vehículo en taller) *</label>
+              <select id="ret-evento" required onchange="onSelectEvento()">
+                <option value="">Seleccionar vehículo en taller...</option>
+              </select>
+            </div>
+            <div class="field" id="ret-info-wrap" style="display:none;grid-column:1/-1">
+              <div class="alert-banner alert-banner-amber" id="ret-info"></div>
+            </div>
+            <div class="field">
+              <label>Fecha de salida *</label>
+              <input type="date" id="ret-fecha" required>
+            </div>
+            <div class="field">
+              <label>KM al retornar</label>
+              <input type="number" id="ret-km" placeholder="Ej: 82500">
+            </div>
+            <div class="field">
+              <label>Costo total (COP)</label>
+              <input type="number" id="ret-costo" placeholder="Ej: 850000">
+            </div>
+            <div class="field field-full">
+              <label>Descripción del trabajo realizado</label>
+              <textarea id="ret-descripcion" placeholder="Detalla el trabajo realizado..."></textarea>
+            </div>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:10px">
+            <button type="button" class="btn" onclick="navTo('fuera')">Cancelar</button>
+            <button type="submit" class="btn btn-primary" id="btn-retorno">Registrar retorno</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script type="module">
+import {
+  db, getVehiculos, getEventosActivos, getAlertasActivas, getChecklistsHoy,
+  getHistorial, getHistorialVehiculo, getKPIs, getTalleres, getTiposMantenimiento,
+  crearEvento, registrarRetorno, diasFuera, colorDias, urgenciaAlerta,
+  badgeUrgencia, toast, fmtFecha, fmtMoneda
+} from './supabase.js';
+
+// ── Estado global ──────────────────────────────────────────
+let REGIONAL_ID = null;  // null = ver todos (gerente); se setea con login real
+let eventosActivos = [];
+
+// ── Navegación ─────────────────────────────────────────────
+window.navTo = function(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidenav-item').forEach(a => a.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelector(`[data-page="${page}"]`)?.classList.add('active');
+  if (page === 'fuera')    cargarFuera();
+  if (page === 'alertas')  cargarAlertas();
+  if (page === 'entrada')  prepEntrada();
+  if (page === 'retorno')  prepRetorno();
+};
+
+// ── Init ───────────────────────────────────────────────────
+async function init() {
+  // Detectar regional desde URL ?regional=ID
+  const params = new URLSearchParams(location.search);
+  REGIONAL_ID = params.get('regional') || null;
+
+  // Mostrar nombre regional en nav
+  if (REGIONAL_ID) {
+    const { data } = await db.from('regionales').select('nombre').eq('id', REGIONAL_ID).single();
+    document.getElementById('nav-regional').textContent = data?.nombre || '';
+  } else {
+    document.getElementById('nav-regional').textContent = 'Todas las regionales';
+  }
+
+  await Promise.all([cargarKPIs(), cargarChecklistsDash(), cargarAlertasDash(), cargarFueraDash()]);
+}
+
+// ── KPIs ───────────────────────────────────────────────────
+async function cargarKPIs() {
+  try {
+    const k = await getKPIs(REGIONAL_ID);
+    document.getElementById('kpi-total').textContent = k.total;
+    document.getElementById('kpi-disp').textContent  = k.disponibles;
+    document.getElementById('kpi-pct').textContent   = k.pct + '% disponibilidad';
+    document.getElementById('kpi-fuera').textContent = k.fuera;
+    document.getElementById('kpi-dias').textContent  = k.diasPromedio;
+  } catch(e) { console.error(e); }
+}
+
+// ── Checklists dashboard ───────────────────────────────────
+async function cargarChecklistsDash() {
+  const el = document.getElementById('checklists-list');
+  try {
+    const [checklists, vehiculos] = await Promise.all([
+      getChecklistsHoy(REGIONAL_ID),
+      getVehiculos(REGIONAL_ID)
+    ]);
+
+    const clMap = new Map(checklists.map(c => [c.vehiculo_id, c]));
+    const enServicio = vehiculos.filter(v => v.estado === 'disponible' || v.estado === 'en_ruta');
+
+    document.getElementById('badge-cl').textContent =
+      `${checklists.length}/${enServicio.length}`;
+
+    if (!enServicio.length) {
+      el.innerHTML = '<p style="color:var(--text2);font-size:13px;padding:8px 0">Sin vehículos en servicio</p>';
+      return;
+    }
+
+    el.innerHTML = enServicio.map(v => {
+      const cl = clMap.get(v.id);
+      const fallas = cl?.tiene_fallas;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;
+                border-bottom:0.5px solid var(--border)">
+        <span style="font-weight:600;width:80px;font-size:13px">${v.placa}</span>
+        <span style="flex:1;font-size:12px;color:var(--text2)">${v.tipo || ''}</span>
+        ${cl
+          ? (fallas
+              ? '<span class="badge badge-red">Fallas</span>'
+              : '<span class="badge badge-green">OK</span>')
+          : '<span class="badge badge-gray">Pendiente</span>'
+        }
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<p style="color:var(--red);font-size:13px">Error: ${e.message}</p>`;
+  }
+}
+
+// ── Alertas dashboard ──────────────────────────────────────
+async function cargarAlertasDash() {
+  const el = document.getElementById('alertas-dash-list');
+  try {
+    const alertas = await getAlertasActivas(REGIONAL_ID);
+    const urgentes = alertas.filter(a => ['vencida','proxima','proxima_km']
+      .includes(urgenciaAlerta(a)));
+
+    document.getElementById('badge-al-dash').textContent = urgentes.length;
+    const badge = document.getElementById('badge-alertas');
+    if (urgentes.length) { badge.textContent = urgentes.length; badge.style.display = ''; }
+
+    const top5 = urgentes.slice(0, 5);
+    if (!top5.length) {
+      el.innerHTML = '<p style="color:var(--text2);font-size:13px;padding:8px 0">Sin alertas urgentes</p>';
+      return;
+    }
+    el.innerHTML = top5.map(a => {
+      const urg = urgenciaAlerta(a);
+      return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;
+                border-bottom:0.5px solid var(--border)">
+        <span style="font-weight:600;width:76px;font-size:13px">${a.vehiculos?.placa || '—'}</span>
+        <span style="flex:1;font-size:12px;color:var(--text2)">${a.tipos_mantenimiento?.nombre || '—'}</span>
+        ${badgeUrgencia(urg)}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<p style="color:var(--red);font-size:13px">Error: ${e.message}</p>`;
+  }
+}
+
+// ── Fuera de servicio dashboard ────────────────────────────
+async function cargarFueraDash() {
+  const tbody = document.getElementById('fuera-dash-body');
+  try {
+    eventosActivos = await getEventosActivos(REGIONAL_ID);
+    const badgeF = document.getElementById('badge-fuera');
+    if (eventosActivos.length) {
+      badgeF.textContent = eventosActivos.length; badgeF.style.display = '';
+    }
+    if (!eventosActivos.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="padding:16px;color:var(--text2);text-align:center">Sin vehículos fuera de servicio</td></tr>';
+      return;
+    }
+    tbody.innerHTML = eventosActivos.map(e => {
+      const dias = diasFuera(e.fecha_entrada);
+      const cls  = colorDias(dias);
+      return `<tr>
+        <td class="td-plate">${e.vehiculos?.placa || '—'}</td>
+        <td>${e.talleres?.tipo ? labelTaller(e.talleres.tipo) : '—'}</td>
+        <td>${fmtFecha(e.fecha_entrada)}</td>
+        <td class="td-center"><span class="${cls}">${dias}</span></td>
+        <td style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          ${e.descripcion_trabajo || e.tipos_mantenimiento?.nombre || '—'}</td>
+        <td>${badgePrioridad(e.prioridad)}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="6" style="color:var(--red);padding:12px">${e.message}</td></tr>`;
+  }
+}
+
+// ── Página: Fuera de servicio completa ─────────────────────
+window.cargarFuera = async function() {
+  const tbody = document.getElementById('fuera-body');
+  try {
+    if (!eventosActivos.length) eventosActivos = await getEventosActivos(REGIONAL_ID);
+    if (!eventosActivos.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--text2)">Sin vehículos fuera de servicio</td></tr>';
+      return;
+    }
+    tbody.innerHTML = eventosActivos
+      .sort((a,b) => new Date(a.fecha_entrada) - new Date(b.fecha_entrada))
+      .map(e => {
+        const dias = diasFuera(e.fecha_entrada);
+        const cls  = colorDias(dias);
+        return `<tr>
+          <td class="td-plate">${e.vehiculos?.placa || '—'}</td>
+          <td>${e.vehiculos?.tipo || '—'}</td>
+          <td>${e.talleres?.nombre || '—'}<br>
+            <span style="font-size:11px;color:var(--text2)">${e.talleres?.tipo ? labelTaller(e.talleres.tipo) : ''}</span></td>
+          <td>${fmtFecha(e.fecha_entrada)}</td>
+          <td class="td-center"><span class="${cls}">${dias}</span></td>
+          <td style="font-size:12px;max-width:180px">${e.descripcion_trabajo || '—'}</td>
+          <td>${badgePrioridad(e.prioridad)}</td>
+          <td><button class="btn btn-sm" onclick="irRetorno('${e.id}')">Retorno</button></td>
+        </tr>`;
+      }).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="8" style="color:var(--red);padding:12px">${e.message}</td></tr>`;
+  }
+};
+
+// ── Página: Alertas completa ───────────────────────────────
+window.cargarAlertas = async function() {
+  const tbody = document.getElementById('alertas-body');
+  const badgePage = document.getElementById('badge-alertas-page');
+  try {
+    const alertas = await getAlertasActivas(REGIONAL_ID);
+    badgePage.textContent = alertas.length;
+    if (!alertas.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--text2)">Sin alertas activas</td></tr>';
+      return;
+    }
+    tbody.innerHTML = alertas.map(a => {
+      const urg = urgenciaAlerta(a);
+      const vencimiento = a.tipo_alerta === 'por_fecha'
+        ? fmtFecha(a.fecha_limite)
+        : (a.km_limite ? a.km_limite.toLocaleString('es-CO') + ' km' : '—');
+      return `<tr>
+        <td class="td-plate">${a.vehiculos?.placa || '—'}</td>
+        <td>${a.vehiculos?.tipo || '—'}</td>
+        <td>${a.tipos_mantenimiento?.nombre || '—'}</td>
+        <td>${vencimiento}</td>
+        <td>${badgeUrgencia(urg)}</td>
+        <td><button class="btn btn-sm" onclick="navTo('entrada')">Atender</button></td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="6" style="color:var(--red);padding:12px">${e.message}</td></tr>`;
+  }
+};
+
+// ── Página: Historial ──────────────────────────────────────
+window.cargarHistorial = async function() {
+  const tbody = document.getElementById('historial-body');
+  const countEl = document.getElementById('hist-count');
+  tbody.innerHTML = '<tr><td colspan="8" class="loading-wrap"><div class="spinner"></div></td></tr>';
+  try {
+    const filtros = {
+      regionalId: REGIONAL_ID,
+      desde: document.getElementById('hist-desde').value || null,
+      hasta: document.getElementById('hist-hasta').value || null,
+      tipo:  document.getElementById('hist-tipo').value  || null,
+    };
+    const data = await getHistorial(filtros);
+    countEl.textContent = `${data.length} registros`;
+    if (!data.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--text2)">Sin resultados</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(e => `<tr style="cursor:pointer" onclick="verTimeline('${e.vehiculos?.id || ''}','${e.vehiculos?.placa || ''}')">
+      <td class="td-plate">${e.vehiculos?.placa || '—'}</td>
+      <td>${e.tipos_mantenimiento?.nombre || '—'}</td>
+      <td>${e.talleres?.nombre || '—'}</td>
+      <td>${fmtFecha(e.fecha_entrada)}</td>
+      <td>${fmtFecha(e.fecha_salida)}</td>
+      <td class="td-center">${e.dias_en_taller != null ? `<strong>${e.dias_en_taller}</strong>` : '<span style="color:var(--amber)">En curso</span>'}</td>
+      <td class="td-right">${fmtMoneda(e.costo)}</td>
+      <td><span style="font-size:11px;color:var(--text2)">Ver →</span></td>
+    </tr>`).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="8" style="color:var(--red);padding:12px">${e.message}</td></tr>`;
+  }
+};
+
+window.verTimeline = async function(vehiculoId, placa) {
+  if (!vehiculoId) return;
+  const card  = document.getElementById('timeline-card');
+  const body  = document.getElementById('timeline-body');
+  const title = document.getElementById('timeline-title');
+  title.textContent = `Historial completo — ${placa}`;
+  body.innerHTML = '<div class="loading-wrap"><div class="spinner"></div> Cargando...</div>';
+  card.style.display = 'block';
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  try {
+    const eventos = await getHistorialVehiculo(vehiculoId);
+    if (!eventos.length) { body.innerHTML = '<p style="color:var(--text2);font-size:13px">Sin eventos registrados</p>'; return; }
+    body.innerHTML = eventos.map(e => {
+      const enCurso = !e.fecha_salida;
+      const color   = enCurso ? 'var(--amber)' : (e.tipo === 'siniestro' ? 'var(--red)' : 'var(--green)');
+      const dias    = e.dias_en_taller != null ? `${e.dias_en_taller} días` : 'En curso';
+      return `<div class="tl-item">
+        <div class="tl-left">
+          <div class="tl-dot" style="background:${color}"></div>
+          <div class="tl-line"></div>
+        </div>
+        <div>
+          <div class="tl-title">${e.tipos_mantenimiento?.nombre || e.tipo || '—'} — ${e.talleres?.nombre || '—'}</div>
+          <div class="tl-meta">${fmtFecha(e.fecha_entrada)} → ${fmtFecha(e.fecha_salida)}</div>
+          <div style="display:flex;gap:6px;margin-top:5px">
+            <span class="badge ${enCurso ? 'badge-amber' : 'badge-green'}">${dias}</span>
+            ${e.costo ? `<span class="badge badge-gray">${fmtMoneda(e.costo)}</span>` : ''}
+            ${e.descripcion_trabajo ? `<span style="font-size:11px;color:var(--text2)">${e.descripcion_trabajo}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    body.innerHTML = `<p style="color:var(--red)">${e.message}</p>`;
+  }
+};
+
+window.cerrarTimeline = () => { document.getElementById('timeline-card').style.display = 'none'; };
+
+// ── Formulario: Entrada a taller ───────────────────────────
+window.prepEntrada = async function() {
+  try {
+    const [vehiculos, talleres, tipos] = await Promise.all([
+      getVehiculos(REGIONAL_ID), getTalleres(), getTiposMantenimiento()
+    ]);
+    const selV = document.getElementById('ent-vehiculo');
+    selV.innerHTML = '<option value="">Seleccionar vehículo...</option>' +
+      vehiculos.map(v => `<option value="${v.id}">[${v.estado === 'disponible' ? 'Disp.' : v.estado}] ${v.placa} — ${v.tipo || ''}</option>`).join('');
+
+    const selT = document.getElementById('ent-taller');
+    selT.innerHTML = '<option value="">Seleccionar taller...</option>' +
+      talleres.map(t => `<option value="${t.id}">${t.nombre} (${labelTaller(t.tipo)})</option>`).join('');
+
+    const selM = document.getElementById('ent-tipo-mant');
+    selM.innerHTML = '<option value="">Seleccionar tipo...</option>' +
+      tipos.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
+
+    document.getElementById('ent-fecha').value = new Date().toISOString().split('T')[0];
+  } catch(e) { toast(e.message, 'error'); }
+};
+
+window.submitEntrada = async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-entrada');
+  btn.disabled = true; btn.textContent = 'Registrando...';
+
+  const vehiculoId = document.getElementById('ent-vehiculo').value;
+  const tallerId   = document.getElementById('ent-taller').value;
+  const selTaller  = document.getElementById('ent-taller');
+  const tipoTaller = selTaller.options[selTaller.selectedIndex]?.text || '';
+
+  try {
+    await crearEvento({
+      vehiculo_id:          vehiculoId,
+      taller_id:            tallerId,
+      tipo_mantenimiento_id: document.getElementById('ent-tipo-mant').value,
+      regional_id:          REGIONAL_ID,
+      origen:               extraerTipoTaller(tipoTaller),
+      tipo:                 document.getElementById('ent-tipo').value,
+      prioridad:            document.getElementById('ent-prioridad').value,
+      fecha_entrada:        document.getElementById('ent-fecha').value,
+      descripcion_trabajo:  document.getElementById('ent-descripcion').value,
+      estado:               'en_proceso',
+    });
+    document.getElementById('form-entrada').reset();
+    eventosActivos = [];
+    toast('Entrada registrada correctamente');
+    await Promise.all([cargarKPIs(), cargarFueraDash()]);
+    navTo('fuera');
+  } catch(e) {
+    toast(e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Registrar entrada';
+  }
+};
+
+// ── Formulario: Retorno ────────────────────────────────────
+window.prepRetorno = async function() {
+  if (!eventosActivos.length) eventosActivos = await getEventosActivos(REGIONAL_ID);
+  const sel = document.getElementById('ret-evento');
+  sel.innerHTML = '<option value="">Seleccionar vehículo en taller...</option>' +
+    eventosActivos.map(e =>
+      `<option value="${e.id}" data-vh="${e.vehiculos?.id}" data-entrada="${e.fecha_entrada}">
+        ${e.vehiculos?.placa} — ${diasFuera(e.fecha_entrada)} días fuera — ${e.talleres?.nombre || ''}
+      </option>`
+    ).join('');
+  document.getElementById('ret-fecha').value = new Date().toISOString().split('T')[0];
+};
+
+window.irRetorno = function(eventoId) {
+  navTo('retorno');
+  setTimeout(() => {
+    const sel = document.getElementById('ret-evento');
+    for (const opt of sel.options) { if (opt.value === eventoId) { opt.selected = true; onSelectEvento(); break; } }
+  }, 200);
+};
+
+window.onSelectEvento = function() {
+  const sel  = document.getElementById('ret-evento');
+  const opt  = sel.options[sel.selectedIndex];
+  const wrap = document.getElementById('ret-info-wrap');
+  const info = document.getElementById('ret-info');
+  if (!opt.value) { wrap.style.display = 'none'; return; }
+  const entrada = opt.dataset.entrada;
+  const dias    = diasFuera(entrada);
+  info.textContent = `Vehículo en taller desde ${fmtFecha(entrada)} — ${dias} días fuera de servicio`;
+  wrap.style.display = 'block';
+};
+
+window.submitRetorno = async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-retorno');
+  btn.disabled = true; btn.textContent = 'Registrando...';
+  const sel     = document.getElementById('ret-evento');
+  const opt     = sel.options[sel.selectedIndex];
+  const eventoId  = opt.value;
+  const vehiculoId = opt.dataset.vh;
+  try {
+    await registrarRetorno(eventoId, vehiculoId, {
+      fecha_salida:        document.getElementById('ret-fecha').value,
+      km_entrada:          parseInt(document.getElementById('ret-km').value) || null,
+      costo:               parseFloat(document.getElementById('ret-costo').value) || null,
+      descripcion_trabajo: document.getElementById('ret-descripcion').value,
+    });
+    document.getElementById('form-retorno').reset();
+    document.getElementById('ret-info-wrap').style.display = 'none';
+    eventosActivos = [];
+    toast('Retorno registrado — vehículo disponible');
+    await Promise.all([cargarKPIs(), cargarFueraDash()]);
+    navTo('fuera');
+  } catch(e) {
+    toast(e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Registrar retorno';
+  }
+};
+
+// ── Helpers ────────────────────────────────────────────────
+function labelTaller(tipo) {
+  const m = { taller_propio:'Taller propio', concesionario:'Concesionario',
+              patios:'Patios', siniestro:'Siniestro' };
+  return m[tipo] || tipo;
+}
+function extraerTipoTaller(txt) {
+  if (txt.includes('propio'))      return 'taller_propio';
+  if (txt.includes('oncesionario')) return 'concesionario';
+  if (txt.includes('atios'))       return 'en_patios';
+  if (txt.includes('iniestro'))    return 'siniestro';
+  return 'taller_propio';
+}
+function badgePrioridad(p) {
+  if (p === 'urgente')   return '<span class="badge badge-red">Urgente</span>';
+  if (p === 'programado') return '<span class="badge badge-blue">Programado</span>';
+  return '<span class="badge badge-gray">Normal</span>';
+}
+
+// Fechas por defecto en historial
+const hoy  = new Date().toISOString().split('T')[0];
+const hace30 = new Date(Date.now()-30*24*60*60*1000).toISOString().split('T')[0];
+document.getElementById('hist-desde').value = hace30;
+document.getElementById('hist-hasta').value = hoy;
+
+init();
+</script>
+</body>
+</html>
