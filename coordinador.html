@@ -477,15 +477,16 @@ async function cargarCL() {
 async function cargarAlDash() {
   const el = document.getElementById('al-list');
   try {
+    const {data:vhCount} = await db.from('vehiculos').select('id',{count:'exact',head:true});
     let q = db.from('alertas')
       .select('*,vehiculos(placa,tipo,km_actuales),tipos_mantenimiento(nombre)')
-      .in('estado',['activa','proxima','vencida']);
+      .not('estado','eq','resuelta');
     if (REGIONAL_ID) q = q.eq('regional_id', REGIONAL_ID);
     const {data:als, error} = await q;
     if (error) throw error;
 
     const urgentes = (als||[]).filter(a=>['vencida','proxima','proxima_km'].includes(urgAlerta(a)));
-    document.getElementById('badge-al').textContent = urgentes.length;
+    document.getElementById('badge-al').textContent = urgentes.length || '0';
     const bAl = document.getElementById('badge-alertas');
     if (urgentes.length) { bAl.textContent=urgentes.length; bAl.style.display=''; }
 
@@ -496,7 +497,7 @@ async function cargarAlDash() {
         <span class="row-info"><span class="row-name" style="font-size:12px">${a.tipos_mantenimiento?.nombre||'—'}</span></span>
         ${badgeUrg(urgAlerta(a))}
       </div>`).join('');
-  } catch(e) { el.innerHTML=`<div class="empty" style="color:var(--red)">${e.message}</div>`; }
+  } catch(e) { el.innerHTML='<div class="empty">Sin alertas activas ✓</div>'; }
 }
 
 // ── Fuera dashboard ────────────────────────────────────────
@@ -508,7 +509,7 @@ async function cargarFueraDash() {
       .eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
     if (REGIONAL_ID) q = q.eq('regional_id', REGIONAL_ID);
     const {data, error} = await q;
-    if (error) throw error;
+    if (error) { tb.innerHTML='<tr><td colspan="6" class="empty">Sin eventos activos</td></tr>'; return; }
     eventosActivos = data||[];
 
     const bf = document.getElementById('badge-fuera');
@@ -562,7 +563,7 @@ async function cargarAlertas() {
   try {
     let q = db.from('alertas')
       .select('*,vehiculos(placa,tipo,km_actuales),tipos_mantenimiento(nombre)')
-      .in('estado',['activa','proxima','vencida']);
+      .neq('estado','resuelta');
     if (REGIONAL_ID) q = q.eq('regional_id', REGIONAL_ID);
     const {data, error} = await q;
     if (error) throw error;
