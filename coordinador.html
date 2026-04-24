@@ -20,8 +20,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .topnav-brand{font-size:15px;font-weight:600}
 .topnav-sub{font-size:12px;color:var(--text2);margin-left:8px}
 .shell{display:flex;min-height:calc(100vh - 52px)}
-.sidenav{width:200px;background:var(--bg);border-right:0.5px solid var(--border);padding:16px 0;flex-shrink:0}
-.snav-item{display:flex;align-items:center;gap:8px;padding:9px 20px;font-size:13px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:all .12s;text-decoration:none;justify-content:space-between}
+.sidenav{width:210px;background:var(--bg);border-right:0.5px solid var(--border);padding:16px 0;flex-shrink:0}
+.snav-item{display:flex;align-items:center;justify-content:space-between;padding:9px 20px;font-size:13px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:all .12s}
 .snav-item:hover{background:var(--bg2);color:var(--text)}
 .snav-item.active{color:var(--text);font-weight:500;border-left-color:var(--text);background:var(--bg2)}
 .snav-sec{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:16px 20px 6px}
@@ -42,6 +42,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .b-green{background:var(--green-bg);color:var(--green-dark)}
 .b-blue{background:var(--blue-bg);color:var(--blue)}
 .b-gray{background:#F1EFE8;color:#5F5E5A}
+.b-purple{background:#EEEDFE;color:#534AB7}
 .dias-crit{color:var(--red);font-weight:700;font-size:16px}
 .dias-warn{color:var(--amber);font-weight:700;font-size:16px}
 .dias-ok{color:var(--green);font-weight:700;font-size:16px}
@@ -63,13 +64,10 @@ tr:hover td{background:var(--bg2)}
 .btn-primary{background:var(--text);color:var(--bg);border-color:transparent}
 .btn-primary:hover{opacity:.85;background:var(--text)}
 .btn-sm{padding:5px 12px;font-size:12px}
-.btn-danger{background:var(--red-bg);color:var(--red-dark);border-color:transparent}
 .row-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--border)}
 .row-item:last-child{border-bottom:none}
 .plate{font-weight:600;width:80px;flex-shrink:0;font-size:13px}
 .row-info{flex:1;min-width:0}
-.row-name{font-size:13px;color:var(--text)}
-.row-meta{font-size:11px;color:var(--text2);margin-top:1px}
 .timeline{display:flex;flex-direction:column}
 .tl-item{display:flex;gap:14px;padding-bottom:20px}
 .tl-item:last-child{padding-bottom:0}
@@ -80,10 +78,12 @@ tr:hover td{background:var(--bg2)}
 .spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:spin .6s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading{display:flex;align-items:center;gap:8px;padding:24px;color:var(--text2);font-size:13px;justify-content:center}
-.empty{padding:24px;text-align:center;color:var(--text2);font-size:13px}
-#toast{position:fixed;bottom:24px;right:24px;z-index:999;background:var(--text);color:var(--bg);padding:10px 18px;border-radius:var(--r);font-size:13px;font-weight:500;opacity:0;transition:opacity .2s;pointer-events:none}
+.empty{padding:20px;text-align:center;color:var(--text2);font-size:13px}
+#toast{position:fixed;bottom:24px;right:24px;z-index:999;background:#1a1a18;color:#fff;padding:10px 18px;border-radius:var(--r);font-size:13px;font-weight:500;opacity:0;transition:opacity .2s;pointer-events:none;max-width:320px}
 #toast.show{opacity:1}
 .alert-info{background:var(--amber-bg);color:var(--amber-dark);border:0.5px solid #FAC775;padding:10px 14px;border-radius:var(--r);font-size:13px;margin-bottom:14px}
+.reg-filter{display:flex;align-items:center;gap:8px;margin-bottom:20px}
+.reg-filter select{font-size:13px;padding:6px 10px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text);cursor:pointer}
 @media(max-width:700px){.sidenav{display:none}.main{padding:16px}.form2{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}}
 </style>
 </head>
@@ -93,7 +93,7 @@ tr:hover td{background:var(--bg2)}
 <nav class="topnav">
   <div style="display:flex;align-items:center">
     <span class="topnav-brand">FlotaOps</span>
-    <span class="topnav-sub" id="nav-regional"></span>
+    <span class="topnav-sub" id="nav-sub">Mantenimiento de flota</span>
   </div>
   <span style="font-size:12px;color:var(--text2)" id="nav-fecha"></span>
 </nav>
@@ -115,6 +115,9 @@ tr:hover td{background:var(--bg2)}
     <div class="snav-item" data-page="historial" onclick="ir('historial')">
       <span>Historial</span>
     </div>
+    <div class="snav-item" data-page="flota" onclick="ir('flota')">
+      <span>Flota completa</span>
+    </div>
     <div class="snav-sec">Registrar</div>
     <div class="snav-item" data-page="entrada" onclick="ir('entrada')">
       <span>Entrada a taller</span>
@@ -128,10 +131,16 @@ tr:hover td{background:var(--bg2)}
 
     <!-- DASHBOARD -->
     <div id="page-dashboard" class="page active">
+      <div class="reg-filter">
+        <span style="font-size:12px;color:var(--text2)">Regional:</span>
+        <select id="filtro-regional" onchange="onFiltroRegional()">
+          <option value="">Todas las regionales</option>
+        </select>
+      </div>
       <div class="metrics">
-        <div class="metric"><div class="metric-label">Vehículos</div><div class="metric-val" id="k-total">—</div><div class="metric-sub">En tu regional</div></div>
+        <div class="metric"><div class="metric-label">Vehículos activos</div><div class="metric-val" id="k-total">—</div><div class="metric-sub" id="k-sub">Cargando...</div></div>
         <div class="metric"><div class="metric-label">Disponibles</div><div class="metric-val" id="k-disp" style="color:var(--green)">—</div><div class="metric-sub" id="k-pct">—</div></div>
-        <div class="metric"><div class="metric-label">Fuera de servicio</div><div class="metric-val" id="k-fuera" style="color:var(--red)">—</div><div class="metric-sub">Actualmente</div></div>
+        <div class="metric"><div class="metric-label">Fuera de servicio</div><div class="metric-val" id="k-fuera" style="color:var(--red)">—</div><div class="metric-sub">Actualmente en taller</div></div>
         <div class="metric"><div class="metric-label">Días prom. taller</div><div class="metric-val" id="k-dias" style="color:var(--amber)">—</div><div class="metric-sub">Últimos 30 días</div></div>
       </div>
       <div class="two-col">
@@ -140,14 +149,14 @@ tr:hover td{background:var(--bg2)}
             <span class="card-title">Checklists de hoy</span>
             <span class="badge b-gray" id="badge-cl">—</span>
           </div>
-          <div id="cl-list"><div class="loading"><div class="spinner"></div> Cargando...</div></div>
+          <div id="cl-list"><div class="loading"><div class="spinner"></div>&nbsp;Cargando...</div></div>
         </div>
         <div class="card">
           <div class="card-hdr">
             <span class="card-title">Alertas activas</span>
-            <span class="badge b-red" id="badge-al">—</span>
+            <span class="badge b-red" id="badge-al">0</span>
           </div>
-          <div id="al-list"><div class="loading"><div class="spinner"></div> Cargando...</div></div>
+          <div id="al-list"><div class="loading"><div class="spinner"></div>&nbsp;Cargando...</div></div>
         </div>
       </div>
       <div class="card">
@@ -157,10 +166,10 @@ tr:hover td{background:var(--bg2)}
         </div>
         <div class="tbl-wrap">
           <table><thead><tr>
-            <th>Placa</th><th>Taller</th><th>Ingresó</th>
+            <th>Placa</th><th>Regional</th><th>Taller</th><th>Ingresó</th>
             <th style="text-align:center">Días fuera</th><th>Motivo</th><th>Prioridad</th>
           </tr></thead>
-          <tbody id="fuera-dash"><tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr></tbody>
+          <tbody id="fuera-dash"><tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr></tbody>
           </table>
         </div>
       </div>
@@ -170,15 +179,15 @@ tr:hover td{background:var(--bg2)}
     <div id="page-fuera" class="page">
       <div class="card">
         <div class="card-hdr">
-          <span class="card-title">Vehículos actualmente fuera</span>
+          <span class="card-title">Vehículos actualmente fuera de servicio</span>
           <button class="btn btn-sm btn-primary" onclick="ir('entrada')">+ Entrada a taller</button>
         </div>
         <div class="tbl-wrap">
           <table><thead><tr>
-            <th>Placa</th><th>Tipo</th><th>Taller</th><th>Ingresó</th>
+            <th>Placa</th><th>Tipo</th><th>Regional</th><th>Taller</th><th>Ingresó</th>
             <th style="text-align:center">Días fuera</th><th>Descripción</th><th>Prioridad</th><th></th>
           </tr></thead>
-          <tbody id="fuera-body"><tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr></tbody>
+          <tbody id="fuera-body"><tr><td colspan="9" class="loading"><div class="spinner"></div></td></tr></tbody>
           </table>
         </div>
       </div>
@@ -189,11 +198,11 @@ tr:hover td{background:var(--bg2)}
       <div class="card">
         <div class="card-hdr">
           <span class="card-title">Alertas activas</span>
-          <span class="badge b-red" id="badge-al-page">—</span>
+          <span class="badge b-red" id="badge-al-page">0</span>
         </div>
         <div class="tbl-wrap">
           <table><thead><tr>
-            <th>Placa</th><th>Tipo vehículo</th><th>Mantenimiento</th>
+            <th>Placa</th><th>Regional</th><th>Mantenimiento</th>
             <th>Vence / KM límite</th><th>Urgencia</th><th></th>
           </tr></thead>
           <tbody id="alertas-body"><tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr></tbody>
@@ -229,12 +238,12 @@ tr:hover td{background:var(--bg2)}
         </div>
         <div class="tbl-wrap">
           <table><thead><tr>
-            <th>Placa</th><th>Trabajo</th><th>Taller</th>
+            <th>Placa</th><th>Regional</th><th>Trabajo</th><th>Taller</th>
             <th>Entrada</th><th>Salida</th>
             <th style="text-align:center">Días</th><th style="text-align:right">Costo</th><th></th>
           </tr></thead>
           <tbody id="hist-body">
-            <tr><td colspan="8" class="empty">Selecciona un rango y presiona Buscar</td></tr>
+            <tr><td colspan="9" class="empty">Selecciona un rango y presiona Buscar</td></tr>
           </tbody></table>
         </div>
       </div>
@@ -247,9 +256,36 @@ tr:hover td{background:var(--bg2)}
       </div>
     </div>
 
+    <!-- FLOTA COMPLETA -->
+    <div id="page-flota" class="page">
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-title">Flota completa</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="flota-regional" onchange="cargarFlota()" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--r)">
+              <option value="">Todas las regionales</option>
+            </select>
+            <select id="flota-tipo" onchange="cargarFlota()" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--r)">
+              <option value="">Todos los tipos</option>
+              <option value="camion">Camión</option>
+              <option value="remolque">Remolque</option>
+            </select>
+            <span id="flota-count" style="font-size:12px;color:var(--text2)"></span>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table><thead><tr>
+            <th>Placa</th><th>Tipo</th><th>Regional</th><th>Estado</th><th>KM</th><th></th>
+          </tr></thead>
+          <tbody id="flota-body"><tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- ENTRADA A TALLER -->
     <div id="page-entrada" class="page">
-      <div class="card" style="max-width:600px">
+      <div class="card" style="max-width:620px">
         <div class="card-hdr"><span class="card-title">Registrar entrada a taller</span></div>
         <form onsubmit="submitEntrada(event)">
           <div class="form2">
@@ -259,7 +295,7 @@ tr:hover td{background:var(--bg2)}
               <select id="e-taller" required><option value="">Seleccionar...</option></select></div>
             <div class="field"><label>Tipo de mantenimiento *</label>
               <select id="e-tipomant" required><option value="">Seleccionar...</option></select></div>
-            <div class="field"><label>Tipo *</label>
+            <div class="field"><label>Categoría *</label>
               <select id="e-tipo" required>
                 <option value="preventivo">Preventivo</option>
                 <option value="correctivo">Correctivo</option>
@@ -273,8 +309,8 @@ tr:hover td{background:var(--bg2)}
                 <option value="urgente">Urgente</option>
                 <option value="programado">Programado</option>
               </select></div>
-            <div class="field full"><label>Descripción</label>
-              <textarea id="e-desc" placeholder="Describe el trabajo a realizar..."></textarea></div>
+            <div class="field full"><label>Descripción del problema / trabajo</label>
+              <textarea id="e-desc" placeholder="Describe el motivo de la entrada al taller..."></textarea></div>
           </div>
           <div style="display:flex;gap:10px">
             <button type="button" class="btn" onclick="ir('dashboard')">Cancelar</button>
@@ -286,7 +322,7 @@ tr:hover td{background:var(--bg2)}
 
     <!-- RETORNO AL SERVICIO -->
     <div id="page-retorno" class="page">
-      <div class="card" style="max-width:600px">
+      <div class="card" style="max-width:620px">
         <div class="card-hdr"><span class="card-title">Registrar retorno al servicio</span></div>
         <form onsubmit="submitRetorno(event)">
           <div class="form2">
@@ -304,7 +340,7 @@ tr:hover td{background:var(--bg2)}
             <div class="field"><label>Costo total (COP)</label>
               <input type="number" id="r-costo" placeholder="Ej: 850000"></div>
             <div class="field full"><label>Trabajo realizado</label>
-              <textarea id="r-desc" placeholder="Detalla el trabajo realizado..."></textarea></div>
+              <textarea id="r-desc" placeholder="Describe el trabajo realizado..."></textarea></div>
           </div>
           <div style="display:flex;gap:10px">
             <button type="button" class="btn" onclick="ir('fuera')">Cancelar</button>
@@ -318,16 +354,15 @@ tr:hover td{background:var(--bg2)}
 </div>
 
 <script>
-// ── Supabase ───────────────────────────────────────────────
 const { createClient } = supabase;
 const db = createClient(
   'https://ivwewaqlxnwrmexdfyyi.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2d2V3YXFseG53cm1leGRmeXlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzAxOTQsImV4cCI6MjA5MjU0NjE5NH0.Q6vHGHiBBFdmH9Fhqtef-fci9z45nIHdtfly-UzLjFk'
 );
 
-// ── Estado ─────────────────────────────────────────────────
+let REGIONAL_ID = null;
 let eventosActivos = [];
-let REGIONAL_ID = new URLSearchParams(location.search).get('regional') || null;
+let regionales = [];
 
 // ── Helpers ────────────────────────────────────────────────
 const hoy = () => new Date().toISOString().split('T')[0];
@@ -346,6 +381,22 @@ function fmtM(v) { return v ? '$'+Number(v).toLocaleString('es-CO') : '—'; }
 function labelTaller(t) {
   return {taller_propio:'Taller propio',concesionario:'Concesionario',patios:'Patios',siniestro:'Siniestro'}[t]||t;
 }
+function badgePrior(p) {
+  if (p==='urgente')    return '<span class="badge b-red">Urgente</span>';
+  if (p==='programado') return '<span class="badge b-blue">Programado</span>';
+  return '<span class="badge b-gray">Normal</span>';
+}
+function badgeEstado(e) {
+  const m = {
+    disponible:    '<span class="badge b-green">Disponible</span>',
+    taller_propio: '<span class="badge b-amber">Taller propio</span>',
+    concesionario: '<span class="badge b-blue">Concesionario</span>',
+    en_patios:     '<span class="badge b-amber">En patios</span>',
+    siniestro:     '<span class="badge b-red">Siniestro</span>',
+    inactivo:      '<span class="badge b-gray">Inactivo</span>',
+  };
+  return m[e] || `<span class="badge b-gray">${e}</span>`;
+}
 function urgAlerta(a) {
   const h = hoy();
   if (a.tipo_alerta==='por_fecha') {
@@ -362,23 +413,22 @@ function urgAlerta(a) {
 }
 function badgeUrg(u) {
   return {
-    vencida:'<span class="badge b-red">Vencida</span>',
-    proxima:'<span class="badge b-amber">Próxima</span>',
-    proxima_km:'<span class="badge b-amber">Próx. km</span>',
-    programada:'<span class="badge b-gray">Programada</span>',
+    vencida:    '<span class="badge b-red">Vencida</span>',
+    proxima:    '<span class="badge b-amber">Próxima</span>',
+    proxima_km: '<span class="badge b-amber">Próx. km</span>',
+    programada: '<span class="badge b-gray">Programada</span>',
   }[u]||'';
-}
-function badgePrior(p) {
-  return {urgente:'<span class="badge b-red">Urgente</span>',
-          programado:'<span class="badge b-blue">Programado</span>'}[p]
-         ||'<span class="badge b-gray">Normal</span>';
 }
 function toast(msg, err=false) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.style.background = err ? '#A32D2D' : '#1a1a18';
   t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 3200);
+  setTimeout(()=>t.classList.remove('show'), 3500);
+}
+function qFiltro(q) {
+  if (REGIONAL_ID) q = q.eq('regional_id', REGIONAL_ID);
+  return q;
 }
 
 // ── Navegación ─────────────────────────────────────────────
@@ -387,44 +437,64 @@ function ir(page) {
   document.querySelectorAll('.snav-item').forEach(a=>a.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
   document.querySelector(`[data-page="${page}"]`)?.classList.add('active');
-  if (page==='fuera')   cargarFuera();
-  if (page==='alertas') cargarAlertas();
-  if (page==='entrada') prepEntrada();
-  if (page==='retorno') prepRetorno();
+  if (page==='fuera')    cargarFuera();
+  if (page==='alertas')  cargarAlertas();
+  if (page==='entrada')  prepEntrada();
+  if (page==='retorno')  prepRetorno();
+  if (page==='flota')    cargarFlota();
+}
+
+function onFiltroRegional() {
+  REGIONAL_ID = document.getElementById('filtro-regional').value || null;
+  eventosActivos = [];
+  cargarDashboard();
 }
 
 // ── Init ───────────────────────────────────────────────────
 async function init() {
   document.getElementById('nav-fecha').textContent =
-    new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'});
-
-  if (REGIONAL_ID) {
-    const {data} = await db.from('regionales').select('nombre').eq('id',REGIONAL_ID).single();
-    document.getElementById('nav-regional').textContent = data?.nombre || '';
-  } else {
-    document.getElementById('nav-regional').textContent = 'Todas las regionales';
-  }
-
-  // Fechas por defecto historial
+    new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   document.getElementById('h-desde').value = hace30();
   document.getElementById('h-hasta').value = hoy();
 
+  // Cargar regionales para filtros
+  const {data:regs} = await db.from('regionales').select('id,nombre').eq('activa',true).order('nombre');
+  regionales = regs || [];
+
+  // Poblar selects de regional
+  ['filtro-regional','flota-regional'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    regionales.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.id; opt.textContent = r.nombre;
+      sel.appendChild(opt);
+    });
+  });
+
+  await cargarDashboard();
+}
+
+async function cargarDashboard() {
   await Promise.all([cargarKPIs(), cargarCL(), cargarAlDash(), cargarFueraDash()]);
 }
 
 // ── KPIs ───────────────────────────────────────────────────
 async function cargarKPIs() {
   try {
-    let q = db.from('vehiculos').select('estado').eq('activo',true);
+    let q = db.from('vehiculos').select('estado,tipo').eq('activo', true);
     if (REGIONAL_ID) q = q.eq('regional_id', REGIONAL_ID);
     const {data:vhs, error} = await q;
     if (error) throw error;
 
-    const total = vhs.length;
-    const disp  = vhs.filter(v=>v.estado==='disponible').length;
-    const fuera = total - disp;
-    const pct   = total ? Math.round(disp*100/total) : 0;
+    // Excluir remolques del conteo de disponibilidad
+    const camiones = (vhs||[]).filter(v => v.tipo !== 'remolque');
+    const total    = camiones.length;
+    const disp     = camiones.filter(v => v.estado === 'disponible').length;
+    const fuera    = total - disp;
+    const pct      = total ? Math.round(disp*100/total) : 0;
 
+    // Días promedio en taller
     let qe = db.from('eventos_mantenimiento')
       .select('dias_en_taller').eq('estado','completado').gte('fecha_salida', hace30());
     if (REGIONAL_ID) qe = qe.eq('regional_id', REGIONAL_ID);
@@ -434,17 +504,19 @@ async function cargarKPIs() {
 
     document.getElementById('k-total').textContent = total;
     document.getElementById('k-disp').textContent  = disp;
-    document.getElementById('k-pct').textContent   = pct+'% disponibilidad';
+    document.getElementById('k-pct').textContent   = pct + '% disponibilidad';
     document.getElementById('k-fuera').textContent = fuera;
-    document.getElementById('k-dias').textContent  = dias;
-  } catch(e) { console.error(e); }
+    document.getElementById('k-dias').textContent  = dias || '—';
+    document.getElementById('k-sub').textContent   =
+      REGIONAL_ID ? regionales.find(r=>r.id===REGIONAL_ID)?.nombre : 'Todas las regionales';
+  } catch(e) { console.error('KPIs:', e.message); }
 }
 
 // ── Checklists dashboard ───────────────────────────────────
 async function cargarCL() {
   const el = document.getElementById('cl-list');
   try {
-    let qv = db.from('vehiculos').select('id,placa,tipo,estado').eq('activo',true);
+    let qv = db.from('vehiculos').select('id,placa,tipo').eq('activo',true).neq('tipo','remolque');
     if (REGIONAL_ID) qv = qv.eq('regional_id', REGIONAL_ID);
     const {data:vhs} = await qv;
 
@@ -453,51 +525,65 @@ async function cargarCL() {
     const {data:cls} = await qc;
 
     const clMap = new Map((cls||[]).map(c=>[c.vehiculo_id,c]));
-    const enSrv = (vhs||[]).filter(v=>v.estado!=='inactivo');
-    const ok    = (cls||[]).filter(c=>!c.tiene_fallas).length;
+    const total  = (vhs||[]).length;
+    const recibidos = (cls||[]).length;
 
-    document.getElementById('badge-cl').textContent = `${(cls||[]).length}/${enSrv.length}`;
+    document.getElementById('badge-cl').textContent = `${recibidos}/${total}`;
 
-    if (!enSrv.length) { el.innerHTML='<div class="empty">Sin vehículos registrados</div>'; return; }
-    el.innerHTML = enSrv.map(v=>{
+    if (!total) {
+      el.innerHTML = '<div class="empty">Sin vehículos registrados</div>';
+      return;
+    }
+    el.innerHTML = (vhs||[]).slice(0,8).map(v => {
       const c = clMap.get(v.id);
       return `<div class="row-item">
         <span class="plate">${v.placa}</span>
-        <span class="row-info"><span class="row-name" style="font-size:12px">${v.tipo||''}</span></span>
-        ${c ? (c.tiene_fallas
-          ? '<span class="badge b-red">Fallas</span>'
-          : '<span class="badge b-green">OK</span>')
+        <span class="row-info" style="font-size:12px;color:var(--text2)">${v.tipo||''}</span>
+        ${c
+          ? (c.tiene_fallas
+              ? '<span class="badge b-red">Fallas</span>'
+              : '<span class="badge b-green">OK</span>')
           : '<span class="badge b-gray">Pendiente</span>'}
       </div>`;
-    }).join('');
-  } catch(e) { el.innerHTML=`<div class="empty" style="color:var(--red)">${e.message}</div>`; }
+    }).join('') + (total > 8 ? `<div style="padding:8px 0;font-size:12px;color:var(--text2);text-align:center">${total-8} más...</div>` : '');
+  } catch(e) {
+    el.innerHTML = '<div class="empty">Sin checklists hoy</div>';
+  }
 }
 
 // ── Alertas dashboard ──────────────────────────────────────
 async function cargarAlDash() {
   const el = document.getElementById('al-list');
   try {
-    const {data:vhCount} = await db.from('vehiculos').select('id',{count:'exact',head:true});
     let q = db.from('alertas')
       .select('*,vehiculos(placa,tipo,km_actuales),tipos_mantenimiento(nombre)')
-      .not('estado','eq','resuelta');
+      .not('estado','eq','resuelta').not('estado','eq','ignorada');
     if (REGIONAL_ID) q = q.eq('regional_id', REGIONAL_ID);
     const {data:als, error} = await q;
     if (error) throw error;
 
-    const urgentes = (als||[]).filter(a=>['vencida','proxima','proxima_km'].includes(urgAlerta(a)));
-    document.getElementById('badge-al').textContent = urgentes.length || '0';
-    const bAl = document.getElementById('badge-alertas');
-    if (urgentes.length) { bAl.textContent=urgentes.length; bAl.style.display=''; }
+    const urgentes = (als||[]).filter(a => {
+      const u = urgAlerta(a);
+      return u === 'vencida' || u === 'proxima' || u === 'proxima_km';
+    });
 
-    if (!urgentes.length) { el.innerHTML='<div class="empty">Sin alertas urgentes ✓</div>'; return; }
-    el.innerHTML = urgentes.slice(0,5).map(a=>`
+    document.getElementById('badge-al').textContent = urgentes.length || '0';
+    const bNav = document.getElementById('badge-alertas');
+    if (urgentes.length) { bNav.textContent = urgentes.length; bNav.style.display = ''; }
+
+    if (!urgentes.length) {
+      el.innerHTML = '<div class="empty">Sin alertas urgentes ✓</div>';
+      return;
+    }
+    el.innerHTML = urgentes.slice(0,6).map(a => `
       <div class="row-item">
         <span class="plate">${a.vehiculos?.placa||'—'}</span>
-        <span class="row-info"><span class="row-name" style="font-size:12px">${a.tipos_mantenimiento?.nombre||'—'}</span></span>
+        <span class="row-info" style="font-size:12px;color:var(--text2)">${a.tipos_mantenimiento?.nombre||'—'}</span>
         ${badgeUrg(urgAlerta(a))}
       </div>`).join('');
-  } catch(e) { el.innerHTML='<div class="empty">Sin alertas activas ✓</div>'; }
+  } catch(e) {
+    el.innerHTML = '<div class="empty">Sin alertas registradas</div>';
+  }
 }
 
 // ── Fuera dashboard ────────────────────────────────────────
@@ -505,49 +591,63 @@ async function cargarFueraDash() {
   const tb = document.getElementById('fuera-dash');
   try {
     let q = db.from('eventos_mantenimiento')
-      .select('*,vehiculos(id,placa,tipo),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
+      .select('*,vehiculos(id,placa,tipo,regionales(nombre)),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
       .eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
     if (REGIONAL_ID) q = q.eq('regional_id', REGIONAL_ID);
     const {data, error} = await q;
-    if (error) { tb.innerHTML='<tr><td colspan="6" class="empty">Sin eventos activos</td></tr>'; return; }
-    eventosActivos = data||[];
+    if (error) throw error;
 
+    eventosActivos = data || [];
     const bf = document.getElementById('badge-fuera');
-    if (eventosActivos.length) { bf.textContent=eventosActivos.length; bf.style.display=''; }
+    if (eventosActivos.length) { bf.textContent = eventosActivos.length; bf.style.display = ''; }
+    else { bf.style.display = 'none'; }
 
     if (!eventosActivos.length) {
-      tb.innerHTML='<tr><td colspan="6" class="empty">Sin vehículos fuera de servicio ✓</td></tr>'; return;
+      tb.innerHTML = '<tr><td colspan="7" class="empty">Sin vehículos fuera de servicio ✓</td></tr>';
+      return;
     }
-    tb.innerHTML = eventosActivos.map(e=>{
+    tb.innerHTML = eventosActivos.map(e => {
       const d = diasFuera(e.fecha_entrada);
       return `<tr>
         <td style="font-weight:600">${e.vehiculos?.placa||'—'}</td>
-        <td>${e.talleres?.tipo ? labelTaller(e.talleres.tipo) : '—'}</td>
+        <td>${e.vehiculos?.regionales?.nombre||'—'}</td>
+        <td>${e.talleres?.nombre||'—'}</td>
         <td>${fmtF(e.fecha_entrada)}</td>
         <td style="text-align:center"><span class="${clrDias(d)}">${d}</span></td>
-        <td style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+        <td style="font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
           ${e.descripcion_trabajo||e.tipos_mantenimiento?.nombre||'—'}</td>
         <td>${badgePrior(e.prioridad)}</td>
       </tr>`;
     }).join('');
-  } catch(e) { tb.innerHTML=`<tr><td colspan="6" style="color:var(--red);padding:12px">${e.message}</td></tr>`; }
+  } catch(e) {
+    tb.innerHTML = `<tr><td colspan="7" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;
+  }
 }
 
 // ── Fuera página completa ──────────────────────────────────
 async function cargarFuera() {
   const tb = document.getElementById('fuera-body');
-  if (!eventosActivos.length) await cargarFueraDash();
-  if (!eventosActivos.length) {
-    tb.innerHTML='<tr><td colspan="8" class="empty">Sin vehículos fuera de servicio ✓</td></tr>'; return;
-  }
-  tb.innerHTML = [...eventosActivos]
-    .sort((a,b)=>new Date(a.fecha_entrada)-new Date(b.fecha_entrada))
-    .map(e=>{
+  try {
+    let q = db.from('eventos_mantenimiento')
+      .select('*,vehiculos(id,placa,tipo,regionales(nombre)),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
+      .eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
+    if (REGIONAL_ID) q = q.eq('regional_id', REGIONAL_ID);
+    const {data, error} = await q;
+    if (error) throw error;
+    eventosActivos = data || [];
+
+    if (!eventosActivos.length) {
+      tb.innerHTML = '<tr><td colspan="9" class="empty">Sin vehículos fuera de servicio ✓</td></tr>';
+      return;
+    }
+    tb.innerHTML = eventosActivos.map(e => {
       const d = diasFuera(e.fecha_entrada);
       return `<tr>
         <td style="font-weight:600">${e.vehiculos?.placa||'—'}</td>
         <td>${e.vehiculos?.tipo||'—'}</td>
-        <td>${e.talleres?.nombre||'—'}<br><span style="font-size:11px;color:var(--text2)">${e.talleres?.tipo?labelTaller(e.talleres.tipo):''}</span></td>
+        <td>${e.vehiculos?.regionales?.nombre||'—'}</td>
+        <td>${e.talleres?.nombre||'—'}<br>
+          <span style="font-size:11px;color:var(--text2)">${e.talleres?.tipo?labelTaller(e.talleres.tipo):''}</span></td>
         <td>${fmtF(e.fecha_entrada)}</td>
         <td style="text-align:center"><span class="${clrDias(d)}">${d}</span></td>
         <td style="font-size:12px">${e.descripcion_trabajo||'—'}</td>
@@ -555,6 +655,9 @@ async function cargarFuera() {
         <td><button class="btn btn-sm" onclick="irRetorno('${e.id}')">Retorno</button></td>
       </tr>`;
     }).join('');
+  } catch(e) {
+    tb.innerHTML = `<tr><td colspan="9" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;
+  }
 }
 
 // ── Alertas página completa ────────────────────────────────
@@ -562,38 +665,48 @@ async function cargarAlertas() {
   const tb = document.getElementById('alertas-body');
   try {
     let q = db.from('alertas')
-      .select('*,vehiculos(placa,tipo,km_actuales),tipos_mantenimiento(nombre)')
-      .neq('estado','resuelta');
+      .select('*,vehiculos(placa,tipo,km_actuales,regionales(nombre)),tipos_mantenimiento(nombre)')
+      .not('estado','eq','resuelta');
     if (REGIONAL_ID) q = q.eq('regional_id', REGIONAL_ID);
     const {data, error} = await q;
     if (error) throw error;
 
     document.getElementById('badge-al-page').textContent = (data||[]).length;
-    if (!data?.length) { tb.innerHTML='<tr><td colspan="6" class="empty">Sin alertas activas</td></tr>'; return; }
-
-    tb.innerHTML = data.map(a=>{
+    if (!data?.length) {
+      tb.innerHTML = '<tr><td colspan="6" class="empty">Sin alertas activas</td></tr>';
+      return;
+    }
+    // Ordenar: vencidas primero, luego próximas
+    const ordenadas = [...data].sort((a,b) => {
+      const ord = {vencida:0,proxima:1,proxima_km:2,programada:3};
+      return (ord[urgAlerta(a)]||3) - (ord[urgAlerta(b)]||3);
+    });
+    tb.innerHTML = ordenadas.map(a => {
       const u = urgAlerta(a);
-      const venc = a.tipo_alerta==='por_fecha' ? fmtF(a.fecha_limite)
+      const venc = a.tipo_alerta==='por_fecha'
+        ? fmtF(a.fecha_limite)
         : (a.km_limite ? a.km_limite.toLocaleString('es-CO')+' km' : '—');
       return `<tr>
         <td style="font-weight:600">${a.vehiculos?.placa||'—'}</td>
-        <td>${a.vehiculos?.tipo||'—'}</td>
+        <td>${a.vehiculos?.regionales?.nombre||'—'}</td>
         <td>${a.tipos_mantenimiento?.nombre||'—'}</td>
         <td>${venc}</td>
         <td>${badgeUrg(u)}</td>
         <td><button class="btn btn-sm" onclick="ir('entrada')">Atender</button></td>
       </tr>`;
     }).join('');
-  } catch(e) { tb.innerHTML=`<tr><td colspan="6" style="color:var(--red);padding:12px">${e.message}</td></tr>`; }
+  } catch(e) {
+    tb.innerHTML = `<tr><td colspan="6" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;
+  }
 }
 
 // ── Historial ──────────────────────────────────────────────
 async function cargarHistorial() {
   const tb = document.getElementById('hist-body');
-  tb.innerHTML='<tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr>';
+  tb.innerHTML = '<tr><td colspan="9" class="loading"><div class="spinner"></div></td></tr>';
   try {
     let q = db.from('eventos_mantenimiento')
-      .select('*,vehiculos(id,placa,tipo),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
+      .select('*,vehiculos(id,placa,tipo,regionales(nombre)),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
       .order('fecha_entrada',{ascending:false});
     if (REGIONAL_ID) q = q.eq('regional_id', REGIONAL_ID);
     const desde = document.getElementById('h-desde').value;
@@ -606,19 +719,27 @@ async function cargarHistorial() {
     if (error) throw error;
 
     document.getElementById('h-count').textContent = `${(data||[]).length} registros`;
-    if (!data?.length) { tb.innerHTML='<tr><td colspan="8" class="empty">Sin resultados</td></tr>'; return; }
-
-    tb.innerHTML = data.map(e=>`<tr style="cursor:pointer" onclick="verTL('${e.vehiculos?.id||''}','${e.vehiculos?.placa||''}')">
-      <td style="font-weight:600">${e.vehiculos?.placa||'—'}</td>
-      <td>${e.tipos_mantenimiento?.nombre||'—'}</td>
-      <td>${e.talleres?.nombre||'—'}</td>
-      <td>${fmtF(e.fecha_entrada)}</td>
-      <td>${fmtF(e.fecha_salida)}</td>
-      <td style="text-align:center">${e.dias_en_taller!=null?`<strong>${e.dias_en_taller}</strong>`:'<span style="color:var(--amber)">En curso</span>'}</td>
-      <td style="text-align:right">${fmtM(e.costo)}</td>
-      <td style="font-size:11px;color:var(--text2)">Ver →</td>
-    </tr>`).join('');
-  } catch(e) { tb.innerHTML=`<tr><td colspan="8" style="color:var(--red);padding:12px">${e.message}</td></tr>`; }
+    if (!data?.length) {
+      tb.innerHTML = '<tr><td colspan="9" class="empty">Sin resultados para el período seleccionado</td></tr>';
+      return;
+    }
+    tb.innerHTML = data.map(e => `
+      <tr style="cursor:pointer" onclick="verTL('${e.vehiculos?.id||''}','${e.vehiculos?.placa||''}')">
+        <td style="font-weight:600">${e.vehiculos?.placa||'—'}</td>
+        <td>${e.vehiculos?.regionales?.nombre||'—'}</td>
+        <td>${e.tipos_mantenimiento?.nombre||'—'}</td>
+        <td>${e.talleres?.nombre||'—'}</td>
+        <td>${fmtF(e.fecha_entrada)}</td>
+        <td>${fmtF(e.fecha_salida)}</td>
+        <td style="text-align:center">${e.dias_en_taller!=null
+          ? `<strong>${e.dias_en_taller}</strong>`
+          : '<span style="color:var(--amber)">En curso</span>'}</td>
+        <td style="text-align:right">${fmtM(e.costo)}</td>
+        <td style="font-size:11px;color:var(--text2)">Ver →</td>
+      </tr>`).join('');
+  } catch(e) {
+    tb.innerHTML = `<tr><td colspan="9" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;
+  }
 }
 
 async function verTL(vid, placa) {
@@ -626,66 +747,124 @@ async function verTL(vid, placa) {
   const card = document.getElementById('tl-card');
   const body = document.getElementById('tl-body');
   document.getElementById('tl-title').textContent = `Historial completo — ${placa}`;
-  body.innerHTML='<div class="loading"><div class="spinner"></div> Cargando...</div>';
-  card.style.display='block';
+  body.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  card.style.display = 'block';
   card.scrollIntoView({behavior:'smooth',block:'start'});
   const {data, error} = await db.from('eventos_mantenimiento')
     .select('*,talleres(nombre,tipo),tipos_mantenimiento(nombre)')
     .eq('vehiculo_id', vid).order('fecha_entrada',{ascending:false});
-  if (error||!data?.length) { body.innerHTML='<div class="empty">Sin eventos</div>'; return; }
-  body.innerHTML = data.map(e=>{
+  if (error || !data?.length) {
+    body.innerHTML = '<div class="empty">Sin eventos registrados para este vehículo</div>';
+    return;
+  }
+  body.innerHTML = data.map(e => {
     const enCurso = !e.fecha_salida;
-    const color   = enCurso?'var(--amber)':e.tipo==='siniestro'?'var(--red)':'var(--green)';
+    const color   = enCurso ? 'var(--amber)' : e.tipo==='siniestro' ? 'var(--red)' : 'var(--green)';
     return `<div class="tl-item">
-      <div class="tl-left"><div class="tl-dot" style="background:${color}"></div><div class="tl-line"></div></div>
+      <div class="tl-left">
+        <div class="tl-dot" style="background:${color}"></div>
+        <div class="tl-line"></div>
+      </div>
       <div>
         <div style="font-size:13px;font-weight:500">${e.tipos_mantenimiento?.nombre||e.tipo||'—'} — ${e.talleres?.nombre||'—'}</div>
         <div style="font-size:12px;color:var(--text2);margin-top:2px">${fmtF(e.fecha_entrada)} → ${fmtF(e.fecha_salida)}</div>
         <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap">
           <span class="badge ${enCurso?'b-amber':'b-green'}">${e.dias_en_taller!=null?e.dias_en_taller+' días':'En curso'}</span>
-          ${e.costo?`<span class="badge b-gray">${fmtM(e.costo)}</span>`:''}
-          ${e.descripcion_trabajo?`<span style="font-size:11px;color:var(--text2)">${e.descripcion_trabajo}</span>`:''}
+          ${e.costo ? `<span class="badge b-gray">${fmtM(e.costo)}</span>` : ''}
+          ${e.descripcion_trabajo ? `<span style="font-size:11px;color:var(--text2)">${e.descripcion_trabajo}</span>` : ''}
         </div>
       </div>
     </div>`;
   }).join('');
 }
 
+// ── Flota completa ─────────────────────────────────────────
+async function cargarFlota() {
+  const tb = document.getElementById('flota-body');
+  tb.innerHTML = '<tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr>';
+  try {
+    const regFiltro  = document.getElementById('flota-regional').value;
+    const tipoFiltro = document.getElementById('flota-tipo').value;
+    let q = db.from('vehiculos')
+      .select('id,placa,tipo,estado,km_actuales,activo,regionales(nombre)')
+      .eq('activo', true).order('placa');
+    if (regFiltro)  q = q.eq('regional_id', regFiltro);
+    if (tipoFiltro) q = q.eq('tipo', tipoFiltro);
+    const {data, error} = await q;
+    if (error) throw error;
+
+    document.getElementById('flota-count').textContent = `${(data||[]).length} vehículos`;
+    if (!data?.length) {
+      tb.innerHTML = '<tr><td colspan="6" class="empty">Sin vehículos</td></tr>';
+      return;
+    }
+    tb.innerHTML = data.map(v => `<tr>
+      <td style="font-weight:600">${v.placa}</td>
+      <td>${v.tipo||'—'}</td>
+      <td>${v.regionales?.nombre||'—'}</td>
+      <td>${badgeEstado(v.estado)}</td>
+      <td>${v.km_actuales ? v.km_actuales.toLocaleString('es-CO')+' km' : '—'}</td>
+      <td><button class="btn btn-sm" onclick="verTLFlota('${v.id}','${v.placa}')">Historial</button></td>
+    </tr>`).join('');
+  } catch(e) {
+    tb.innerHTML = `<tr><td colspan="6" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+async function verTLFlota(vid, placa) {
+  ir('historial');
+  setTimeout(() => verTL(vid, placa), 300);
+}
+
 // ── Formulario entrada ─────────────────────────────────────
 async function prepEntrada() {
-  const {data:vhs} = await db.from('vehiculos').select('id,placa,tipo,estado').eq('activo',true);
-  const {data:tal} = await db.from('talleres').select('id,nombre,tipo').eq('activo',true);
-  const {data:tms} = await db.from('tipos_mantenimiento').select('id,nombre').eq('activo',true);
+  try {
+    let qv = db.from('vehiculos').select('id,placa,tipo,estado,regionales(nombre)').eq('activo',true).order('placa');
+    if (REGIONAL_ID) qv = qv.eq('regional_id', REGIONAL_ID);
+    const {data:vhs} = await qv;
+    const {data:tal} = await db.from('talleres').select('id,nombre,tipo').eq('activo',true).order('nombre');
+    const {data:tms} = await db.from('tipos_mantenimiento').select('id,nombre').eq('activo',true).order('nombre');
 
-  const sv = document.getElementById('e-vh');
-  sv.innerHTML='<option value="">Seleccionar vehículo...</option>'+
-    (vhs||[]).map(v=>`<option value="${v.id}">${v.placa} — ${v.tipo||''} [${v.estado}]</option>`).join('');
+    document.getElementById('e-vh').innerHTML =
+      '<option value="">Seleccionar vehículo...</option>' +
+      (vhs||[]).map(v =>
+        `<option value="${v.id}" data-reg="${v.regional_id||''}">${v.placa} — ${v.tipo||''} [${v.regionales?.nombre||''}] — ${v.estado}</option>`
+      ).join('');
 
-  const st = document.getElementById('e-taller');
-  st.innerHTML='<option value="">Seleccionar taller...</option>'+
-    (tal||[]).map(t=>`<option value="${t.id}" data-tipo="${t.tipo}">${t.nombre}</option>`).join('');
+    document.getElementById('e-taller').innerHTML =
+      '<option value="">Seleccionar taller...</option>' +
+      (tal||[]).map(t =>
+        `<option value="${t.id}" data-tipo="${t.tipo}">${t.nombre} (${labelTaller(t.tipo)})</option>`
+      ).join('');
 
-  const sm = document.getElementById('e-tipomant');
-  sm.innerHTML='<option value="">Seleccionar tipo...</option>'+
-    (tms||[]).map(m=>`<option value="${m.id}">${m.nombre}</option>`).join('');
+    document.getElementById('e-tipomant').innerHTML =
+      '<option value="">Seleccionar tipo...</option>' +
+      (tms||[]).map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
 
-  document.getElementById('e-fecha').value = hoy();
+    document.getElementById('e-fecha').value = hoy();
+  } catch(e) { toast('Error cargando formulario: '+e.message, true); }
 }
 
 async function submitEntrada(e) {
   e.preventDefault();
   const btn = document.getElementById('btn-ent');
-  btn.disabled=true; btn.textContent='Registrando...';
-  const vhId   = document.getElementById('e-vh').value;
+  btn.disabled = true; btn.textContent = 'Registrando...';
+
+  const vhSel  = document.getElementById('e-vh');
+  const vhOpt  = vhSel.options[vhSel.selectedIndex];
+  const vhId   = vhOpt.value;
+  const regId  = vhOpt.dataset.reg || REGIONAL_ID;
+
   const talSel = document.getElementById('e-taller');
   const talOpt = talSel.options[talSel.selectedIndex];
   const origen = talOpt?.dataset.tipo || 'taller_propio';
+
   try {
     const {error} = await db.from('eventos_mantenimiento').insert({
       vehiculo_id:           vhId,
-      taller_id:             document.getElementById('e-taller').value,
+      taller_id:             talSel.value,
       tipo_mantenimiento_id: document.getElementById('e-tipomant').value,
-      regional_id:           REGIONAL_ID,
+      regional_id:           regId || null,
       origen,
       tipo:                  document.getElementById('e-tipo').value,
       prioridad:             document.getElementById('e-prior').value,
@@ -696,55 +875,63 @@ async function submitEntrada(e) {
     if (error) throw error;
     await db.from('vehiculos').update({estado: origen}).eq('id', vhId);
     eventosActivos = [];
-    document.getElementById('page-entrada').querySelector('form').reset();
-    toast('Entrada registrada correctamente');
+    e.target.reset();
+    document.getElementById('e-fecha').value = hoy();
+    toast('Entrada registrada correctamente ✓');
     await Promise.all([cargarKPIs(), cargarFueraDash()]);
     ir('fuera');
-  } catch(err) { toast(err.message, true); }
-  finally { btn.disabled=false; btn.textContent='Registrar entrada'; }
+  } catch(err) { toast('Error: '+err.message, true); }
+  finally { btn.disabled = false; btn.textContent = 'Registrar entrada'; }
 }
 
 // ── Formulario retorno ─────────────────────────────────────
 async function prepRetorno() {
-  if (!eventosActivos.length) await cargarFueraDash();
-  const sel = document.getElementById('r-evento');
-  sel.innerHTML='<option value="">Seleccionar vehículo en taller...</option>'+
-    eventosActivos.map(e=>
-      `<option value="${e.id}" data-vh="${e.vehiculos?.id}" data-entrada="${e.fecha_entrada}">
-        ${e.vehiculos?.placa} — ${diasFuera(e.fecha_entrada)} días fuera — ${e.talleres?.nombre||''}
-      </option>`
-    ).join('');
-  document.getElementById('r-fecha').value = hoy();
+  try {
+    let q = db.from('eventos_mantenimiento')
+      .select('id,vehiculos(id,placa),talleres(nombre),fecha_entrada')
+      .eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
+    if (REGIONAL_ID) q = q.eq('regional_id', REGIONAL_ID);
+    const {data} = await q;
+    eventosActivos = data || [];
+
+    document.getElementById('r-evento').innerHTML =
+      '<option value="">Seleccionar vehículo en taller...</option>' +
+      (data||[]).map(e =>
+        `<option value="${e.id}" data-vh="${e.vehiculos?.id}" data-entrada="${e.fecha_entrada}">
+          ${e.vehiculos?.placa} — ${diasFuera(e.fecha_entrada)} días fuera — ${e.talleres?.nombre||''}
+        </option>`
+      ).join('');
+    document.getElementById('r-fecha').value = hoy();
+    document.getElementById('r-info-wrap').style.display = 'none';
+  } catch(e) { toast('Error: '+e.message, true); }
 }
 
 function onEvento() {
-  const sel  = document.getElementById('r-evento');
-  const opt  = sel.options[sel.selectedIndex];
+  const sel = document.getElementById('r-evento');
+  const opt = sel.options[sel.selectedIndex];
   const wrap = document.getElementById('r-info-wrap');
   if (!opt.value) { wrap.style.display='none'; return; }
   document.getElementById('r-info').textContent =
-    `Vehículo en taller desde ${fmtF(opt.dataset.entrada)} — ${diasFuera(opt.dataset.entrada)} días fuera`;
-  wrap.style.display='block';
+    `Vehículo en taller desde ${fmtF(opt.dataset.entrada)} — ${diasFuera(opt.dataset.entrada)} días fuera de servicio`;
+  wrap.style.display = 'block';
 }
 
 function irRetorno(eventoId) {
   ir('retorno');
-  setTimeout(()=>{
+  setTimeout(() => {
     const sel = document.getElementById('r-evento');
     for (const opt of sel.options) {
-      if (opt.value===eventoId) { opt.selected=true; onEvento(); break; }
+      if (opt.value === eventoId) { opt.selected=true; onEvento(); break; }
     }
-  }, 300);
+  }, 400);
 }
 
 async function submitRetorno(e) {
   e.preventDefault();
   const btn = document.getElementById('btn-ret');
-  btn.disabled=true; btn.textContent='Registrando...';
+  btn.disabled = true; btn.textContent = 'Registrando...';
   const sel  = document.getElementById('r-evento');
   const opt  = sel.options[sel.selectedIndex];
-  const eid  = opt.value;
-  const vhid = opt.dataset.vh;
   try {
     const {error} = await db.from('eventos_mantenimiento').update({
       fecha_salida:        document.getElementById('r-fecha').value,
@@ -752,16 +939,17 @@ async function submitRetorno(e) {
       costo:               parseFloat(document.getElementById('r-costo').value)||null,
       descripcion_trabajo: document.getElementById('r-desc').value,
       estado:              'completado',
-    }).eq('id', eid);
+      updated_at:          new Date().toISOString(),
+    }).eq('id', opt.value);
     if (error) throw error;
-    await db.from('vehiculos').update({estado:'disponible'}).eq('id', vhid);
-    eventosActivos=[];
-    document.getElementById('page-retorno').querySelector('form').reset();
-    document.getElementById('r-info-wrap').style.display='none';
-    toast('Retorno registrado — vehículo disponible');
+    await db.from('vehiculos').update({estado:'disponible', updated_at:new Date().toISOString()}).eq('id', opt.dataset.vh);
+    eventosActivos = [];
+    e.target.reset();
+    document.getElementById('r-info-wrap').style.display = 'none';
+    toast('Retorno registrado — vehículo disponible ✓');
     await Promise.all([cargarKPIs(), cargarFueraDash()]);
     ir('fuera');
-  } catch(err) { toast(err.message, true); }
+  } catch(err) { toast('Error: '+err.message, true); }
   finally { btn.disabled=false; btn.textContent='Registrar retorno'; }
 }
 
