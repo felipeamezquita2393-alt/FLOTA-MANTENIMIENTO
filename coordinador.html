@@ -382,7 +382,8 @@ const db = createClient(
 
 let REGIONAL_ID = null;
 let regionales = [];
-let figurasCambios = {}; // {vehiculo_id: {figura, activo, titular_reemplazado_id, motivo}}
+let figurasCambios = {};
+let vehiculosTitulares = []; // titulares disponibles para selector de reemplazo
 
 const hoy = () => new Date().toISOString().split('T')[0];
 const hace30 = () => new Date(Date.now()-30*24*60*60*1000).toISOString().split('T')[0];
@@ -478,19 +479,23 @@ async function init(){
   const{data:regs}=await db.from('regionales').select('id,nombre').eq('activa',true).order('nombre');
   regionales=regs||[];
 
-  // Poblar selects de regional UNA sola vez
-  function poblarSelectRegional(id){
-    const sel=document.getElementById(id);
-    if(!sel)return;
-    // Limpiar opciones excepto la primera
-    while(sel.options.length>1)sel.remove(1);
-    regionales.forEach(r=>{
-      const opt=document.createElement('option');
-      opt.value=r.id;opt.textContent=r.nombre;
-      sel.appendChild(opt);
+  // Poblar selects de regional - solo una vez
+  let regionalesPobladas = false;
+  function poblarSelectsRegional(){
+    if(regionalesPobladas) return;
+    regionalesPobladas = true;
+    ['filtro-regional','figura-regional','flota-regional'].forEach(id=>{
+      const sel=document.getElementById(id);
+      if(!sel)return;
+      while(sel.options.length>1)sel.remove(1);
+      regionales.forEach(r=>{
+        const opt=document.createElement('option');
+        opt.value=r.id; opt.textContent=r.nombre;
+        sel.appendChild(opt);
+      });
     });
   }
-  ['filtro-regional','figura-regional','flota-regional'].forEach(poblarSelectRegional);
+  poblarSelectsRegional();
 
   await cargarDashboard();
 }
@@ -651,8 +656,9 @@ async function cargarFigura(){
     const{data:asigs}=await qa;
     const asigMap=new Map((asigs||[]).map(a=>[a.vehiculo_id,a]));
 
-    // Titulares disponibles para selector
-    const titularesDisp=(vhs||[]).filter(v=>v.figura==='titular'&&v.estado==='disponible');
+    // Titulares disponibles para selector (guardar globalmente)
+    vehiculosTitulares=(vhs||[]).filter(v=>v.figura==='titular'&&v.estado==='disponible');
+    const titularesDisp=vehiculosTitulares;
 
     if(!(vhs||[]).length){tb.innerHTML='<tr><td colspan="7" class="empty">Sin vehículos</td></tr>';return;}
 
@@ -682,12 +688,12 @@ async function cargarFigura(){
           }
         </td>
         <td>
-          ${figHoy==='backup'&&activoHoy&&!enTaller
-            ? `<select id="tit-${v.id}" style="font-size:12px;padding:4px 8px;border:0.5px solid var(--border);border-radius:var(--r)">
-                <option value="">Seleccionar...</option>${titOpts}
-              </select>`
-            : '<span style="color:var(--text3);font-size:12px">—</span>'
-          }
+          <div id="tit-wrap-${v.id}" style="display:${figHoy==='backup'&&activoHoy&&!enTaller?'block':'none'}">
+            <select id="tit-${v.id}" style="font-size:12px;padding:4px 8px;border:0.5px solid var(--border);border-radius:var(--r);width:120px">
+              <option value="">Seleccionar...</option>${titOpts}
+            </select>
+          </div>
+          <span style="color:var(--text3);font-size:12px;display:${figHoy==='backup'&&activoHoy&&!enTaller?'none':'inline'}">—</span>
         </td>
         <td>
           <input type="text" id="mot-${v.id}" placeholder="Motivo (opcional)"
@@ -701,31 +707,29 @@ async function cargarFigura(){
 }
 
 function setFigura(vid,figura,activo,btn){
-  // Actualizar UI
+  // Actualizar botones
   const row=document.getElementById('fila-'+vid);
   row.querySelectorAll('.ft-btn').forEach(b=>b.classList.remove('sel'));
   btn.classList.add('sel');
 
-  // Mostrar/ocultar selector de titular
-  const tdTit=btn.closest('tr').querySelector(`#tit-${vid}`);
-  const tdParent=btn.closest('tr').cells[4];
+  // Celda del titular a reemplazar (índice 4)
+  const tdParent=row.cells[4];
+
   if(figura==='backup'&&activo){
-    const titularesDisp=Array.from(document.querySelectorAll('[id^="fila-"]'))
-      .map(r=>{const pl=r.cells[0].textContent;const id=r.id.replace('fila-','');return{id,placa:pl};});
-    if(!document.getElementById('tit-'+vid)){
-      const sel=document.createElement('select');
-      sel.id='tit-'+vid;
-      sel.style='font-size:12px;padding:4px 8px;border:0.5px solid var(--border);border-radius:var(--r)';
-      sel.innerHTML='<option value="">Seleccionar...</option>';
-      tdParent.innerHTML='';tdParent.appendChild(sel);
-    }
+    // Construir select con todos los titulares disponibles
+    const titOpts=regionales.length>0
+      ? vehiculosTitulares.map(t=>`<option value="${t.id}">${t.placa} — ${regNombre(t.regional_id)}</option>`).join('')
+      : '';
+    tdParent.innerHTML=`<select id="tit-${vid}" style="font-size:12px;padding:4px 8px;border:0.5px solid var(--border);border-radius:var(--r);min-width:130px">
+      <option value="">Seleccionar titular...</option>${titOpts}
+    </select>`;
   } else {
     tdParent.innerHTML='<span style="color:var(--text3);font-size:12px">—</span>';
   }
 
   // Registrar cambio
   figurasCambios[vid]={figura,activo};
-  document.getElementById('est-'+vid).textContent='Modificado';
+  document.getElementById('est-'+vid).textContent='● Modificado';
   document.getElementById('est-'+vid).style.color='var(--amber)';
 }
 
@@ -739,7 +743,8 @@ async function guardarFiguras(){
     for(const vid of vids){
       const c=figurasCambios[vid];
       const motivo=document.getElementById('mot-'+vid)?.value||null;
-      const titId=document.getElementById('tit-'+vid)?.value||null;
+      const titEl=document.getElementById('tit-'+vid);
+      const titId=titEl?.value||null;
       const reg=regionales.find(r=>r.id===REGIONAL_ID)||regionales[0];
 
       // Obtener regional del vehículo
@@ -914,6 +919,19 @@ async function cargarFlota(){
   }catch(e){tb.innerHTML=`<tr><td colspan="7" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
 }
 
+
+async function cambiarFiguraBase(vid, figuraActual, placa){
+  const nueva = figuraActual==='titular' ? 'backup' : 'titular';
+  if(!confirm(`¿Cambiar ${placa} de ${figuraActual.toUpperCase()} a ${nueva.toUpperCase()}?\nEsto actualiza la figura base del vehículo.`)) return;
+  try{
+    const{error}=await db.from('vehiculos').update({figura:nueva}).eq('id',vid);
+    if(error)throw error;
+    toast(`${placa} actualizado a ${nueva} ✓`);
+    cargarFlota();
+    cargarKPIs();
+  }catch(e){toast('Error: '+e.message,true);}
+}
+
 async function verTLFlota(vid,placa){ir('historial');setTimeout(()=>verTL(vid,placa),300);}
 
 // ── Formulario entrada ─────────────────────────────────────
@@ -1024,6 +1042,15 @@ async function submitRetorno(e){
   finally{btn.disabled=false;btn.textContent='Registrar retorno';}
 }
 
+
+
+async function cambiarFiguraBase(vid, figura){
+  try{
+    const{error}=await db.from('vehiculos').update({figura}).eq('id',vid);
+    if(error)throw error;
+    toast(`Figura base actualizada a ${figura} ✓`);
+  }catch(e){toast('Error: '+e.message,true);}
+}
 
 // Helper para obtener nombre de regional por ID
 function regNombre(id){
