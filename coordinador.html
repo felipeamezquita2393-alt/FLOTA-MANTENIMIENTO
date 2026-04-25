@@ -478,15 +478,19 @@ async function init(){
   const{data:regs}=await db.from('regionales').select('id,nombre').eq('activa',true).order('nombre');
   regionales=regs||[];
 
-  ['filtro-regional','figura-regional','flota-regional'].forEach(id=>{
+  // Poblar selects de regional UNA sola vez
+  function poblarSelectRegional(id){
     const sel=document.getElementById(id);
     if(!sel)return;
+    // Limpiar opciones excepto la primera
+    while(sel.options.length>1)sel.remove(1);
     regionales.forEach(r=>{
       const opt=document.createElement('option');
       opt.value=r.id;opt.textContent=r.nombre;
       sel.appendChild(opt);
     });
-  });
+  }
+  ['filtro-regional','figura-regional','flota-regional'].forEach(poblarSelectRegional);
 
   await cargarDashboard();
 }
@@ -602,7 +606,7 @@ async function cargarFueraDash(){
   const tb=document.getElementById('fuera-dash');
   try{
     let q=db.from('eventos_mantenimiento')
-      .select('*,vehiculos(id,placa,tipo,regionales(nombre)),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
+      .select('*,vehiculos(id,placa,tipo,regional_id),talleres(nombre,tipo),tipos_mantenimiento(nombre),regionales(nombre)')
       .eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     const{data,error}=await q;
@@ -616,7 +620,7 @@ async function cargarFueraDash(){
       const d=diasFuera(e.fecha_entrada);
       return`<tr>
         <td style="font-weight:600">${e.vehiculos?.placa||'—'}</td>
-        <td>${e.vehiculos?.regionales?.nombre||'—'}</td>
+        <td>${regNombre(e.vehiculos?.regional_id)||'—'}</td>
         <td>${e.talleres?.nombre||'—'}</td>
         <td>${fmtF(e.fecha_entrada)}</td>
         <td style="text-align:center"><span class="${clrDias(d)}">${d}</span></td>
@@ -635,7 +639,7 @@ async function cargarFigura(){
   figurasCambios={};
   try{
     const regFiltro=document.getElementById('figura-regional').value;
-    let qv=db.from('vehiculos').select('id,placa,tipo,figura,estado,regionales(id,nombre)')
+    let qv=db.from('vehiculos').select('id,placa,tipo,figura,estado,regional_id')
       .eq('activo',true).neq('tipo','remolque').order('placa');
     if(regFiltro)qv=qv.eq('regional_id',regFiltro);
     else if(REGIONAL_ID)qv=qv.eq('regional_id',REGIONAL_ID);
@@ -665,7 +669,7 @@ async function cargarFigura(){
 
       return`<tr id="fila-${v.id}">
         <td style="font-weight:600">${v.placa}</td>
-        <td style="font-size:12px">${v.regionales?.nombre||'—'}</td>
+        <td style="font-size:12px">${regNombre(v.regional_id)||'—'}</td>
         <td>${badgeFigura(v.figura,false)}</td>
         <td>
           ${enTaller
@@ -766,7 +770,7 @@ async function cargarFuera(){
   const tb=document.getElementById('fuera-body');
   try{
     let q=db.from('eventos_mantenimiento')
-      .select('*,vehiculos(id,placa,tipo,regionales(nombre)),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
+      .select('*,vehiculos(id,placa,tipo,regional_id),talleres(nombre,tipo),tipos_mantenimiento(nombre),regionales(nombre)')
       .eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     const{data,error}=await q;
@@ -777,7 +781,7 @@ async function cargarFuera(){
       return`<tr>
         <td style="font-weight:600">${e.vehiculos?.placa||'—'}</td>
         <td>${e.vehiculos?.tipo||'—'}</td>
-        <td>${e.vehiculos?.regionales?.nombre||'—'}</td>
+        <td>${regNombre(e.vehiculos?.regional_id)||'—'}</td>
         <td>${e.talleres?.nombre||'—'}<br><span style="font-size:11px;color:var(--text2)">${e.talleres?.tipo?labelTaller(e.talleres.tipo):''}</span></td>
         <td>${fmtF(e.fecha_entrada)}</td>
         <td style="text-align:center"><span class="${clrDias(d)}">${d}</span></td>
@@ -793,7 +797,7 @@ async function cargarFuera(){
 async function cargarAlertas(){
   const tb=document.getElementById('alertas-body');
   try{
-    let q=db.from('alertas').select('*,vehiculos(placa,tipo,km_actuales,regionales(nombre)),tipos_mantenimiento(nombre)').not('estado','eq','resuelta');
+    let q=db.from('alertas').select('*,vehiculos(placa,tipo,km_actuales,regional_id),tipos_mantenimiento(nombre),regionales(nombre)').not('estado','eq','resuelta');
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     const{data,error}=await q;
     if(error)throw error;
@@ -808,7 +812,7 @@ async function cargarAlertas(){
       const venc=a.tipo_alerta==='por_fecha'?fmtF(a.fecha_limite):(a.km_limite?a.km_limite.toLocaleString('es-CO')+' km':'—');
       return`<tr>
         <td style="font-weight:600">${a.vehiculos?.placa||'—'}</td>
-        <td>${a.vehiculos?.regionales?.nombre||'—'}</td>
+        <td>${regNombre(a.vehiculos?.regional_id)||'—'}</td>
         <td>${a.tipos_mantenimiento?.nombre||'—'}</td>
         <td>${venc}</td>
         <td>${badgeUrg(u)}</td>
@@ -824,7 +828,7 @@ async function cargarHistorial(){
   tb.innerHTML='<tr><td colspan="9" class="loading"><div class="spinner"></div></td></tr>';
   try{
     let q=db.from('eventos_mantenimiento')
-      .select('*,vehiculos(id,placa,tipo,regionales(nombre)),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
+      .select('*,vehiculos(id,placa,tipo,regional_id),talleres(nombre,tipo),tipos_mantenimiento(nombre),regionales(nombre)')
       .order('fecha_entrada',{ascending:false});
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     const desde=document.getElementById('h-desde').value;
@@ -840,7 +844,7 @@ async function cargarHistorial(){
     tb.innerHTML=data.map(e=>`
       <tr style="cursor:pointer" onclick="verTL('${e.vehiculos?.id||''}','${e.vehiculos?.placa||''}')">
         <td style="font-weight:600">${e.vehiculos?.placa||'—'}</td>
-        <td>${e.vehiculos?.regionales?.nombre||'—'}</td>
+        <td>${regNombre(e.vehiculos?.regional_id)||'—'}</td>
         <td>${e.tipos_mantenimiento?.nombre||'—'}</td>
         <td>${e.talleres?.nombre||'—'}</td>
         <td>${fmtF(e.fecha_entrada)}</td>
@@ -890,7 +894,7 @@ async function cargarFlota(){
     const regF=document.getElementById('flota-regional').value;
     const tipF=document.getElementById('flota-tipo').value;
     const figF=document.getElementById('flota-figura').value;
-    let q=db.from('vehiculos').select('id,placa,tipo,figura,estado,km_actuales,regionales(nombre)').eq('activo',true).order('placa');
+    let q=db.from('vehiculos').select('id,placa,tipo,figura,estado,km_actuales,regional_id').eq('activo',true).order('placa');
     if(regF)q=q.eq('regional_id',regF);
     if(tipF)q=q.eq('tipo',tipF);
     if(figF)q=q.eq('figura',figF);
@@ -901,7 +905,7 @@ async function cargarFlota(){
     tb.innerHTML=data.map(v=>`<tr>
       <td style="font-weight:600">${v.placa}</td>
       <td>${v.tipo||'—'}</td>
-      <td>${v.regionales?.nombre||'—'}</td>
+      <td>${regNombre(v.regional_id)||'—'}</td>
       <td>${badgeFigura(v.figura,false)}</td>
       <td>${badgeEstado(v.estado)}</td>
       <td>${v.km_actuales?v.km_actuales.toLocaleString('es-CO')+' km':'—'}</td>
@@ -915,13 +919,13 @@ async function verTLFlota(vid,placa){ir('historial');setTimeout(()=>verTL(vid,pl
 // ── Formulario entrada ─────────────────────────────────────
 async function prepEntrada(){
   try{
-    let qv=db.from('vehiculos').select('id,placa,tipo,figura,estado,regionales(nombre)').eq('activo',true).order('placa');
+    let qv=db.from('vehiculos').select('id,placa,tipo,figura,estado,regional_id').eq('activo',true).order('placa');
     if(REGIONAL_ID)qv=qv.eq('regional_id',REGIONAL_ID);
     const{data:vhs}=await qv;
     const{data:tal}=await db.from('talleres').select('id,nombre,tipo').eq('activo',true).order('nombre');
     const{data:tms}=await db.from('tipos_mantenimiento').select('id,nombre').eq('activo',true).order('nombre');
     document.getElementById('e-vh').innerHTML='<option value="">Seleccionar vehículo...</option>'+
-      (vhs||[]).map(v=>`<option value="${v.id}" data-reg="${v.regional_id||''}">${v.placa} [${v.regionales?.nombre||''}] — ${v.figura} — ${v.estado}</option>`).join('');
+      (vhs||[]).map(v=>`<option value="${v.id}" data-reg="${v.regional_id||''}">${v.placa} [${regNombre(v.regional_id)||''}] — ${v.figura} — ${v.estado}</option>`).join('');
     document.getElementById('e-taller').innerHTML='<option value="">Seleccionar taller...</option>'+
       (tal||[]).map(t=>`<option value="${t.id}" data-tipo="${t.tipo}">${t.nombre} (${labelTaller(t.tipo)})</option>`).join('');
     document.getElementById('e-tipomant').innerHTML='<option value="">Seleccionar tipo...</option>'+
@@ -1018,6 +1022,13 @@ async function submitRetorno(e){
     ir('fuera');
   }catch(err){toast('Error: '+err.message,true);}
   finally{btn.disabled=false;btn.textContent='Registrar retorno';}
+}
+
+
+// Helper para obtener nombre de regional por ID
+function regNombre(id){
+  if(!id)return'—';
+  return regionales.find(r=>r.id===id)?.nombre||'—';
 }
 
 init();
