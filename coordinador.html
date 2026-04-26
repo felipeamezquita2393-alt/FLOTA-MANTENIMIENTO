@@ -19,7 +19,6 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg2);color:var(--text);font-size:14px}
 .topnav{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:52px;background:var(--bg);border-bottom:0.5px solid var(--border);position:sticky;top:0;z-index:100}
 .topnav-brand{font-size:15px;font-weight:600}
-.topnav-sub{font-size:12px;color:var(--text2);margin-left:8px}
 .shell{display:flex;min-height:calc(100vh - 52px)}
 .sidenav{width:210px;background:var(--bg);border-right:0.5px solid var(--border);padding:16px 0;flex-shrink:0}
 .snav-item{display:flex;align-items:center;justify-content:space-between;padding:9px 20px;font-size:13px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:all .12s}
@@ -34,7 +33,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .metric-val{font-size:26px;font-weight:600;line-height:1}
 .metric-sub{font-size:11px;color:var(--text3);margin-top:4px}
 .card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:16px;margin-bottom:16px}
-.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
 .card-title{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .badge{display:inline-flex;align-items:center;font-size:11px;font-weight:500;padding:3px 8px;border-radius:99px;white-space:nowrap}
@@ -48,8 +47,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .dias-warn{color:var(--amber);font-weight:700;font-size:16px}
 .dias-ok{color:var(--green);font-weight:700;font-size:16px}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;padding:0 12px 10px;border-bottom:0.5px solid var(--border);white-space:nowrap}
-td{padding:10px 12px;border-bottom:0.5px solid var(--border);vertical-align:middle}
+th{text-align:left;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;padding:0 10px 10px;border-bottom:0.5px solid var(--border);white-space:nowrap}
+td{padding:9px 10px;border-bottom:0.5px solid var(--border);vertical-align:middle}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--bg2)}
 .tbl-wrap{overflow-x:auto}
@@ -60,12 +59,13 @@ tr:hover td{background:var(--bg2)}
 .field textarea{resize:vertical;min-height:72px}
 .form2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .full{grid-column:1/-1}
-.btn{padding:9px 18px;font-size:13px;font-weight:500;border-radius:var(--r);cursor:pointer;border:0.5px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit;transition:all .12s}
+.btn{padding:8px 16px;font-size:13px;font-weight:500;border-radius:var(--r);cursor:pointer;border:0.5px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit;transition:all .12s}
 .btn:hover{background:var(--bg2)}
 .btn-primary{background:var(--text);color:var(--bg);border-color:transparent}
-.btn-primary:hover{opacity:.85;background:var(--text)}
-.btn-sm{padding:5px 12px;font-size:12px}
+.btn-primary:hover{opacity:.85}
+.btn-sm{padding:5px 10px;font-size:12px}
 .btn-green{background:var(--green-bg);color:var(--green-dark);border-color:transparent}
+.btn-red{background:var(--red-bg);color:var(--red-dark);border-color:transparent}
 .btn-amber{background:var(--amber-bg);color:var(--amber-dark);border-color:transparent}
 .row-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--border)}
 .row-item:last-child{border-bottom:none}
@@ -84,7 +84,11 @@ tr:hover td{background:var(--bg2)}
 #toast{position:fixed;bottom:24px;right:24px;z-index:999;background:#1a1a18;color:#fff;padding:10px 18px;border-radius:var(--r);font-size:13px;font-weight:500;opacity:0;transition:opacity .2s;pointer-events:none;max-width:320px}
 #toast.show{opacity:1}
 .alert-info{background:var(--amber-bg);color:var(--amber-dark);border:0.5px solid #FAC775;padding:10px 14px;border-radius:var(--r);font-size:13px;margin-bottom:14px}
-.figura-toggle{display:flex;gap:4px}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg);border-radius:var(--rl);padding:24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.15)}
+.modal-title{font-size:14px;font-weight:600;margin-bottom:16px}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
 .ft-btn{padding:4px 12px;font-size:11px;font-weight:500;border-radius:99px;border:0.5px solid var(--border);cursor:pointer;background:var(--bg);color:var(--text2);transition:all .12s}
 .ft-btn.titular.sel{background:var(--green-bg);color:var(--green-dark);border-color:transparent}
 .ft-btn.backup.sel{background:var(--purple-bg);color:var(--purple);border-color:transparent}
@@ -95,17 +99,102 @@ tr:hover td{background:var(--bg2)}
 <body>
 <div id="toast"></div>
 
-<nav class="topnav">
-  <div style="display:flex;align-items:center">
-    <span class="topnav-brand">FlotaOps</span>
-    <span class="topnav-sub">Mantenimiento de flota</span>
+<!-- Modal editar vehículo -->
+<div class="modal-overlay" id="modal-vh">
+  <div class="modal">
+    <div class="modal-title" id="modal-vh-title">Editar vehículo</div>
+    <input type="hidden" id="mv-id">
+    <div class="form2">
+      <div class="field"><label>Placa</label><input type="text" id="mv-placa" placeholder="Ej: KNZ427"></div>
+      <div class="field"><label>Tipo</label>
+        <select id="mv-tipo">
+          <option value="camion">Camión</option>
+          <option value="remolque">Remolque</option>
+          <option value="furgon">Furgón</option>
+          <option value="camioneta">Camioneta</option>
+        </select></div>
+      <div class="field"><label>Regional</label><select id="mv-regional"></select></div>
+      <div class="field"><label>Figura base</label>
+        <select id="mv-figura">
+          <option value="titular">Titular</option>
+          <option value="backup">Backup</option>
+        </select></div>
+      <div class="field"><label>KM actuales</label><input type="number" id="mv-km" placeholder="0"></div>
+      <div class="field"><label>Estado</label>
+        <select id="mv-estado">
+          <option value="disponible">Disponible</option>
+          <option value="taller_propio">Taller propio</option>
+          <option value="concesionario">Concesionario</option>
+          <option value="en_patios">En patios</option>
+          <option value="siniestro">Siniestro</option>
+          <option value="inactivo">Inactivo</option>
+        </select></div>
+      <div class="field full"><label>Observaciones</label><textarea id="mv-obs" placeholder="Notas adicionales..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-vh')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarVehiculo()">Guardar cambios</button>
+    </div>
   </div>
+</div>
+
+<!-- Modal retirar vehículo -->
+<div class="modal-overlay" id="modal-retiro">
+  <div class="modal">
+    <div class="modal-title">Retirar vehículo de operación</div>
+    <input type="hidden" id="ret-vid">
+    <div class="alert-info" id="ret-vh-info"></div>
+    <div class="field"><label>Motivo de retiro *</label>
+      <textarea id="ret-motivo" placeholder="Explica el motivo del retiro..."></textarea></div>
+    <div class="field"><label>Fecha de retiro</label>
+      <input type="date" id="ret-fecha"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-retiro')">Cancelar</button>
+      <button class="btn btn-red" onclick="confirmarRetiro()">Confirmar retiro</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal carga masiva en taller -->
+<div class="modal-overlay" id="modal-masivo">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">Carga masiva — Vehículos en taller / patios</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Pega las placas (una por línea) y selecciona el taller y fecha de entrada.</p>
+    <div class="field"><label>Placas (una por línea) *</label>
+      <textarea id="mas-placas" placeholder="KNZ427&#10;LCN165&#10;NHU147&#10;..." style="min-height:120px"></textarea></div>
+    <div class="form2">
+      <div class="field"><label>Taller / Ubicación *</label><select id="mas-taller"></select></div>
+      <div class="field"><label>Tipo *</label>
+        <select id="mas-tipo">
+          <option value="correctivo">Correctivo</option>
+          <option value="preventivo">Preventivo</option>
+          <option value="siniestro">Siniestro</option>
+        </select></div>
+      <div class="field"><label>Fecha entrada *</label><input type="date" id="mas-fecha"></div>
+      <div class="field"><label>Prioridad</label>
+        <select id="mas-prior">
+          <option value="normal">Normal</option>
+          <option value="urgente">Urgente</option>
+        </select></div>
+      <div class="field full"><label>Descripción</label>
+        <textarea id="mas-desc" placeholder="Descripción general del trabajo..."></textarea></div>
+    </div>
+    <div id="mas-preview" style="margin-bottom:14px"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-masivo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="ejecutarMasivo()" id="btn-masivo">Registrar entradas</button>
+    </div>
+  </div>
+</div>
+
+<nav class="topnav">
   <div style="display:flex;align-items:center;gap:12px">
+    <span class="topnav-brand">FlotaOps</span>
     <select id="filtro-regional" onchange="onFiltroRegional()" style="font-size:12px;padding:5px 10px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg)">
       <option value="">Todas las regionales</option>
     </select>
-    <span style="font-size:12px;color:var(--text2)" id="nav-fecha"></span>
   </div>
+  <span style="font-size:12px;color:var(--text2)" id="nav-fecha"></span>
 </nav>
 
 <div class="shell">
@@ -134,29 +223,26 @@ tr:hover td{background:var(--bg2)}
       </div>
       <div class="two-col">
         <div class="card">
-          <div class="card-hdr">
-            <span class="card-title">Checklists de hoy</span>
-            <span class="badge b-gray" id="badge-cl">—</span>
-          </div>
+          <div class="card-hdr"><span class="card-title">Checklists de hoy</span><span class="badge b-gray" id="badge-cl">—</span></div>
           <div id="cl-list"><div class="loading"><div class="spinner"></div>&nbsp;Cargando...</div></div>
         </div>
         <div class="card">
-          <div class="card-hdr">
-            <span class="card-title">Alertas activas</span>
-            <span class="badge b-red" id="badge-al">0</span>
-          </div>
+          <div class="card-hdr"><span class="card-title">Alertas activas</span><span class="badge b-red" id="badge-al">0</span></div>
           <div id="al-list"><div class="loading"><div class="spinner"></div>&nbsp;Cargando...</div></div>
         </div>
       </div>
       <div class="card">
         <div class="card-hdr">
           <span class="card-title">Vehículos fuera de servicio</span>
-          <button class="btn btn-sm btn-primary" onclick="ir('entrada')">+ Registrar entrada</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm" onclick="abrirMasivo()">⬆ Carga masiva</button>
+            <button class="btn btn-sm btn-primary" onclick="ir('entrada')">+ Registrar entrada</button>
+          </div>
         </div>
         <div class="tbl-wrap">
           <table><thead><tr>
             <th>Placa</th><th>Regional</th><th>Taller</th><th>Ingresó</th>
-            <th style="text-align:center">Días fuera</th><th>Motivo</th><th>Prioridad</th>
+            <th style="text-align:center">Días</th><th>Motivo</th><th>Prioridad</th>
           </tr></thead>
           <tbody id="fuera-dash"><tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr></tbody>
           </table>
@@ -166,37 +252,29 @@ tr:hover td{background:var(--bg2)}
 
     <!-- FIGURA DEL DÍA -->
     <div id="page-figura" class="page">
-      <div class="card" style="margin-bottom:16px">
+      <div class="card">
         <div class="card-hdr">
           <span class="card-title">Asignación titular / backup — hoy</span>
-          <span style="font-size:12px;color:var(--text2)" id="figura-fecha"></span>
-        </div>
-        <p style="font-size:13px;color:var(--text2);margin-bottom:16px">
-          Selecciona la figura de cada vehículo para hoy. Los backups marcados como <strong>Activo</strong> cuentan en la disponibilidad del día.
-        </p>
-        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-          <select id="figura-regional" onchange="cargarFigura()" style="font-size:13px;padding:6px 10px;border:0.5px solid var(--border);border-radius:var(--r)">
-            <option value="">Todas las regionales</option>
-          </select>
-          <div style="display:flex;gap:6px;align-items:center;margin-left:auto">
-            <span style="font-size:12px;color:var(--text2)">Leyenda:</span>
-            <span class="badge b-green">Titular</span>
-            <span class="badge b-purple">Backup disponible</span>
-            <span class="badge b-amber">Backup activo</span>
-            <span class="badge b-red">En taller</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="figura-regional" onchange="cargarFigura()" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--r)">
+              <option value="">Todas las regionales</option>
+            </select>
           </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+          <span class="badge b-green">Titular activo</span>
+          <span class="badge b-purple">Backup disponible</span>
+          <span class="badge b-amber">Backup activo hoy</span>
+          <span class="badge b-red">En taller</span>
+          <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="guardarFiguras()">Guardar cambios del día</button>
         </div>
         <div class="tbl-wrap">
           <table><thead><tr>
-            <th>Placa</th><th>Regional</th><th>Figura base</th><th>Figura hoy</th><th>Titular que reemplaza</th><th>Motivo</th><th></th>
+            <th>Placa</th><th>Regional</th><th>Figura base</th><th>Figura hoy</th><th>Reemplaza a</th><th>Motivo</th>
           </tr></thead>
-          <tbody id="figura-body"><tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr></tbody>
+          <tbody id="figura-body"><tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr></tbody>
           </table>
         </div>
-      </div>
-      <div style="display:flex;gap:10px">
-        <button class="btn btn-primary" onclick="guardarFiguras()">Guardar asignaciones del día</button>
-        <button class="btn" onclick="ir('dashboard')">Cancelar</button>
       </div>
     </div>
 
@@ -204,13 +282,16 @@ tr:hover td{background:var(--bg2)}
     <div id="page-fuera" class="page">
       <div class="card">
         <div class="card-hdr">
-          <span class="card-title">Vehículos actualmente fuera de servicio</span>
-          <button class="btn btn-sm btn-primary" onclick="ir('entrada')">+ Entrada a taller</button>
+          <span class="card-title">Vehículos fuera de servicio</span>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm" onclick="abrirMasivo()">⬆ Carga masiva</button>
+            <button class="btn btn-sm btn-primary" onclick="ir('entrada')">+ Entrada</button>
+          </div>
         </div>
         <div class="tbl-wrap">
           <table><thead><tr>
             <th>Placa</th><th>Tipo</th><th>Regional</th><th>Taller</th><th>Ingresó</th>
-            <th style="text-align:center">Días fuera</th><th>Descripción</th><th>Prioridad</th><th></th>
+            <th style="text-align:center">Días</th><th>Descripción</th><th>Prioridad</th><th></th>
           </tr></thead>
           <tbody id="fuera-body"><tr><td colspan="9" class="loading"><div class="spinner"></div></td></tr></tbody>
           </table>
@@ -221,14 +302,10 @@ tr:hover td{background:var(--bg2)}
     <!-- ALERTAS -->
     <div id="page-alertas" class="page">
       <div class="card">
-        <div class="card-hdr">
-          <span class="card-title">Alertas activas</span>
-          <span class="badge b-red" id="badge-al-page">0</span>
-        </div>
+        <div class="card-hdr"><span class="card-title">Alertas activas</span><span class="badge b-red" id="badge-al-page">0</span></div>
         <div class="tbl-wrap">
           <table><thead><tr>
-            <th>Placa</th><th>Regional</th><th>Mantenimiento</th>
-            <th>Vence / KM límite</th><th>Urgencia</th><th></th>
+            <th>Placa</th><th>Regional</th><th>Mantenimiento</th><th>Vence / KM</th><th>Urgencia</th><th></th>
           </tr></thead>
           <tbody id="alertas-body"><tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr></tbody>
           </table>
@@ -249,11 +326,9 @@ tr:hover td{background:var(--bg2)}
               <option value="preventivo">Preventivo</option>
               <option value="correctivo">Correctivo</option>
               <option value="siniestro">Siniestro</option>
-            </select>
-          </div>
+            </select></div>
           <div class="field" style="justify-content:flex-end">
-            <button class="btn btn-primary" onclick="cargarHistorial()" style="margin-top:auto">Buscar</button>
-          </div>
+            <button class="btn btn-primary" onclick="cargarHistorial()" style="margin-top:auto">Buscar</button></div>
         </div>
       </div>
       <div class="card">
@@ -264,8 +339,8 @@ tr:hover td{background:var(--bg2)}
         <div class="tbl-wrap">
           <table><thead><tr>
             <th>Placa</th><th>Regional</th><th>Trabajo</th><th>Taller</th>
-            <th>Entrada</th><th>Salida</th>
-            <th style="text-align:center">Días</th><th style="text-align:right">Costo</th><th></th>
+            <th>Entrada</th><th>Salida</th><th style="text-align:center">Días</th>
+            <th style="text-align:right">Costo</th><th></th>
           </tr></thead>
           <tbody id="hist-body"><tr><td colspan="9" class="empty">Selecciona un rango y presiona Buscar</td></tr></tbody>
           </table>
@@ -299,14 +374,20 @@ tr:hover td{background:var(--bg2)}
               <option value="titular">Solo titulares</option>
               <option value="backup">Solo backups</option>
             </select>
+            <select id="flota-activo" onchange="cargarFlota()" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--r)">
+              <option value="true">Activos</option>
+              <option value="false">Retirados</option>
+              <option value="">Todos</option>
+            </select>
             <span id="flota-count" style="font-size:12px;color:var(--text2)"></span>
+            <button class="btn btn-sm btn-primary" onclick="abrirNuevoVh()">+ Agregar</button>
           </div>
         </div>
         <div class="tbl-wrap">
           <table><thead><tr>
-            <th>Placa</th><th>Tipo</th><th>Regional</th><th>Figura</th><th>Estado</th><th>KM</th><th></th>
+            <th>Placa</th><th>Tipo</th><th>Regional</th><th>Figura</th><th>Estado</th><th>KM</th><th>Activo</th><th></th>
           </tr></thead>
-          <tbody id="flota-body"><tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr></tbody>
+          <tbody id="flota-body"><tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr></tbody>
           </table>
         </div>
       </div>
@@ -352,10 +433,9 @@ tr:hover td{background:var(--bg2)}
         <form onsubmit="submitRetorno(event)">
           <div class="form2">
             <div class="field full"><label>Vehículo en taller *</label>
-              <select id="r-evento" required onchange="onEvento()"><option value="">Seleccionar vehículo en taller...</option></select></div>
+              <select id="r-evento" required onchange="onEvento()"><option value="">Seleccionar...</option></select></div>
             <div id="r-info-wrap" style="display:none" class="full">
-              <div class="alert-info" id="r-info"></div>
-            </div>
+              <div class="alert-info" id="r-info"></div></div>
             <div class="field"><label>Fecha de salida *</label><input type="date" id="r-fecha" required></div>
             <div class="field"><label>KM al retornar</label><input type="number" id="r-km" placeholder="Ej: 82500"></div>
             <div class="field"><label>Costo total (COP)</label><input type="number" id="r-costo" placeholder="Ej: 850000"></div>
@@ -374,35 +454,27 @@ tr:hover td{background:var(--bg2)}
 </div>
 
 <script>
-const { createClient } = supabase;
-const db = createClient(
+const{createClient}=supabase;
+const db=createClient(
   'https://sixtqtopppbclxqdardb.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpeHRxdG9wcHBiY2x4cWRhcmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5Njk2ODAsImV4cCI6MjA5MjU0NTY4MH0.WRYBP4006NZrRCNBpoclVWSz64zQfE2sjFslVc4imDg'
 );
 
-let REGIONAL_ID = null;
-let regionales = [];
-let figurasCambios = {};
-let vehiculosTitulares = []; // titulares disponibles para selector de reemplazo
+let REGIONAL_ID=null;
+let regionales=[];
+let figCambios={};
 
-const hoy = () => new Date().toISOString().split('T')[0];
-const hace30 = () => new Date(Date.now()-30*24*60*60*1000).toISOString().split('T')[0];
+const hoy=()=>new Date().toISOString().split('T')[0];
+const hace30=()=>new Date(Date.now()-30*24*60*60*1000).toISOString().split('T')[0];
 
-function diasFuera(f){
-  const d=new Date();d.setHours(0,0,0,0);
-  return Math.max(0,Math.floor((d-new Date(f+'T00:00:00'))/86400000));
-}
+function rNombre(id){if(!id)return'—';return regionales.find(r=>r.id===id)?.nombre||'—';}
+function diasFuera(f){const d=new Date();d.setHours(0,0,0,0);return Math.max(0,Math.floor((d-new Date(f+'T00:00:00'))/86400000));}
 function clrDias(d){return d>=7?'dias-crit':d>=3?'dias-warn':'dias-ok';}
-function fmtF(iso){
-  if(!iso)return'—';
-  return new Date(iso+'T00:00:00').toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'});
-}
+function fmtF(iso){if(!iso)return'—';return new Date(iso+'T00:00:00').toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'});}
 function fmtM(v){return v?'$'+Number(v).toLocaleString('es-CO'):'—';}
-function labelTaller(t){
-  return{taller_propio:'Taller propio',concesionario:'Concesionario',patios:'Patios',siniestro:'Siniestro'}[t]||t;
-}
+function labelTaller(t){return{taller_propio:'Taller propio',concesionario:'Concesionario',patios:'Patios',siniestro:'Siniestro'}[t]||t;}
 function badgePrior(p){
-  if(p==='urgente') return'<span class="badge b-red">Urgente</span>';
+  if(p==='urgente')return'<span class="badge b-red">Urgente</span>';
   if(p==='programado')return'<span class="badge b-blue">Programado</span>';
   return'<span class="badge b-gray">Normal</span>';
 }
@@ -412,91 +484,46 @@ function badgeFigura(f,activo){
   return'<span class="badge b-green">Titular</span>';
 }
 function badgeEstado(e){
-  const m={
-    disponible:'<span class="badge b-green">Disponible</span>',
-    taller_propio:'<span class="badge b-amber">Taller propio</span>',
-    concesionario:'<span class="badge b-blue">Concesionario</span>',
-    en_patios:'<span class="badge b-amber">En patios</span>',
-    siniestro:'<span class="badge b-red">Siniestro</span>',
-    inactivo:'<span class="badge b-gray">Inactivo</span>',
-  };
+  const m={disponible:'<span class="badge b-green">Disponible</span>',taller_propio:'<span class="badge b-amber">Taller propio</span>',concesionario:'<span class="badge b-blue">Concesionario</span>',en_patios:'<span class="badge b-amber">En patios</span>',siniestro:'<span class="badge b-red">Siniestro</span>',inactivo:'<span class="badge b-gray">Inactivo</span>'};
   return m[e]||`<span class="badge b-gray">${e}</span>`;
 }
 function urgAlerta(a){
   const h=hoy();
-  if(a.tipo_alerta==='por_fecha'){
-    if(!a.fecha_limite)return'programada';
-    if(a.fecha_limite<h)return'vencida';
-    const d=Math.ceil((new Date(a.fecha_limite)-new Date())/86400000);
-    if(d<=(a.anticipacion_dias||15))return'proxima';
-  }
-  if(a.tipo_alerta==='por_km'){
-    const r=(a.km_limite||0)-(a.vehiculos?.km_actuales||0);
-    if(r<=(a.anticipacion_km||500))return'proxima_km';
-  }
+  if(a.tipo_alerta==='por_fecha'){if(!a.fecha_limite)return'programada';if(a.fecha_limite<h)return'vencida';const d=Math.ceil((new Date(a.fecha_limite)-new Date())/86400000);if(d<=(a.anticipacion_dias||15))return'proxima';}
+  if(a.tipo_alerta==='por_km'){const r=(a.km_limite||0)-(a.vehiculos?.km_actuales||0);if(r<=(a.anticipacion_km||500))return'proxima_km';}
   return'programada';
 }
-function badgeUrg(u){
-  return{vencida:'<span class="badge b-red">Vencida</span>',
-         proxima:'<span class="badge b-amber">Próxima</span>',
-         proxima_km:'<span class="badge b-amber">Próx. km</span>',
-         programada:'<span class="badge b-gray">Programada</span>'}[u]||'';
-}
-function toast(msg,err=false){
-  const t=document.getElementById('toast');
-  t.textContent=msg;t.style.background=err?'#A32D2D':'#1a1a18';
-  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);
-}
+function badgeUrg(u){return{vencida:'<span class="badge b-red">Vencida</span>',proxima:'<span class="badge b-amber">Próxima</span>',proxima_km:'<span class="badge b-amber">Próx. km</span>',programada:'<span class="badge b-gray">Programada</span>'}[u]||'';}
+function toast(msg,err=false){const t=document.getElementById('toast');t.textContent=msg;t.style.background=err?'#A32D2D':'#1a1a18';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
+function cerrarModal(id){document.getElementById(id).classList.remove('open');}
 
-// ── Navegación ─────────────────────────────────────────────
+// ── Navegación ──
 function ir(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.snav-item').forEach(a=>a.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
   document.querySelector(`[data-page="${page}"]`)?.classList.add('active');
-  if(page==='fuera')   cargarFuera();
-  if(page==='alertas') cargarAlertas();
-  if(page==='entrada') prepEntrada();
-  if(page==='retorno') prepRetorno();
-  if(page==='flota')   cargarFlota();
-  if(page==='figura')  cargarFigura();
+  if(page==='fuera')cargarFuera();
+  if(page==='alertas')cargarAlertas();
+  if(page==='entrada')prepEntrada();
+  if(page==='retorno')prepRetorno();
+  if(page==='flota')cargarFlota();
+  if(page==='figura')cargarFigura();
 }
+function onFiltroRegional(){REGIONAL_ID=document.getElementById('filtro-regional').value||null;cargarDashboard();}
 
-function onFiltroRegional(){
-  REGIONAL_ID=document.getElementById('filtro-regional').value||null;
-  cargarDashboard();
-}
-
-// ── Init ───────────────────────────────────────────────────
+// ── Init ──
 async function init(){
-  document.getElementById('nav-fecha').textContent=
-    new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'});
-  document.getElementById('figura-fecha').textContent=
-    new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('nav-fecha').textContent=new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('h-desde').value=hace30();
   document.getElementById('h-hasta').value=hoy();
-
   const{data:regs}=await db.from('regionales').select('id,nombre').eq('activa',true).order('nombre');
   regionales=regs||[];
-
-  // Poblar selects de regional - solo una vez
-  let regionalesPobladas = false;
-  function poblarSelectsRegional(){
-    if(regionalesPobladas) return;
-    regionalesPobladas = true;
-    ['filtro-regional','figura-regional','flota-regional'].forEach(id=>{
-      const sel=document.getElementById(id);
-      if(!sel)return;
-      while(sel.options.length>1)sel.remove(1);
-      regionales.forEach(r=>{
-        const opt=document.createElement('option');
-        opt.value=r.id; opt.textContent=r.nombre;
-        sel.appendChild(opt);
-      });
-    });
-  }
-  poblarSelectsRegional();
-
+  ['filtro-regional','figura-regional','flota-regional'].forEach(id=>{
+    const sel=document.getElementById(id);if(!sel)return;
+    while(sel.options.length>1)sel.remove(1);
+    regionales.forEach(r=>{const o=new Option(r.nombre,r.id);sel.add(o);});
+  });
   await cargarDashboard();
 }
 
@@ -504,63 +531,38 @@ async function cargarDashboard(){
   await Promise.all([cargarKPIs(),cargarCL(),cargarAlDash(),cargarFueraDash()]);
 }
 
-// ── KPIs con figura ────────────────────────────────────────
+// ── KPIs ──
 async function cargarKPIs(){
   try{
-    // Vehículos activos (sin remolques)
     let qv=db.from('vehiculos').select('id,estado,figura').eq('activo',true).neq('tipo','remolque');
     if(REGIONAL_ID)qv=qv.eq('regional_id',REGIONAL_ID);
-    const{data:vhs,error}=await qv;
-    if(error)throw error;
-
-    // Asignaciones de hoy
+    const{data:vhs,error}=await qv;if(error)throw error;
     let qa=db.from('asignaciones_diarias').select('vehiculo_id,figura,activo').eq('fecha',hoy());
     if(REGIONAL_ID)qa=qa.eq('regional_id',REGIONAL_ID);
     const{data:asigs}=await qa;
-    const asigMap=new Map((asigs||[]).map(a=>[a.vehiculo_id,a]));
-
+    const aMap=new Map((asigs||[]).map(a=>[a.vehiculo_id,a]));
     let titulares=0,backupsActivos=0,enTaller=0,total=0;
     (vhs||[]).forEach(v=>{
       total++;
       if(v.estado!=='disponible'){enTaller++;return;}
-      const a=asigMap.get(v.id);
-      const figHoy=a?a.figura:v.figura;
-      const activoHoy=a?a.activo:(v.figura==='titular');
-      if(figHoy==='titular')titulares++;
-      else if(figHoy==='backup'&&activoHoy)backupsActivos++;
+      const a=aMap.get(v.id);
+      const fig=a?a.figura:v.figura;
+      const act=a?a.activo:(v.figura==='titular');
+      if(fig==='titular')titulares++;
+      else if(fig==='backup'&&act)backupsActivos++;
     });
-
     const dispReal=titulares+backupsActivos;
     const pct=total?Math.round(dispReal*100/total):0;
-
-    // Backups sin asignar hoy
-    const backupsSinAsig=(vhs||[]).filter(v=>{
-      const a=asigMap.get(v.id);
-      return v.figura==='backup'&&!a&&v.estado==='disponible';
-    }).length;
-
     document.getElementById('k-titulares').textContent=titulares;
     document.getElementById('k-backups').textContent=backupsActivos;
     document.getElementById('k-fuera').textContent=enTaller;
     document.getElementById('k-pct').textContent=pct+'%';
     document.getElementById('k-pct-sub').textContent=dispReal+' de '+total+' vehículos';
-    document.getElementById('k-sub').textContent=
-      REGIONAL_ID?regionales.find(r=>r.id===REGIONAL_ID)?.nombre:'Todas las regionales';
-
-    // Badge figura
-    if(backupsSinAsig>0){
-      const bf=document.getElementById('badge-figura');
-      bf.textContent=backupsSinAsig+' sin asignar';bf.style.display='';
-    }
-
-    // Días promedio taller
-    let qe=db.from('eventos_mantenimiento').select('dias_en_taller').eq('estado','completado').gte('fecha_salida',hace30());
-    if(REGIONAL_ID)qe=qe.eq('regional_id',REGIONAL_ID);
-    const{data:evs}=await qe;
+    document.getElementById('k-sub').textContent=REGIONAL_ID?rNombre(REGIONAL_ID):'Todas las regionales';
   }catch(e){console.error('KPIs:',e.message);}
 }
 
-// ── Checklists dashboard ───────────────────────────────────
+// ── Checklists ──
 async function cargarCL(){
   const el=document.getElementById('cl-list');
   try{
@@ -575,265 +577,170 @@ async function cargarCL(){
     if(!(vhs||[]).length){el.innerHTML='<div class="empty">Sin vehículos registrados</div>';return;}
     el.innerHTML=(vhs||[]).slice(0,8).map(v=>{
       const c=clMap.get(v.id);
-      return`<div class="row-item">
-        <span class="plate">${v.placa}</span>
-        <span style="flex:1;font-size:12px;color:var(--text2)">${v.tipo||''}</span>
-        ${c?(c.tiene_fallas?'<span class="badge b-red">Fallas</span>':'<span class="badge b-green">OK</span>'):'<span class="badge b-gray">Pendiente</span>'}
-      </div>`;
+      return`<div class="row-item"><span class="plate">${v.placa}</span><span style="flex:1;font-size:12px;color:var(--text2)">${v.tipo||''}</span>${c?(c.tiene_fallas?'<span class="badge b-red">Fallas</span>':'<span class="badge b-green">OK</span>'):'<span class="badge b-gray">Pendiente</span>'}</div>`;
     }).join('')+((vhs||[]).length>8?`<div style="padding:8px 0;font-size:12px;color:var(--text2);text-align:center">${(vhs||[]).length-8} más...</div>`:'');
   }catch(e){el.innerHTML='<div class="empty">Sin checklists hoy</div>';}
 }
 
-// ── Alertas dashboard ──────────────────────────────────────
+// ── Alertas dashboard ──
 async function cargarAlDash(){
   const el=document.getElementById('al-list');
   try{
-    let q=db.from('alertas').select('*,vehiculos(placa,tipo,km_actuales),tipos_mantenimiento(nombre)').not('estado','eq','resuelta');
+    let q=db.from('alertas').select('id,tipo_alerta,fecha_limite,km_limite,anticipacion_dias,anticipacion_km,vehiculos(placa,km_actuales),tipos_mantenimiento(nombre)').not('estado','eq','resuelta');
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
-    const{data:als,error}=await q;
-    if(error)throw error;
+    const{data:als,error}=await q;if(error)throw error;
     const urgentes=(als||[]).filter(a=>['vencida','proxima','proxima_km'].includes(urgAlerta(a)));
     document.getElementById('badge-al').textContent=urgentes.length||'0';
     const bNav=document.getElementById('badge-alertas');
     if(urgentes.length){bNav.textContent=urgentes.length;bNav.style.display='';}
     if(!urgentes.length){el.innerHTML='<div class="empty">Sin alertas urgentes ✓</div>';return;}
-    el.innerHTML=urgentes.slice(0,6).map(a=>`
-      <div class="row-item">
-        <span class="plate">${a.vehiculos?.placa||'—'}</span>
-        <span style="flex:1;font-size:12px;color:var(--text2)">${a.tipos_mantenimiento?.nombre||'—'}</span>
-        ${badgeUrg(urgAlerta(a))}
-      </div>`).join('');
+    el.innerHTML=urgentes.slice(0,6).map(a=>`<div class="row-item"><span class="plate">${a.vehiculos?.placa||'—'}</span><span style="flex:1;font-size:12px;color:var(--text2)">${a.tipos_mantenimiento?.nombre||'—'}</span>${badgeUrg(urgAlerta(a))}</div>`).join('');
   }catch(e){el.innerHTML='<div class="empty">Sin alertas registradas</div>';}
 }
 
-// ── Fuera dashboard ────────────────────────────────────────
+// ── Fuera dashboard ──
 async function cargarFueraDash(){
   const tb=document.getElementById('fuera-dash');
   try{
     let q=db.from('eventos_mantenimiento')
-      .select('*,vehiculos(id,placa,tipo,regional_id),talleres(nombre,tipo),tipos_mantenimiento(nombre),regionales(nombre)')
+      .select('id,fecha_entrada,prioridad,descripcion_trabajo,regional_id,vehiculos(id,placa,tipo),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
       .eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
-    const{data,error}=await q;
-    if(error)throw error;
-    const eventos=data||[];
+    const{data,error}=await q;if(error)throw error;
+    const ev=data||[];
     const bf=document.getElementById('badge-fuera');
-    if(eventos.length){bf.textContent=eventos.length;bf.style.display='';}
-    else bf.style.display='none';
-    if(!eventos.length){tb.innerHTML='<tr><td colspan="7" class="empty">Sin vehículos fuera de servicio ✓</td></tr>';return;}
-    tb.innerHTML=eventos.map(e=>{
-      const d=diasFuera(e.fecha_entrada);
-      return`<tr>
-        <td style="font-weight:600">${e.vehiculos?.placa||'—'}</td>
-        <td>${regNombre(e.vehiculos?.regional_id)||'—'}</td>
-        <td>${e.talleres?.nombre||'—'}</td>
-        <td>${fmtF(e.fecha_entrada)}</td>
-        <td style="text-align:center"><span class="${clrDias(d)}">${d}</span></td>
-        <td style="font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-          ${e.descripcion_trabajo||e.tipos_mantenimiento?.nombre||'—'}</td>
-        <td>${badgePrior(e.prioridad)}</td>
-      </tr>`;
-    }).join('');
+    if(ev.length){bf.textContent=ev.length;bf.style.display='';}else bf.style.display='none';
+    if(!ev.length){tb.innerHTML='<tr><td colspan="7" class="empty">Sin vehículos fuera de servicio ✓</td></tr>';return;}
+    tb.innerHTML=ev.map(e=>{const d=diasFuera(e.fecha_entrada);return`<tr><td style="font-weight:600">${e.vehiculos?.placa||'—'}</td><td>${rNombre(e.regional_id)}</td><td>${e.talleres?.nombre||'—'}</td><td>${fmtF(e.fecha_entrada)}</td><td style="text-align:center"><span class="${clrDias(d)}">${d}</span></td><td style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.descripcion_trabajo||e.tipos_mantenimiento?.nombre||'—'}</td><td>${badgePrior(e.prioridad)}</td></tr>`;}).join('');
   }catch(e){tb.innerHTML=`<tr><td colspan="7" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
 }
 
-// ── Figura del día ─────────────────────────────────────────
+// ── FIGURA DEL DÍA ──
 async function cargarFigura(){
   const tb=document.getElementById('figura-body');
-  tb.innerHTML='<tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr>';
-  figurasCambios={};
+  tb.innerHTML='<tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr>';
+  figCambios={};
   try{
-    const regFiltro=document.getElementById('figura-regional').value;
-    let qv=db.from('vehiculos').select('id,placa,tipo,figura,estado,regional_id')
-      .eq('activo',true).neq('tipo','remolque').order('placa');
-    if(regFiltro)qv=qv.eq('regional_id',regFiltro);
-    else if(REGIONAL_ID)qv=qv.eq('regional_id',REGIONAL_ID);
-    const{data:vhs,error}=await qv;
-    if(error)throw error;
-
-    // Asignaciones de hoy
+    const regF=document.getElementById('figura-regional').value||REGIONAL_ID;
+    let qv=db.from('vehiculos').select('id,placa,tipo,figura,estado,regional_id').eq('activo',true).neq('tipo','remolque').order('placa');
+    if(regF)qv=qv.eq('regional_id',regF);
+    const{data:vhs,error}=await qv;if(error)throw error;
     let qa=db.from('asignaciones_diarias').select('*').eq('fecha',hoy());
     const{data:asigs}=await qa;
-    const asigMap=new Map((asigs||[]).map(a=>[a.vehiculo_id,a]));
-
-    // Titulares disponibles para selector (guardar globalmente)
-    vehiculosTitulares=(vhs||[]).filter(v=>v.figura==='titular'&&v.estado==='disponible');
-    const titularesDisp=vehiculosTitulares;
-
-    if(!(vhs||[]).length){tb.innerHTML='<tr><td colspan="7" class="empty">Sin vehículos</td></tr>';return;}
-
+    const aMap=new Map((asigs||[]).map(a=>[a.vehiculo_id,a]));
+    // Titulares disponibles para el selector "reemplaza a"
+    const tits=(vhs||[]).filter(v=>v.figura==='titular'&&v.estado==='disponible');
+    if(!(vhs||[]).length){tb.innerHTML='<tr><td colspan="6" class="empty">Sin vehículos</td></tr>';return;}
     tb.innerHTML=(vhs||[]).map(v=>{
-      const asig=asigMap.get(v.id);
+      const asig=aMap.get(v.id);
       const figHoy=asig?asig.figura:v.figura;
       const activoHoy=asig?asig.activo:false;
       const enTaller=v.estado!=='disponible';
-
-      // Selector de titular a reemplazar
-      const titOpts=titularesDisp.map(t=>
-        `<option value="${t.id}" ${asig?.titular_reemplazado_id===t.id?'selected':''}>${t.placa}</option>`
-      ).join('');
-
-      return`<tr id="fila-${v.id}">
+      const titOpts=tits.filter(t=>t.id!==v.id).map(t=>`<option value="${t.id}" ${asig?.titular_reemplazado_id===t.id?'selected':''}>${t.placa}</option>`).join('');
+      const showTitSel=figHoy==='backup'&&activoHoy&&!enTaller;
+      return`<tr id="fv-${v.id}">
         <td style="font-weight:600">${v.placa}</td>
-        <td style="font-size:12px">${regNombre(v.regional_id)||'—'}</td>
+        <td style="font-size:12px">${rNombre(v.regional_id)}</td>
         <td>${badgeFigura(v.figura,false)}</td>
-        <td>
-          ${enTaller
-            ? '<span class="badge b-red">En taller</span>'
-            : `<div class="figura-toggle">
-                <button class="ft-btn titular ${figHoy==='titular'?'sel':''}" onclick="setFigura('${v.id}','titular',false,this)">Titular</button>
-                <button class="ft-btn backup ${figHoy==='backup'&&!activoHoy?'sel':''}" onclick="setFigura('${v.id}','backup',false,this)">Backup</button>
-                <button class="ft-btn activo ${figHoy==='backup'&&activoHoy?'sel':''}" onclick="setFigura('${v.id}','backup',true,this)">Activo</button>
-              </div>`
-          }
+        <td>${enTaller?'<span class="badge b-red">En taller</span>':`
+          <div style="display:flex;gap:4px">
+            <button class="ft-btn titular ${figHoy==='titular'?'sel':''}" onclick="setFig('${v.id}','titular',false,this)">Titular</button>
+            <button class="ft-btn backup ${figHoy==='backup'&&!activoHoy?'sel':''}" onclick="setFig('${v.id}','backup',false,this)">Backup</button>
+            <button class="ft-btn activo ${activoHoy?'sel':''}" onclick="setFig('${v.id}','backup',true,this)">Activo</button>
+          </div>`}
         </td>
-        <td>
-          <div id="tit-wrap-${v.id}" style="display:${figHoy==='backup'&&activoHoy&&!enTaller?'block':'none'}">
-            <select id="tit-${v.id}" style="font-size:12px;padding:4px 8px;border:0.5px solid var(--border);border-radius:var(--r);width:120px">
-              <option value="">Seleccionar...</option>${titOpts}
-            </select>
-          </div>
-          <span style="color:var(--text3);font-size:12px;display:${figHoy==='backup'&&activoHoy&&!enTaller?'none':'inline'}">—</span>
+        <td id="tit-td-${v.id}">
+          ${showTitSel?`<select id="tit-sel-${v.id}" style="font-size:12px;padding:4px 8px;border:0.5px solid var(--border);border-radius:var(--r)"><option value="">Seleccionar...</option>${titOpts}</select>`:'<span style="color:var(--text3);font-size:12px">—</span>'}
         </td>
-        <td>
-          <input type="text" id="mot-${v.id}" placeholder="Motivo (opcional)"
-            value="${asig?.motivo||''}"
-            style="font-size:12px;padding:4px 8px;border:0.5px solid var(--border);border-radius:var(--r);width:140px">
-        </td>
-        <td><span style="font-size:11px;color:var(--text3)" id="est-${v.id}">${asig?'Guardado hoy':''}</span></td>
-      </tr>`;
-    }).join('');
-  }catch(e){tb.innerHTML=`<tr><td colspan="7" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
-}
-
-function setFigura(vid,figura,activo,btn){
-  // Actualizar botones
-  const row=document.getElementById('fila-'+vid);
-  row.querySelectorAll('.ft-btn').forEach(b=>b.classList.remove('sel'));
-  btn.classList.add('sel');
-
-  // Celda del titular a reemplazar (índice 4)
-  const tdParent=row.cells[4];
-
-  if(figura==='backup'&&activo){
-    // Construir select con todos los titulares disponibles
-    const titOpts=regionales.length>0
-      ? vehiculosTitulares.map(t=>`<option value="${t.id}">${t.placa} — ${regNombre(t.regional_id)}</option>`).join('')
-      : '';
-    tdParent.innerHTML=`<select id="tit-${vid}" style="font-size:12px;padding:4px 8px;border:0.5px solid var(--border);border-radius:var(--r);min-width:130px">
-      <option value="">Seleccionar titular...</option>${titOpts}
-    </select>`;
-  } else {
-    tdParent.innerHTML='<span style="color:var(--text3);font-size:12px">—</span>';
-  }
-
-  // Registrar cambio
-  figurasCambios[vid]={figura,activo};
-  document.getElementById('est-'+vid).textContent='● Modificado';
-  document.getElementById('est-'+vid).style.color='var(--amber)';
-}
-
-async function guardarFiguras(){
-  const btn=document.querySelector('[onclick="guardarFiguras()"]');
-  btn.disabled=true;btn.textContent='Guardando...';
-  try{
-    const vids=Object.keys(figurasCambios);
-    if(!vids.length){toast('Sin cambios que guardar');btn.disabled=false;btn.textContent='Guardar asignaciones del día';return;}
-
-    for(const vid of vids){
-      const c=figurasCambios[vid];
-      const motivo=document.getElementById('mot-'+vid)?.value||null;
-      const titEl=document.getElementById('tit-'+vid);
-      const titId=titEl?.value||null;
-      const reg=regionales.find(r=>r.id===REGIONAL_ID)||regionales[0];
-
-      // Obtener regional del vehículo
-      const{data:vh}=await db.from('vehiculos').select('regional_id').eq('id',vid).single();
-
-      await db.from('asignaciones_diarias').upsert({
-        vehiculo_id:vid,
-        regional_id:vh?.regional_id,
-        fecha:hoy(),
-        figura:c.figura,
-        activo:c.activo,
-        titular_reemplazado_id:titId||null,
-        motivo,
-      },{onConflict:'vehiculo_id,fecha'});
-
-      document.getElementById('est-'+vid).textContent='Guardado ✓';
-      document.getElementById('est-'+vid).style.color='var(--green)';
-    }
-    figurasCambios={};
-    toast(`${vids.length} asignaciones guardadas ✓`);
-    await cargarKPIs();
-  }catch(e){toast('Error: '+e.message,true);}
-  finally{btn.disabled=false;btn.textContent='Guardar asignaciones del día';}
-}
-
-// ── Fuera página completa ──────────────────────────────────
-async function cargarFuera(){
-  const tb=document.getElementById('fuera-body');
-  try{
-    let q=db.from('eventos_mantenimiento')
-      .select('*,vehiculos(id,placa,tipo,regional_id),talleres(nombre,tipo),tipos_mantenimiento(nombre),regionales(nombre)')
-      .eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
-    if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
-    const{data,error}=await q;
-    if(error)throw error;
-    if(!data?.length){tb.innerHTML='<tr><td colspan="9" class="empty">Sin vehículos fuera de servicio ✓</td></tr>';return;}
-    tb.innerHTML=data.map(e=>{
-      const d=diasFuera(e.fecha_entrada);
-      return`<tr>
-        <td style="font-weight:600">${e.vehiculos?.placa||'—'}</td>
-        <td>${e.vehiculos?.tipo||'—'}</td>
-        <td>${regNombre(e.vehiculos?.regional_id)||'—'}</td>
-        <td>${e.talleres?.nombre||'—'}<br><span style="font-size:11px;color:var(--text2)">${e.talleres?.tipo?labelTaller(e.talleres.tipo):''}</span></td>
-        <td>${fmtF(e.fecha_entrada)}</td>
-        <td style="text-align:center"><span class="${clrDias(d)}">${d}</span></td>
-        <td style="font-size:12px">${e.descripcion_trabajo||'—'}</td>
-        <td>${badgePrior(e.prioridad)}</td>
-        <td><button class="btn btn-sm" onclick="irRetorno('${e.id}')">Retorno</button></td>
-      </tr>`;
-    }).join('');
-  }catch(e){tb.innerHTML=`<tr><td colspan="9" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
-}
-
-// ── Alertas página completa ────────────────────────────────
-async function cargarAlertas(){
-  const tb=document.getElementById('alertas-body');
-  try{
-    let q=db.from('alertas').select('*,vehiculos(placa,tipo,km_actuales,regional_id),tipos_mantenimiento(nombre),regionales(nombre)').not('estado','eq','resuelta');
-    if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
-    const{data,error}=await q;
-    if(error)throw error;
-    document.getElementById('badge-al-page').textContent=(data||[]).length;
-    if(!data?.length){tb.innerHTML='<tr><td colspan="6" class="empty">Sin alertas activas</td></tr>';return;}
-    const ord=[...data].sort((a,b)=>{
-      const o={vencida:0,proxima:1,proxima_km:2,programada:3};
-      return(o[urgAlerta(a)]||3)-(o[urgAlerta(b)]||3);
-    });
-    tb.innerHTML=ord.map(a=>{
-      const u=urgAlerta(a);
-      const venc=a.tipo_alerta==='por_fecha'?fmtF(a.fecha_limite):(a.km_limite?a.km_limite.toLocaleString('es-CO')+' km':'—');
-      return`<tr>
-        <td style="font-weight:600">${a.vehiculos?.placa||'—'}</td>
-        <td>${regNombre(a.vehiculos?.regional_id)||'—'}</td>
-        <td>${a.tipos_mantenimiento?.nombre||'—'}</td>
-        <td>${venc}</td>
-        <td>${badgeUrg(u)}</td>
-        <td><button class="btn btn-sm" onclick="ir('entrada')">Atender</button></td>
+        <td><input type="text" id="mot-${v.id}" value="${asig?.motivo||''}" placeholder="Motivo..." style="font-size:12px;padding:4px 8px;border:0.5px solid var(--border);border-radius:var(--r);width:130px"></td>
       </tr>`;
     }).join('');
   }catch(e){tb.innerHTML=`<tr><td colspan="6" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
 }
 
-// ── Historial ──────────────────────────────────────────────
+function setFig(vid,figura,activo,btn){
+  const row=document.getElementById('fv-'+vid);
+  row.querySelectorAll('.ft-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  // Actualizar selector de titular
+  const titTd=document.getElementById('tit-td-'+vid);
+  if(figura==='backup'&&activo){
+    // Reconstruir selector con titulares
+    const vhRows=document.querySelectorAll('[id^="fv-"]');
+    let opts='<option value="">Seleccionar...</option>';
+    vhRows.forEach(r=>{
+      const id=r.id.replace('fv-','');
+      if(id===vid)return;
+      const placa=r.cells[0].textContent;
+      const figBtn=r.querySelector('.ft-btn.titular.sel');
+      if(figBtn)opts+=`<option value="${id}">${placa}</option>`;
+    });
+    titTd.innerHTML=`<select id="tit-sel-${vid}" style="font-size:12px;padding:4px 8px;border:0.5px solid var(--border);border-radius:var(--r)"><option value="">Seleccionar...</option>${opts}</select>`;
+  }else{
+    titTd.innerHTML='<span style="color:var(--text3);font-size:12px">—</span>';
+  }
+  figCambios[vid]={figura,activo};
+}
+
+async function guardarFiguras(){
+  const vids=Object.keys(figCambios);
+  if(!vids.length){toast('Sin cambios que guardar');return;}
+  const btn=document.querySelector('[onclick="guardarFiguras()"]');
+  btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    for(const vid of vids){
+      const c=figCambios[vid];
+      const motivo=document.getElementById('mot-'+vid)?.value||null;
+      const titId=document.getElementById('tit-sel-'+vid)?.value||null;
+      const{data:vh}=await db.from('vehiculos').select('regional_id').eq('id',vid).single();
+      await db.from('asignaciones_diarias').upsert({
+        vehiculo_id:vid,regional_id:vh?.regional_id,fecha:hoy(),
+        figura:c.figura,activo:c.activo,
+        titular_reemplazado_id:titId||null,motivo,
+      },{onConflict:'vehiculo_id,fecha'});
+    }
+    figCambios={};
+    toast(`${vids.length} asignaciones guardadas ✓`);
+    await cargarKPIs();
+  }catch(e){toast('Error: '+e.message,true);}
+  finally{btn.disabled=false;btn.textContent='Guardar cambios del día';}
+}
+
+// ── FUERA página ──
+async function cargarFuera(){
+  const tb=document.getElementById('fuera-body');
+  try{
+    let q=db.from('eventos_mantenimiento')
+      .select('id,fecha_entrada,prioridad,descripcion_trabajo,regional_id,vehiculos(id,placa,tipo),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
+      .eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
+    if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
+    const{data,error}=await q;if(error)throw error;
+    if(!data?.length){tb.innerHTML='<tr><td colspan="9" class="empty">Sin vehículos fuera de servicio ✓</td></tr>';return;}
+    tb.innerHTML=data.map(e=>{const d=diasFuera(e.fecha_entrada);return`<tr><td style="font-weight:600">${e.vehiculos?.placa||'—'}</td><td>${e.vehiculos?.tipo||'—'}</td><td>${rNombre(e.regional_id)}</td><td>${e.talleres?.nombre||'—'}<br><span style="font-size:11px;color:var(--text2)">${e.talleres?.tipo?labelTaller(e.talleres.tipo):''}</span></td><td>${fmtF(e.fecha_entrada)}</td><td style="text-align:center"><span class="${clrDias(d)}">${d}</span></td><td style="font-size:12px">${e.descripcion_trabajo||'—'}</td><td>${badgePrior(e.prioridad)}</td><td><button class="btn btn-sm" onclick="irRetorno('${e.id}')">Retorno</button></td></tr>`;}).join('');
+  }catch(e){tb.innerHTML=`<tr><td colspan="9" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
+}
+
+// ── ALERTAS ──
+async function cargarAlertas(){
+  const tb=document.getElementById('alertas-body');
+  try{
+    let q=db.from('alertas').select('id,tipo_alerta,fecha_limite,km_limite,anticipacion_dias,anticipacion_km,regional_id,vehiculos(placa,tipo,km_actuales),tipos_mantenimiento(nombre)').not('estado','eq','resuelta');
+    if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
+    const{data,error}=await q;if(error)throw error;
+    document.getElementById('badge-al-page').textContent=(data||[]).length;
+    if(!data?.length){tb.innerHTML='<tr><td colspan="6" class="empty">Sin alertas activas</td></tr>';return;}
+    const ord=[...data].sort((a,b)=>{const o={vencida:0,proxima:1,proxima_km:2,programada:3};return(o[urgAlerta(a)]||3)-(o[urgAlerta(b)]||3);});
+    tb.innerHTML=ord.map(a=>{const u=urgAlerta(a);const venc=a.tipo_alerta==='por_fecha'?fmtF(a.fecha_limite):(a.km_limite?a.km_limite.toLocaleString('es-CO')+' km':'—');return`<tr><td style="font-weight:600">${a.vehiculos?.placa||'—'}</td><td>${rNombre(a.regional_id)}</td><td>${a.tipos_mantenimiento?.nombre||'—'}</td><td>${venc}</td><td>${badgeUrg(u)}</td><td><button class="btn btn-sm" onclick="ir('entrada')">Atender</button></td></tr>`;}).join('');
+  }catch(e){tb.innerHTML=`<tr><td colspan="6" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
+}
+
+// ── HISTORIAL ──
 async function cargarHistorial(){
   const tb=document.getElementById('hist-body');
   tb.innerHTML='<tr><td colspan="9" class="loading"><div class="spinner"></div></td></tr>';
   try{
     let q=db.from('eventos_mantenimiento')
-      .select('*,vehiculos(id,placa,tipo,regional_id),talleres(nombre,tipo),tipos_mantenimiento(nombre),regionales(nombre)')
+      .select('id,fecha_entrada,fecha_salida,dias_en_taller,costo,descripcion_trabajo,tipo,regional_id,vehiculos(id,placa,tipo),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
       .order('fecha_entrada',{ascending:false});
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     const desde=document.getElementById('h-desde').value;
@@ -842,22 +749,10 @@ async function cargarHistorial(){
     if(desde)q=q.gte('fecha_entrada',desde);
     if(hasta)q=q.lte('fecha_entrada',hasta);
     if(tipo)q=q.eq('tipo',tipo);
-    const{data,error}=await q;
-    if(error)throw error;
+    const{data,error}=await q;if(error)throw error;
     document.getElementById('h-count').textContent=`${(data||[]).length} registros`;
     if(!data?.length){tb.innerHTML='<tr><td colspan="9" class="empty">Sin resultados</td></tr>';return;}
-    tb.innerHTML=data.map(e=>`
-      <tr style="cursor:pointer" onclick="verTL('${e.vehiculos?.id||''}','${e.vehiculos?.placa||''}')">
-        <td style="font-weight:600">${e.vehiculos?.placa||'—'}</td>
-        <td>${regNombre(e.vehiculos?.regional_id)||'—'}</td>
-        <td>${e.tipos_mantenimiento?.nombre||'—'}</td>
-        <td>${e.talleres?.nombre||'—'}</td>
-        <td>${fmtF(e.fecha_entrada)}</td>
-        <td>${fmtF(e.fecha_salida)}</td>
-        <td style="text-align:center">${e.dias_en_taller!=null?`<strong>${e.dias_en_taller}</strong>`:'<span style="color:var(--amber)">En curso</span>'}</td>
-        <td style="text-align:right">${fmtM(e.costo)}</td>
-        <td style="font-size:11px;color:var(--text2)">Ver →</td>
-      </tr>`).join('');
+    tb.innerHTML=data.map(e=>`<tr style="cursor:pointer" onclick="verTL('${e.vehiculos?.id||''}','${e.vehiculos?.placa||''}')"><td style="font-weight:600">${e.vehiculos?.placa||'—'}</td><td>${rNombre(e.regional_id)}</td><td>${e.tipos_mantenimiento?.nombre||'—'}</td><td>${e.talleres?.nombre||'—'}</td><td>${fmtF(e.fecha_entrada)}</td><td>${fmtF(e.fecha_salida)}</td><td style="text-align:center">${e.dias_en_taller!=null?`<strong>${e.dias_en_taller}</strong>`:'<span style="color:var(--amber)">En curso</span>'}</td><td style="text-align:right">${fmtM(e.costo)}</td><td style="font-size:11px;color:var(--text2)">Ver →</td></tr>`).join('');
   }catch(e){tb.innerHTML=`<tr><td colspan="9" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
 }
 
@@ -867,74 +762,209 @@ async function verTL(vid,placa){
   const body=document.getElementById('tl-body');
   document.getElementById('tl-title').textContent=`Historial completo — ${placa}`;
   body.innerHTML='<div class="loading"><div class="spinner"></div></div>';
-  card.style.display='block';
-  card.scrollIntoView({behavior:'smooth',block:'start'});
-  const{data,error}=await db.from('eventos_mantenimiento')
-    .select('*,talleres(nombre,tipo),tipos_mantenimiento(nombre)')
-    .eq('vehiculo_id',vid).order('fecha_entrada',{ascending:false});
+  card.style.display='block';card.scrollIntoView({behavior:'smooth',block:'start'});
+  const{data,error}=await db.from('eventos_mantenimiento').select('*,talleres(nombre,tipo),tipos_mantenimiento(nombre)').eq('vehiculo_id',vid).order('fecha_entrada',{ascending:false});
   if(error||!data?.length){body.innerHTML='<div class="empty">Sin eventos registrados</div>';return;}
-  body.innerHTML=data.map(e=>{
-    const enCurso=!e.fecha_salida;
-    const color=enCurso?'var(--amber)':e.tipo==='siniestro'?'var(--red)':'var(--green)';
-    return`<div class="tl-item">
-      <div class="tl-left"><div class="tl-dot" style="background:${color}"></div><div class="tl-line"></div></div>
-      <div>
-        <div style="font-size:13px;font-weight:500">${e.tipos_mantenimiento?.nombre||e.tipo||'—'} — ${e.talleres?.nombre||'—'}</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:2px">${fmtF(e.fecha_entrada)} → ${fmtF(e.fecha_salida)}</div>
-        <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap">
-          <span class="badge ${enCurso?'b-amber':'b-green'}">${e.dias_en_taller!=null?e.dias_en_taller+' días':'En curso'}</span>
-          ${e.costo?`<span class="badge b-gray">${fmtM(e.costo)}</span>`:''}
-          ${e.descripcion_trabajo?`<span style="font-size:11px;color:var(--text2)">${e.descripcion_trabajo}</span>`:''}
-        </div>
-      </div>
-    </div>`;
-  }).join('');
+  body.innerHTML=data.map(e=>{const enCurso=!e.fecha_salida;const color=enCurso?'var(--amber)':e.tipo==='siniestro'?'var(--red)':'var(--green)';return`<div class="tl-item"><div class="tl-left"><div class="tl-dot" style="background:${color}"></div><div class="tl-line"></div></div><div><div style="font-size:13px;font-weight:500">${e.tipos_mantenimiento?.nombre||e.tipo||'—'} — ${e.talleres?.nombre||'—'}</div><div style="font-size:12px;color:var(--text2);margin-top:2px">${fmtF(e.fecha_entrada)} → ${fmtF(e.fecha_salida)}</div><div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap"><span class="badge ${enCurso?'b-amber':'b-green'}">${e.dias_en_taller!=null?e.dias_en_taller+' días':'En curso'}</span>${e.costo?`<span class="badge b-gray">${fmtM(e.costo)}</span>`:''}${e.descripcion_trabajo?`<span style="font-size:11px;color:var(--text2)">${e.descripcion_trabajo}</span>`:''}</div></div></div>`;}).join('');
 }
 
-// ── Flota completa ─────────────────────────────────────────
+// ── FLOTA COMPLETA ──
 async function cargarFlota(){
   const tb=document.getElementById('flota-body');
-  tb.innerHTML='<tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr>';
+  tb.innerHTML='<tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr>';
   try{
     const regF=document.getElementById('flota-regional').value;
     const tipF=document.getElementById('flota-tipo').value;
     const figF=document.getElementById('flota-figura').value;
-    let q=db.from('vehiculos').select('id,placa,tipo,figura,estado,km_actuales,regional_id').eq('activo',true).order('placa');
+    const actF=document.getElementById('flota-activo').value;
+    let q=db.from('vehiculos').select('id,placa,tipo,figura,estado,km_actuales,activo,regional_id').order('placa');
     if(regF)q=q.eq('regional_id',regF);
     if(tipF)q=q.eq('tipo',tipF);
     if(figF)q=q.eq('figura',figF);
-    const{data,error}=await q;
-    if(error)throw error;
+    if(actF!=='')q=q.eq('activo',actF==='true');
+    const{data,error}=await q;if(error)throw error;
     document.getElementById('flota-count').textContent=`${(data||[]).length} vehículos`;
-    if(!data?.length){tb.innerHTML='<tr><td colspan="7" class="empty">Sin vehículos</td></tr>';return;}
+    if(!data?.length){tb.innerHTML='<tr><td colspan="8" class="empty">Sin vehículos</td></tr>';return;}
     tb.innerHTML=data.map(v=>`<tr>
       <td style="font-weight:600">${v.placa}</td>
       <td>${v.tipo||'—'}</td>
-      <td>${regNombre(v.regional_id)||'—'}</td>
+      <td>${rNombre(v.regional_id)}</td>
       <td>${badgeFigura(v.figura,false)}</td>
       <td>${badgeEstado(v.estado)}</td>
       <td>${v.km_actuales?v.km_actuales.toLocaleString('es-CO')+' km':'—'}</td>
-      <td><button class="btn btn-sm" onclick="verTLFlota('${v.id}','${v.placa}')">Historial</button></td>
+      <td><span class="badge ${v.activo?'b-green':'b-gray'}">${v.activo?'Activo':'Retirado'}</span></td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap;padding:6px 10px">
+        <button class="btn btn-sm" onclick="editarVh(${JSON.stringify(v).replace(/"/g,'&quot;')})">Editar</button>
+        <button class="btn btn-sm" onclick="verTL('${v.id}','${v.placa}');ir('historial')">Hist.</button>
+        ${v.activo?`<button class="btn btn-sm btn-red" onclick="abrirRetiro('${v.id}','${v.placa}')">Retirar</button>`:`<button class="btn btn-sm btn-green" onclick="reactivarVh('${v.id}','${v.placa}')">Reactivar</button>`}
+      </td>
     </tr>`).join('');
-  }catch(e){tb.innerHTML=`<tr><td colspan="7" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
+  }catch(e){tb.innerHTML=`<tr><td colspan="8" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
 }
 
+// ── EDITAR VEHÍCULO ──
+function abrirNuevoVh(){
+  document.getElementById('mv-id').value='';
+  document.getElementById('mv-placa').value='';
+  document.getElementById('mv-tipo').value='camion';
+  document.getElementById('mv-figura').value='titular';
+  document.getElementById('mv-km').value='';
+  document.getElementById('mv-estado').value='disponible';
+  document.getElementById('mv-obs').value='';
+  document.getElementById('modal-vh-title').textContent='Agregar vehículo';
+  // Poblar regional
+  const sel=document.getElementById('mv-regional');
+  while(sel.options.length>0)sel.remove(0);
+  regionales.forEach(r=>{const o=new Option(r.nombre,r.id);sel.add(o);});
+  document.getElementById('modal-vh').classList.add('open');
+}
 
-async function cambiarFiguraBase(vid, figuraActual, placa){
-  const nueva = figuraActual==='titular' ? 'backup' : 'titular';
-  if(!confirm(`¿Cambiar ${placa} de ${figuraActual.toUpperCase()} a ${nueva.toUpperCase()}?\nEsto actualiza la figura base del vehículo.`)) return;
+function editarVh(v){
+  document.getElementById('mv-id').value=v.id;
+  document.getElementById('mv-placa').value=v.placa;
+  document.getElementById('mv-tipo').value=v.tipo||'camion';
+  document.getElementById('mv-figura').value=v.figura||'titular';
+  document.getElementById('mv-km').value=v.km_actuales||0;
+  document.getElementById('mv-estado').value=v.estado||'disponible';
+  document.getElementById('mv-obs').value=v.observaciones||'';
+  document.getElementById('modal-vh-title').textContent=`Editar — ${v.placa}`;
+  const sel=document.getElementById('mv-regional');
+  while(sel.options.length>0)sel.remove(0);
+  regionales.forEach(r=>{const o=new Option(r.nombre,r.id);if(r.id===v.regional_id)o.selected=true;sel.add(o);});
+  document.getElementById('modal-vh').classList.add('open');
+}
+
+async function guardarVehiculo(){
+  const id=document.getElementById('mv-id').value;
+  const datos={
+    placa:document.getElementById('mv-placa').value.trim().toUpperCase(),
+    tipo:document.getElementById('mv-tipo').value,
+    figura:document.getElementById('mv-figura').value,
+    regional_id:document.getElementById('mv-regional').value,
+    km_actuales:parseInt(document.getElementById('mv-km').value)||0,
+    estado:document.getElementById('mv-estado').value,
+    observaciones:document.getElementById('mv-obs').value,
+    activo:true,
+    updated_at:new Date().toISOString(),
+  };
   try{
-    const{error}=await db.from('vehiculos').update({figura:nueva}).eq('id',vid);
-    if(error)throw error;
-    toast(`${placa} actualizado a ${nueva} ✓`);
+    if(id){
+      const{error}=await db.from('vehiculos').update(datos).eq('id',id);
+      if(error)throw error;
+      toast('Vehículo actualizado ✓');
+    }else{
+      const{error}=await db.from('vehiculos').insert(datos);
+      if(error)throw error;
+      toast('Vehículo agregado ✓');
+    }
+    cerrarModal('modal-vh');
     cargarFlota();
     cargarKPIs();
   }catch(e){toast('Error: '+e.message,true);}
 }
 
-async function verTLFlota(vid,placa){ir('historial');setTimeout(()=>verTL(vid,placa),300);}
+// ── RETIRAR / REACTIVAR ──
+function abrirRetiro(vid,placa){
+  document.getElementById('ret-vid').value=vid;
+  document.getElementById('ret-vh-info').textContent=`Vehículo: ${placa}`;
+  document.getElementById('ret-motivo').value='';
+  document.getElementById('ret-fecha').value=hoy();
+  document.getElementById('modal-retiro').classList.add('open');
+}
 
-// ── Formulario entrada ─────────────────────────────────────
+async function confirmarRetiro(){
+  const vid=document.getElementById('ret-vid').value;
+  const motivo=document.getElementById('ret-motivo').value;
+  const fecha=document.getElementById('ret-fecha').value;
+  if(!motivo.trim()){toast('Debes ingresar el motivo del retiro',true);return;}
+  try{
+    const{error}=await db.from('vehiculos').update({activo:false,estado:'inactivo',fecha_retiro:fecha,motivo_retiro:motivo,updated_at:new Date().toISOString()}).eq('id',vid);
+    if(error)throw error;
+    toast('Vehículo retirado de operación');
+    cerrarModal('modal-retiro');
+    cargarFlota();cargarKPIs();
+  }catch(e){toast('Error: '+e.message,true);}
+}
+
+async function reactivarVh(vid,placa){
+  if(!confirm(`¿Reactivar el vehículo ${placa}?`))return;
+  try{
+    const{error}=await db.from('vehiculos').update({activo:true,estado:'disponible',fecha_retiro:null,motivo_retiro:null,updated_at:new Date().toISOString()}).eq('id',vid);
+    if(error)throw error;
+    toast(`${placa} reactivado ✓`);
+    cargarFlota();cargarKPIs();
+  }catch(e){toast('Error: '+e.message,true);}
+}
+
+// ── CARGA MASIVA ──
+async function abrirMasivo(){
+  const{data:tal}=await db.from('talleres').select('id,nombre,tipo').eq('activo',true).order('nombre');
+  const sel=document.getElementById('mas-taller');
+  while(sel.options.length>0)sel.remove(0);
+  (tal||[]).forEach(t=>{sel.add(new Option(`${t.nombre} (${labelTaller(t.tipo)})`,t.id));});
+  document.getElementById('mas-fecha').value=hoy();
+  document.getElementById('mas-placas').value='';
+  document.getElementById('mas-preview').innerHTML='';
+  document.getElementById('modal-masivo').classList.add('open');
+}
+
+async function ejecutarMasivo(){
+  const placasRaw=document.getElementById('mas-placas').value;
+  const tallerId=document.getElementById('mas-taller').value;
+  const tipo=document.getElementById('mas-tipo').value;
+  const fecha=document.getElementById('mas-fecha').value;
+  const prior=document.getElementById('mas-prior').value;
+  const desc=document.getElementById('mas-desc').value;
+  const placas=placasRaw.split('\n').map(p=>p.trim().toUpperCase()).filter(p=>p.length>0);
+  if(!placas.length||!tallerId||!fecha){toast('Completa todos los campos requeridos',true);return;}
+
+  const btn=document.getElementById('btn-masivo');
+  btn.disabled=true;btn.textContent='Procesando...';
+  const preview=document.getElementById('mas-preview');
+  preview.innerHTML='';
+
+  let ok=0,errores=[];
+
+  // Obtener el tipo del taller seleccionado
+  const{data:talData}=await db.from('talleres').select('tipo').eq('id',tallerId).single();
+  const talTipo=talData?.tipo||'taller_propio';
+
+  // Obtener tipo de mantenimiento genérico
+  const{data:tmData}=await db.from('tipos_mantenimiento').select('id').eq('nombre','Falla mecánica').single();
+  const tmId=tmData?.id||null;
+
+  for(const placa of placas){
+    // Buscar vehículo por placa
+    const{data:vh}=await db.from('vehiculos').select('id,regional_id,estado').eq('placa',placa).single();
+    if(!vh){errores.push(`${placa}: No encontrado`);continue;}
+
+    // Crear evento
+    const{error}=await db.from('eventos_mantenimiento').insert({
+      vehiculo_id:vh.id,taller_id:tallerId,
+      tipo_mantenimiento_id:tmId,
+      regional_id:vh.regional_id,
+      origen:talTipo,tipo,prioridad:prior,
+      fecha_entrada:fecha,descripcion_trabajo:desc||null,
+      estado:'en_proceso',
+    });
+    if(error){errores.push(`${placa}: ${error.message}`);continue;}
+    // Actualizar estado del vehículo
+    await db.from('vehiculos').update({estado:talTipo}).eq('id',vh.id);
+    ok++;
+  }
+
+  let html=`<div style="font-size:13px;margin-bottom:8px"><strong>${ok} vehículo(s) registrados correctamente</strong></div>`;
+  if(errores.length){html+=`<div style="font-size:12px;color:var(--red-dark);background:var(--red-bg);padding:8px 12px;border-radius:var(--r)">${errores.join('<br>')}</div>`;}
+  preview.innerHTML=html;
+
+  if(ok>0){
+    toast(`${ok} vehículos registrados en taller ✓`);
+    cargarKPIs();cargarFueraDash();
+  }
+  btn.disabled=false;btn.textContent='Registrar entradas';
+}
+
+// ── ENTRADA A TALLER ──
 async function prepEntrada(){
   try{
     let qv=db.from('vehiculos').select('id,placa,tipo,figura,estado,regional_id').eq('activo',true).order('placa');
@@ -942,29 +972,22 @@ async function prepEntrada(){
     const{data:vhs}=await qv;
     const{data:tal}=await db.from('talleres').select('id,nombre,tipo').eq('activo',true).order('nombre');
     const{data:tms}=await db.from('tipos_mantenimiento').select('id,nombre').eq('activo',true).order('nombre');
-    document.getElementById('e-vh').innerHTML='<option value="">Seleccionar vehículo...</option>'+
-      (vhs||[]).map(v=>`<option value="${v.id}" data-reg="${v.regional_id||''}">${v.placa} [${regNombre(v.regional_id)||''}] — ${v.figura} — ${v.estado}</option>`).join('');
-    document.getElementById('e-taller').innerHTML='<option value="">Seleccionar taller...</option>'+
-      (tal||[]).map(t=>`<option value="${t.id}" data-tipo="${t.tipo}">${t.nombre} (${labelTaller(t.tipo)})</option>`).join('');
-    document.getElementById('e-tipomant').innerHTML='<option value="">Seleccionar tipo...</option>'+
-      (tms||[]).map(m=>`<option value="${m.id}">${m.nombre}</option>`).join('');
+    document.getElementById('e-vh').innerHTML='<option value="">Seleccionar vehículo...</option>'+(vhs||[]).map(v=>`<option value="${v.id}" data-reg="${v.regional_id||''}">${v.placa} [${rNombre(v.regional_id)}] — ${v.figura} — ${v.estado}</option>`).join('');
+    document.getElementById('e-taller').innerHTML='<option value="">Seleccionar taller...</option>'+(tal||[]).map(t=>`<option value="${t.id}" data-tipo="${t.tipo}">${t.nombre} (${labelTaller(t.tipo)})</option>`).join('');
+    document.getElementById('e-tipomant').innerHTML='<option value="">Seleccionar tipo...</option>'+(tms||[]).map(m=>`<option value="${m.id}">${m.nombre}</option>`).join('');
     document.getElementById('e-fecha').value=hoy();
   }catch(e){toast('Error cargando formulario: '+e.message,true);}
 }
 
 async function submitEntrada(e){
   e.preventDefault();
-  const btn=document.getElementById('btn-ent');
-  btn.disabled=true;btn.textContent='Registrando...';
-  const vhSel=document.getElementById('e-vh');
-  const vhOpt=vhSel.options[vhSel.selectedIndex];
-  const talSel=document.getElementById('e-taller');
-  const talOpt=talSel.options[talSel.selectedIndex];
+  const btn=document.getElementById('btn-ent');btn.disabled=true;btn.textContent='Registrando...';
+  const vhSel=document.getElementById('e-vh');const vhOpt=vhSel.options[vhSel.selectedIndex];
+  const talSel=document.getElementById('e-taller');const talOpt=talSel.options[talSel.selectedIndex];
   const origen=talOpt?.dataset.tipo||'taller_propio';
   try{
     const{error}=await db.from('eventos_mantenimiento').insert({
-      vehiculo_id:vhOpt.value,
-      taller_id:talSel.value,
+      vehiculo_id:vhOpt.value,taller_id:talSel.value,
       tipo_mantenimiento_id:document.getElementById('e-tipomant').value,
       regional_id:vhOpt.dataset.reg||null,
       origen,tipo:document.getElementById('e-tipo').value,
@@ -977,53 +1000,37 @@ async function submitEntrada(e){
     await db.from('vehiculos').update({estado:origen}).eq('id',vhOpt.value);
     e.target.reset();document.getElementById('e-fecha').value=hoy();
     toast('Entrada registrada correctamente ✓');
-    await Promise.all([cargarKPIs(),cargarFueraDash()]);
-    ir('fuera');
+    await Promise.all([cargarKPIs(),cargarFueraDash()]);ir('fuera');
   }catch(err){toast('Error: '+err.message,true);}
   finally{btn.disabled=false;btn.textContent='Registrar entrada';}
 }
 
-// ── Formulario retorno ─────────────────────────────────────
+// ── RETORNO ──
 async function prepRetorno(){
   try{
-    let q=db.from('eventos_mantenimiento')
-      .select('id,fecha_entrada,vehiculos(id,placa),talleres(nombre)')
-      .eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
+    let q=db.from('eventos_mantenimiento').select('id,fecha_entrada,regional_id,vehiculos(id,placa),talleres(nombre)').eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     const{data}=await q;
-    document.getElementById('r-evento').innerHTML='<option value="">Seleccionar vehículo en taller...</option>'+
-      (data||[]).map(e=>`<option value="${e.id}" data-vh="${e.vehiculos?.id}" data-entrada="${e.fecha_entrada}">
-        ${e.vehiculos?.placa} — ${diasFuera(e.fecha_entrada)} días fuera — ${e.talleres?.nombre||''}
-      </option>`).join('');
+    document.getElementById('r-evento').innerHTML='<option value="">Seleccionar vehículo en taller...</option>'+(data||[]).map(e=>`<option value="${e.id}" data-vh="${e.vehiculos?.id}" data-entrada="${e.fecha_entrada}">${e.vehiculos?.placa} — ${diasFuera(e.fecha_entrada)} días fuera — ${e.talleres?.nombre||''}</option>`).join('');
     document.getElementById('r-fecha').value=hoy();
     document.getElementById('r-info-wrap').style.display='none';
   }catch(e){toast('Error: '+e.message,true);}
 }
 
 function onEvento(){
-  const sel=document.getElementById('r-evento');
-  const opt=sel.options[sel.selectedIndex];
+  const sel=document.getElementById('r-evento');const opt=sel.options[sel.selectedIndex];
   const wrap=document.getElementById('r-info-wrap');
   if(!opt.value){wrap.style.display='none';return;}
-  document.getElementById('r-info').textContent=
-    `Vehículo en taller desde ${fmtF(opt.dataset.entrada)} — ${diasFuera(opt.dataset.entrada)} días fuera de servicio`;
+  document.getElementById('r-info').textContent=`Vehículo en taller desde ${fmtF(opt.dataset.entrada)} — ${diasFuera(opt.dataset.entrada)} días fuera de servicio`;
   wrap.style.display='block';
 }
 
-function irRetorno(eventoId){
-  ir('retorno');
-  setTimeout(()=>{
-    const sel=document.getElementById('r-evento');
-    for(const opt of sel.options){if(opt.value===eventoId){opt.selected=true;onEvento();break;}}
-  },400);
-}
+function irRetorno(eventoId){ir('retorno');setTimeout(()=>{const sel=document.getElementById('r-evento');for(const opt of sel.options){if(opt.value===eventoId){opt.selected=true;onEvento();break;}}},400);}
 
 async function submitRetorno(e){
   e.preventDefault();
-  const btn=document.getElementById('btn-ret');
-  btn.disabled=true;btn.textContent='Registrando...';
-  const sel=document.getElementById('r-evento');
-  const opt=sel.options[sel.selectedIndex];
+  const btn=document.getElementById('btn-ret');btn.disabled=true;btn.textContent='Registrando...';
+  const sel=document.getElementById('r-evento');const opt=sel.options[sel.selectedIndex];
   try{
     const{error}=await db.from('eventos_mantenimiento').update({
       fecha_salida:document.getElementById('r-fecha').value,
@@ -1036,26 +1043,9 @@ async function submitRetorno(e){
     await db.from('vehiculos').update({estado:'disponible',updated_at:new Date().toISOString()}).eq('id',opt.dataset.vh);
     e.target.reset();document.getElementById('r-info-wrap').style.display='none';
     toast('Retorno registrado — vehículo disponible ✓');
-    await Promise.all([cargarKPIs(),cargarFueraDash()]);
-    ir('fuera');
+    await Promise.all([cargarKPIs(),cargarFueraDash()]);ir('fuera');
   }catch(err){toast('Error: '+err.message,true);}
   finally{btn.disabled=false;btn.textContent='Registrar retorno';}
-}
-
-
-
-async function cambiarFiguraBase(vid, figura){
-  try{
-    const{error}=await db.from('vehiculos').update({figura}).eq('id',vid);
-    if(error)throw error;
-    toast(`Figura base actualizada a ${figura} ✓`);
-  }catch(e){toast('Error: '+e.message,true);}
-}
-
-// Helper para obtener nombre de regional por ID
-function regNombre(id){
-  if(!id)return'—';
-  return regionales.find(r=>r.id===id)?.nombre||'—';
 }
 
 init();
