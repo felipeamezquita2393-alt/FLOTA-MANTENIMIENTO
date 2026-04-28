@@ -156,6 +156,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="check-item" data-key="botiquin"><span class="check-label">Botiquín a bordo</span><div class="check-btns"><button class="cbtn" onclick="marcar(this,'bien','botiquin')">✓ Bien</button><button class="cbtn" onclick="marcar(this,'falla','botiquin')">✗ Falla</button></div></div>
         <div class="check-item" data-key="cinturon"><span class="check-label">Cinturón de seguridad</span><div class="check-btns"><button class="cbtn" onclick="marcar(this,'bien','cinturon')">✓ Bien</button><button class="cbtn" onclick="marcar(this,'falla','cinturon')">✗ Falla</button></div></div>
       </div>
+      <div class="check-group">
+        <div class="check-group-title">🚛 Carrocería y equipos</div>
+        <div class="check-item" data-key="plataforma"><span class="check-label">Estado de plataforma</span><div class="check-btns"><button class="cbtn" onclick="marcar(this,'bien','plataforma')">✓ Bien</button><button class="cbtn" onclick="marcar(this,'falla','plataforma')">✗ Falla</button></div></div>
+        <div class="check-item" data-key="termo_refrigeracion"><span class="check-label">Estado de termo refrigeración</span><div class="check-btns"><button class="cbtn" onclick="marcar(this,'bien','termo_refrigeracion')">✓ Bien</button><button class="cbtn" onclick="marcar(this,'falla','termo_refrigeracion')">✗ Falla</button></div></div>
+        <div class="check-item" data-key="furgon_interno"><span class="check-label">Estado de furgón interno</span><div class="check-btns"><button class="cbtn" onclick="marcar(this,'bien','furgon_interno')">✓ Bien</button><button class="cbtn" onclick="marcar(this,'falla','furgon_interno')">✗ Falla</button></div></div>
+      </div>
       <div class="check-group" style="margin-bottom:0">
         <div class="check-group-title">📍 KM y combustible</div>
         <div class="field" style="margin-bottom:10px">
@@ -219,7 +225,7 @@ const db=createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpeHRxdG9wcHBiY2x4cWRhcmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5Njk2ODAsImV4cCI6MjA5MjU0NTY4MH0.WRYBP4006NZrRCNBpoclVWSz64zQfE2sjFslVc4imDg'
 );
 
-const ITEMS = ['soat','tecnomecanica','luces','llantas','nivel_aceite','nivel_agua','sin_fugas','frenos','extintor','botiquin','cinturon'];
+const ITEMS = ['soat','tecnomecanica','luces','llantas','nivel_aceite','nivel_agua','sin_fugas','frenos','extintor','botiquin','cinturon','plataforma','termo_refrigeracion','furgon_interno'];
 const ITEMS_CRITICOS = ['frenos','llantas','nivel_aceite','sin_fugas'];
 const LABELS = {
   soat:'SOAT vigente',tecnomecanica:'Tecnicomecánica',luces:'Luces',
@@ -396,6 +402,9 @@ async function enviarChecklist(){
       extintor:estado.extintor??null,
       botiquin:estado.botiquin??null,
       cinturon:estado.cinturon??null,
+      plataforma:estado.plataforma??null,
+      termo_refrigeracion:estado.termo_refrigeracion??null,
+      furgon_interno:estado.furgon_interno??null,
     };
 
     const{error}=await db.from('checklists').insert(registro);
