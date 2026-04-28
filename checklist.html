@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>FlotaOps — Checklist</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --green:#639922;--green-bg:#EAF3DE;--green-dark:#3B6D11;
+  --amber:#BA7517;--amber-bg:#FAEEDA;--amber-dark:#854F0B;
+  --red:#E24B4A;--red-bg:#FCEBEB;--red-dark:#A32D2D;
+  --border:rgba(0,0,0,0.1);--text:#1a1a18;--text2:#6b6b67;--text3:#9b9b96;
+  --bg:#fff;--bg2:#f7f6f2;--r:10px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg2);color:var(--text);font-size:15px;min-height:100vh}
+.header{background:var(--text);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between}
+.header-title{font-size:16px;font-weight:600}
+.header-sub{font-size:12px;opacity:.7;margin-top:2px}
+.content{padding:16px;max-width:480px;margin:0 auto}
+.card{background:var(--bg);border-radius:var(--r);padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.card-title{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field:last-child{margin-bottom:0}
+.field label{font-size:13px;color:var(--text2);font-weight:500}
+.field input,.field select,.field textarea{padding:12px 14px;font-size:15px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text);outline:none;font-family:inherit;width:100%}
+.field input:focus,.field select:focus{border-color:rgba(0,0,0,.35)}
+/* Item checklist */
+.check-group{margin-bottom:18px}
+.check-group-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;padding-bottom:8px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:6px}
+.check-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:0.5px solid var(--border)}
+.check-item:last-child{border-bottom:none}
+.check-label{font-size:14px;color:var(--text);flex:1;padding-right:10px}
+.check-btns{display:flex;gap:6px;flex-shrink:0}
+.cbtn{width:56px;height:36px;border-radius:8px;border:0.5px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:var(--bg);color:var(--text2);transition:all .12s;display:flex;align-items:center;justify-content:center}
+.cbtn.bien{background:var(--green-bg);color:var(--green-dark);border-color:var(--green-bg)}
+.cbtn.falla{background:var(--red-bg);color:var(--red-dark);border-color:var(--red-bg)}
+/* Alerta */
+.alerta-banner{background:var(--red-bg);border:0.5px solid #F09595;border-radius:var(--r);padding:12px 14px;font-size:13px;color:var(--red-dark);margin-bottom:14px;display:none}
+.alerta-banner.show{display:block}
+.alerta-banner strong{display:block;margin-bottom:4px;font-size:14px}
+/* Botón principal */
+.btn-main{width:100%;padding:16px;font-size:15px;font-weight:600;border-radius:var(--r);border:none;cursor:pointer;font-family:inherit;transition:all .15s;margin-top:8px}
+.btn-submit{background:var(--text);color:#fff}
+.btn-submit:hover{opacity:.9}
+.btn-submit:disabled{opacity:.5}
+/* Progreso */
+.progress-wrap{margin-bottom:16px}
+.progress-label{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:6px}
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:var(--green);border-radius:3px;transition:width .3s}
+/* Páginas */
+.page{display:none}.page.active{display:block}
+/* Spinner */
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:12px;color:var(--text2)}
+.loading-spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:spin .6s linear infinite}
+/* Éxito */
+.success-wrap{text-align:center;padding:40px 20px}
+.success-icon{width:64px;height:64px;border-radius:50%;background:var(--green-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px}
+.success-title{font-size:20px;font-weight:600;color:var(--text);margin-bottom:8px}
+.success-sub{font-size:14px;color:var(--text2);line-height:1.5}
+.falla-list{background:var(--red-bg);border-radius:var(--r);padding:12px 14px;margin-top:16px;text-align:left}
+.falla-list-title{font-size:12px;font-weight:600;color:var(--red-dark);margin-bottom:6px;text-transform:uppercase}
+.falla-list li{font-size:13px;color:var(--red-dark);margin-left:16px;margin-bottom:3px}
+/* Badge */
+.badge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px}
+.b-green{background:var(--green-bg);color:var(--green-dark)}
+.b-red{background:var(--red-bg);color:var(--red-dark)}
+.b-gray{background:#F1EFE8;color:#5F5E5A}
+/* Selección de placa */
+.placa-item{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--bg);border-radius:var(--r);margin-bottom:10px;cursor:pointer;border:0.5px solid var(--border);transition:all .12s}
+.placa-item:hover,.placa-item:active{background:var(--bg2);border-color:rgba(0,0,0,.2)}
+.placa-num{font-size:18px;font-weight:700;color:var(--text)}
+.placa-info{font-size:12px;color:var(--text2);margin-top:2px}
+.placa-badge{margin-left:auto}
+.search-input{width:100%;padding:12px 14px;font-size:15px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg);outline:none;font-family:inherit;margin-bottom:14px}
+.search-input:focus{border-color:rgba(0,0,0,.35)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">FlotaOps — Checklist</div>
+    <div class="header-sub" id="hdr-fecha"></div>
+  </div>
+  <div id="hdr-badge"></div>
+</div>
+
+<div class="content">
+
+  <!-- SELECCIÓN DE VEHÍCULO -->
+  <div id="page-select" class="page active">
+    <div class="card">
+      <div class="card-title">Selecciona tu vehículo</div>
+      <div class="field">
+        <label>Regional</label>
+        <select id="sel-regional" onchange="cargarVehiculos()">
+          <option value="">Seleccionar regional...</option>
+        </select>
+      </div>
+      <input class="search-input" type="text" id="search-placa" placeholder="Buscar placa..." oninput="filtrarPlacas()" style="display:none">
+      <div id="vh-lista"><div style="color:var(--text2);font-size:13px;text-align:center;padding:20px">Selecciona una regional</div></div>
+    </div>
+  </div>
+
+  <!-- CHECKLIST -->
+  <div id="page-checklist" class="page">
+    <div class="card" style="padding:14px 16px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:20px;font-weight:700" id="cl-placa">—</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px" id="cl-info">—</div>
+        </div>
+        <button onclick="ir('select')" style="font-size:12px;padding:6px 12px;border:0.5px solid var(--border);border-radius:var(--r);background:transparent;cursor:pointer;color:var(--text2)">Cambiar</button>
+      </div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span>Progreso</span>
+        <span id="prog-texto">0 de 13 ítems</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+    </div>
+
+    <div class="alerta-banner" id="alerta-banner">
+      <strong>⚠ Fallas detectadas</strong>
+      <span id="alerta-texto"></span>
+    </div>
+
+    <div class="card">
+      <div class="check-group">
+        <div class="check-group-title">📄 Documentos</div>
+        <div class="check-item" data-key="soat"><span class="check-label">SOAT vigente</span><div class="check-btns"><button class="cbtn" onclick="marcar(this,'bien','soat')">✓ Bien</button><button class="cbtn" onclick="marcar(this,'falla','soat')">✗ Falla</button></div></div>
+        <div class="check-item" data-key="tecnomecanica"><span class="check-label">Tecnicomecánica vigente</span><div class="check-btns"><button class="cbtn" onclick="marcar(this,'bien','tecnomecanica')">✓ Bien</button><button class="cbtn" onclick="marcar(this,'falla','tecnomecanica')">✗ Falla</button></div></div>
+      </div>
+      <div class="check-group">
+        <div class="check-group-title">🚗 Exterior y carrocería</div>
+        <div class="check-item" data-key="luces"><span class="check-label">Luces (delanteras, traseras, direccionales)</span><div class="check-btns"><button class="cbtn" onclick="marcar(this,'bien','luces')">✓ Bien</button><button class="cbtn" onclick="marcar(this,'falla','luces')">✗ Falla</button></div></div>
+        <div class="check-item" data-key="llantas"><span class="check-label">Estado de llantas (presión y desgaste)</span><div class="check-btns"><button class="cbtn" onclick="marcar(this,'bien','llantas')">✓ Bien</button><button class="cbtn" onclick="marcar(this,'falla','llantas')">✗ Falla</button></div></div>
+      </div>
+      <div class="check-group">
+        <div class="check-group-title">🔧 Motor y fluidos</div>
+        <div class="check-item" data-key="nivel_aceite"><span class="check-label">Nivel de aceite</span><div class="check-btns"><button class="cbtn" onclick="marcar(this,'bien','nivel_aceite')">✓ Bien</button><button class="cbtn" onclick="marcar(this,'falla','nivel_aceite')">✗ Falla</button></div></div>
+        <div class="check-item" data-key="nivel_agua"><span class="check-label">Nivel de agua / refrigerante</span><div class="check-btns"><button class="cbtn" onclick="marcar(this,'bien','nivel_agua')">✓ Bien</button><button class="cbtn" onclick="marcar(this,'falla','nivel_agua')">✗ Falla</button></div></div>
+        <div class="check-item" data-key="sin_fugas"><span class="check-label">Sin fugas visibles</span><div class="check-btns"><button class="cbtn" onclick="marcar(this,'bien','sin_fugas')">✓ Bien</button><button class="cbtn" onclick="marcar(this,'falla','sin_fugas')">✗ Falla</button></div></div>
+      </div>
+      <div class="check-group">
+        <div class="check-group-title">🛑 Seguridad crítica</div>
+        <div class="check-item" data-key="frenos"><span class="check-label">Frenos (pedal y freno de mano)</span><div class="check-btns"><button class="cbtn" onclick="marcar(this,'bien','frenos')">✓ Bien</button><button class="cbtn" onclick="marcar(this,'falla','frenos')">✗ Falla</button></div></div>
+        <div class="check-item" data-key="extintor"><span class="check-label">Extintor a bordo y vigente</span><div class="check-btns"><button class="cbtn" onclick="marcar(this,'bien','extintor')">✓ Bien</button><button class="cbtn" onclick="marcar(this,'falla','extintor')">✗ Falla</button></div></div>
+        <div class="check-item" data-key="botiquin"><span class="check-label">Botiquín a bordo</span><div class="check-btns"><button class="cbtn" onclick="marcar(this,'bien','botiquin')">✓ Bien</button><button class="cbtn" onclick="marcar(this,'falla','botiquin')">✗ Falla</button></div></div>
+        <div class="check-item" data-key="cinturon"><span class="check-label">Cinturón de seguridad</span><div class="check-btns"><button class="cbtn" onclick="marcar(this,'bien','cinturon')">✓ Bien</button><button class="cbtn" onclick="marcar(this,'falla','cinturon')">✗ Falla</button></div></div>
+      </div>
+      <div class="check-group" style="margin-bottom:0">
+        <div class="check-group-title">📍 KM y combustible</div>
+        <div class="field" style="margin-bottom:10px">
+          <label>Kilometraje actual *</label>
+          <input type="number" id="cl-km" placeholder="Ej: 82300" oninput="actualizarProgreso()">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Nivel de combustible</label>
+          <select id="cl-combustible">
+            <option value="">Seleccionar...</option>
+            <option value="lleno">Lleno</option>
+            <option value="3/4">3/4</option>
+            <option value="1/2">1/2</option>
+            <option value="1/4">1/4</option>
+            <option value="reserva">Reserva</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Observaciones del conductor</div>
+      <div class="field" style="margin-bottom:0">
+        <textarea id="cl-obs" placeholder="Describe cualquier situación adicional que el coordinador deba saber..." style="min-height:90px"></textarea>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Nombre del conductor *</label>
+      <input type="text" id="cl-conductor" placeholder="Tu nombre completo">
+    </div>
+
+    <button class="btn-main btn-submit" id="btn-enviar" onclick="enviarChecklist()">
+      Enviar checklist y salir a ruta
+    </button>
+    <div style="height:32px"></div>
+  </div>
+
+  <!-- ÉXITO -->
+  <div id="page-exito" class="page">
+    <div class="success-wrap">
+      <div class="success-icon">✓</div>
+      <div class="success-title">Checklist enviado</div>
+      <div class="success-sub" id="exito-info">Tu reporte fue enviado correctamente al coordinador.</div>
+      <div class="falla-list" id="exito-fallas" style="display:none">
+        <div class="falla-list-title">⚠ Fallas reportadas al coordinador</div>
+        <ul id="exito-fallas-lista"></ul>
+      </div>
+      <button class="btn-main btn-submit" style="margin-top:24px;background:var(--text)" onclick="nuevoChecklist()">
+        Nuevo checklist
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const{createClient}=supabase;
+const db=createClient(
+  'https://sixtqtopppbclxqdardb.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpeHRxdG9wcHBiY2x4cWRhcmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5Njk2ODAsImV4cCI6MjA5MjU0NTY4MH0.WRYBP4006NZrRCNBpoclVWSz64zQfE2sjFslVc4imDg'
+);
+
+const ITEMS = ['soat','tecnomecanica','luces','llantas','nivel_aceite','nivel_agua','sin_fugas','frenos','extintor','botiquin','cinturon'];
+const ITEMS_CRITICOS = ['frenos','llantas','nivel_aceite','sin_fugas'];
+const LABELS = {
+  soat:'SOAT vigente',tecnomecanica:'Tecnicomecánica',luces:'Luces',
+  llantas:'Llantas',nivel_aceite:'Nivel de aceite',nivel_agua:'Nivel de agua',
+  sin_fugas:'Sin fugas',frenos:'Frenos',extintor:'Extintor',
+  botiquin:'Botiquín',cinturon:'Cinturón'
+};
+const TOTAL_ITEMS = ITEMS.length + 1; // +1 por KM
+
+let estado = {};
+let vehiculoActual = null;
+let todosVhs = [];
+
+const hoy = () => new Date().toISOString().split('T')[0];
+
+function ir(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+}
+
+async function init(){
+  document.getElementById('hdr-fecha').textContent =
+    new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'});
+
+  const{data:regs}=await db.from('regionales').select('id,nombre').eq('activa',true).order('nombre');
+  const sel=document.getElementById('sel-regional');
+  (regs||[]).forEach(r=>sel.add(new Option(r.nombre,r.id)));
+}
+
+async function cargarVehiculos(){
+  const regId=document.getElementById('sel-regional').value;
+  const lista=document.getElementById('vh-lista');
+  const search=document.getElementById('search-placa');
+  if(!regId){lista.innerHTML='<div style="color:var(--text2);font-size:13px;text-align:center;padding:20px">Selecciona una regional</div>';search.style.display='none';return;}
+
+  lista.innerHTML='<div class="loading-screen" style="min-height:80px"><div class="loading-spinner"></div></div>';
+  search.style.display='block';
+  search.value='';
+
+  const{data:vhs}=await db.from('vehiculos')
+    .select('id,placa,tipo,figura,estado,km_actuales,regional_id')
+    .eq('regional_id',regId).eq('activo',true).neq('tipo','remolque')
+    .order('placa');
+
+  todosVhs=vhs||[];
+
+  // Verificar cuáles ya tienen checklist hoy
+  const{data:cls}=await db.from('checklists').select('vehiculo_id').eq('fecha',hoy());
+  const yaEnviaron=new Set((cls||[]).map(c=>c.vehiculo_id));
+
+  renderVehiculos(todosVhs,yaEnviaron);
+}
+
+function renderVehiculos(vhs,yaEnviaron){
+  const lista=document.getElementById('vh-lista');
+  if(!vhs.length){lista.innerHTML='<div style="color:var(--text2);font-size:13px;text-align:center;padding:20px">Sin vehículos en esta regional</div>';return;}
+  lista.innerHTML=vhs.map(v=>{
+    const yaEnvio=yaEnviaron?yaEnviaron.has(v.id):false;
+    const enTaller=v.estado!=='disponible';
+    return`<div class="placa-item" onclick="seleccionarVh('${v.id}')">
+      <div>
+        <div class="placa-num">${v.placa}</div>
+        <div class="placa-info">${v.tipo||'Camión'} • ${v.figura==='backup'?'Respaldo':'Titular'}${enTaller?' • En taller':''}</div>
+      </div>
+      <div class="placa-badge">
+        ${yaEnvio?'<span class="badge b-green">✓ Enviado</span>':enTaller?'<span class="badge b-gray">En taller</span>':'<span class="badge b-gray">Pendiente</span>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filtrarPlacas(){
+  const q=document.getElementById('search-placa').value.trim().toUpperCase();
+  const filtrados=todosVhs.filter(v=>v.placa.includes(q));
+  renderVehiculos(filtrados,null);
+}
+
+async function seleccionarVh(vid){
+  const vh=todosVhs.find(v=>v.id===vid);
+  if(!vh)return;
+
+  // Verificar si ya tiene checklist hoy
+  const{data:ya}=await db.from('checklists').select('id').eq('vehiculo_id',vid).eq('fecha',hoy()).single();
+  if(ya){
+    if(!confirm(`${vh.placa} ya tiene un checklist enviado hoy. ¿Deseas enviar otro?`))return;
+  }
+
+  vehiculoActual=vh;
+  estado={};
+
+  // Reset UI
+  document.getElementById('cl-placa').textContent=vh.placa;
+  document.getElementById('cl-info').textContent=`${vh.tipo||'Camión'} • ${vh.figura==='backup'?'Respaldo':'Titular'} • KM actual: ${vh.km_actuales?vh.km_actuales.toLocaleString('es-CO'):'-'}`;
+  document.getElementById('cl-km').value='';
+  document.getElementById('cl-combustible').value='';
+  document.getElementById('cl-obs').value='';
+  document.getElementById('cl-conductor').value='';
+  document.getElementById('alerta-banner').classList.remove('show');
+
+  // Reset botones
+  document.querySelectorAll('.cbtn').forEach(b=>{b.classList.remove('bien','falla');});
+  actualizarProgreso();
+  ir('checklist');
+  window.scrollTo(0,0);
+}
+
+function marcar(btn,tipo,key){
+  const row=btn.closest('.check-item');
+  row.querySelectorAll('.cbtn').forEach(b=>b.classList.remove('bien','falla'));
+  btn.classList.add(tipo);
+  estado[key]=(tipo==='bien');
+  actualizarProgreso();
+  actualizarAlertas();
+}
+
+function actualizarProgreso(){
+  const marcados=Object.keys(estado).length;
+  const kmOk=document.getElementById('cl-km').value?1:0;
+  const total=marcados+kmOk;
+  const pct=Math.round(total/TOTAL_ITEMS*100);
+  document.getElementById('prog-fill').style.width=Math.min(100,pct)+'%';
+  document.getElementById('prog-texto').textContent=`${total} de ${TOTAL_ITEMS} ítems`;
+}
+
+function actualizarAlertas(){
+  const fallas=Object.entries(estado).filter(([k,v])=>v===false).map(([k])=>LABELS[k]||k);
+  const banner=document.getElementById('alerta-banner');
+  if(fallas.length){
+    document.getElementById('alerta-texto').textContent=fallas.join(', ');
+    banner.classList.add('show');
+  }else{
+    banner.classList.remove('show');
+  }
+}
+
+async function enviarChecklist(){
+  const conductor=document.getElementById('cl-conductor').value.trim();
+  const km=document.getElementById('cl-km').value;
+
+  if(!conductor){alert('Por favor ingresa tu nombre.');return;}
+  if(!km){alert('Por favor ingresa el kilometraje.');return;}
+
+  // Verificar que todos los ítems estén marcados
+  const sinMarcar=ITEMS.filter(k=>estado[k]===undefined);
+  if(sinMarcar.length>0){
+    const faltantes=sinMarcar.map(k=>LABELS[k]).join(', ');
+    if(!confirm(`Faltan por revisar: ${faltantes}. ¿Enviar de todas formas?`))return;
+  }
+
+  const btn=document.getElementById('btn-enviar');
+  btn.disabled=true;
+  btn.innerHTML='<div class="spinner"></div>';
+
+  try{
+    const tieneFallas=Object.values(estado).some(v=>v===false);
+
+    const registro={
+      vehiculo_id:vehiculoActual.id,
+      regional_id:vehiculoActual.regional_id,
+      conductor_nombre:conductor,
+      fecha:hoy(),
+      km_inicio:parseInt(km)||null,
+      combustible:document.getElementById('cl-combustible').value||null,
+      observacion:document.getElementById('cl-obs').value||null,
+      // Ítems
+      soat:estado.soat??null,
+      tecnomecanica:estado.tecnomecanica??null,
+      luces:estado.luces??null,
+      llantas:estado.llantas??null,
+      nivel_aceite:estado.nivel_aceite??null,
+      nivel_agua:estado.nivel_agua??null,
+      sin_fugas:estado.sin_fugas??null,
+      frenos:estado.frenos??null,
+      extintor:estado.extintor??null,
+      botiquin:estado.botiquin??null,
+      cinturon:estado.cinturon??null,
+    };
+
+    const{error}=await db.from('checklists').insert(registro);
+    if(error)throw error;
+
+    // Actualizar KM del vehículo
+    await db.from('vehiculos').update({km_actuales:parseInt(km),updated_at:new Date().toISOString()}).eq('id',vehiculoActual.id);
+
+    // Mostrar pantalla de éxito
+    const fallas=Object.entries(estado).filter(([k,v])=>v===false).map(([k])=>LABELS[k]);
+    document.getElementById('exito-info').textContent=
+      `${vehiculoActual.placa} • ${conductor} • ${new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})}`;
+
+    if(fallas.length){
+      document.getElementById('exito-fallas').style.display='block';
+      document.getElementById('exito-fallas-lista').innerHTML=fallas.map(f=>`<li>${f}</li>`).join('');
+    }else{
+      document.getElementById('exito-fallas').style.display='none';
+    }
+
+    ir('exito');
+    window.scrollTo(0,0);
+  }catch(e){
+    alert('Error al enviar: '+e.message);
+    btn.disabled=false;
+    btn.textContent='Enviar checklist y salir a ruta';
+  }
+}
+
+function nuevoChecklist(){
+  vehiculoActual=null;
+  estado={};
+  ir('select');
+  window.scrollTo(0,0);
+}
+
+init();
+</script>
+</body>
+</html>
