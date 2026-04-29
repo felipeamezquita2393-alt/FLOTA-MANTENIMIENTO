@@ -225,6 +225,12 @@ const db=createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpeHRxdG9wcHBiY2x4cWRhcmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5Njk2ODAsImV4cCI6MjA5MjU0NTY4MH0.WRYBP4006NZrRCNBpoclVWSz64zQfE2sjFslVc4imDg'
 );
 
+// Verificar sesión — checklist requiere login
+(async()=>{
+  const{data:{session}}=await db.auth.getSession();
+  if(!session){window.location.href='login.html';}
+})();
+
 const ITEMS = ['soat','tecnomecanica','luces','llantas','nivel_aceite','nivel_agua','sin_fugas','frenos','extintor','botiquin','cinturon','plataforma','termo_refrigeracion','furgon_interno'];
 const ITEMS_CRITICOS = ['frenos','llantas','nivel_aceite','sin_fugas'];
 const LABELS = {

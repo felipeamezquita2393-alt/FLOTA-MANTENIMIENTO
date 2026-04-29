@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlotaOps — Iniciar sesión</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--border:rgba(0,0,0,0.1);--text:#1a1a18;--text2:#6b6b67;--bg:#fff;--bg2:#f7f6f2;--r:10px;--red:#E24B4A;--red-bg:#FCEBEB;--red-dark:#A32D2D;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg2);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:var(--bg);border-radius:16px;padding:32px;width:100%;max-width:400px;box-shadow:0 2px 16px rgba(0,0,0,0.08)}
+.logo{text-align:center;margin-bottom:28px}
+.logo-title{font-size:24px;font-weight:700;color:var(--text)}
+.logo-sub{font-size:13px;color:var(--text2);margin-top:4px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.field label{font-size:13px;font-weight:500;color:var(--text2)}
+.field input{padding:12px 14px;font-size:14px;border:0.5px solid var(--border);border-radius:var(--r);outline:none;font-family:inherit;width:100%;transition:border-color .12s}
+.field input:focus{border-color:rgba(0,0,0,.35)}
+.btn{width:100%;padding:13px;font-size:14px;font-weight:600;border-radius:var(--r);border:none;cursor:pointer;font-family:inherit;background:var(--text);color:#fff;transition:opacity .12s;margin-top:4px}
+.btn:hover{opacity:.88}
+.btn:disabled{opacity:.5}
+.error-msg{background:var(--red-bg);color:var(--red-dark);border:0.5px solid #F09595;border-radius:var(--r);padding:10px 14px;font-size:13px;margin-bottom:16px;display:none}
+.error-msg.show{display:block}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.footer-note{text-align:center;font-size:12px;color:var(--text2);margin-top:20px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="logo-title">FlotaOps</div>
+    <div class="logo-sub">Sistema de mantenimiento de flota</div>
+  </div>
+  <div class="error-msg" id="error-msg"></div>
+  <form onsubmit="login(event)">
+    <div class="field">
+      <label>Correo electrónico</label>
+      <input type="email" id="email" placeholder="tu@correo.com" required autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Contraseña</label>
+      <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+    </div>
+    <button type="submit" class="btn" id="btn-login">Iniciar sesión</button>
+  </form>
+  <div class="footer-note">¿Olvidaste tu contraseña? Contacta al administrador.</div>
+</div>
+
+<script>
+const{createClient}=supabase;
+const db=createClient(
+  'https://sixtqtopppbclxqdardb.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpeHRxdG9wcHBiY2x4cWRhcmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5Njk2ODAsImV4cCI6MjA5MjU0NTY4MH0.WRYBP4006NZrRCNBpoclVWSz64zQfE2sjFslVc4imDg'
+);
+
+// Si ya hay sesión activa, redirigir directo
+async function checkSession(){
+  const{data:{session}}=await db.auth.getSession();
+  if(session) redirigir(session.user);
+}
+
+function redirigir(user){
+  // Redirigir según rol guardado en metadata
+  const rol=user.user_metadata?.rol||'coordinador';
+  if(rol==='gerente') window.location.href='gerente.html';
+  else window.location.href='coordinador.html';
+}
+
+async function login(e){
+  e.preventDefault();
+  const btn=document.getElementById('btn-login');
+  const errEl=document.getElementById('error-msg');
+  errEl.classList.remove('show');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner"></span>Ingresando...';
+
+  const email=document.getElementById('email').value.trim();
+  const password=document.getElementById('password').value;
+
+  try{
+    const{data,error}=await db.auth.signInWithPassword({email,password});
+    if(error)throw error;
+    redirigir(data.user);
+  }catch(err){
+    errEl.textContent=err.message==='Invalid login credentials'
+      ?'Correo o contraseña incorrectos'
+      :err.message;
+    errEl.classList.add('show');
+    btn.disabled=false;
+    btn.textContent='Iniciar sesión';
+  }
+}
+
+checkSession();
+</script>
+</body>
+</html>

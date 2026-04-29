@@ -197,7 +197,11 @@ tr:hover td{background:var(--bg2)}
       <option value="">Todas las regionales</option>
     </select>
   </div>
-  <span style="font-size:12px;color:var(--text2)" id="nav-fecha"></span>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span style="font-size:12px;color:var(--text2)" id="nav-fecha"></span>
+    <span style="font-size:12px;color:var(--text2)" id="nav-user"></span>
+    <button onclick="cerrarSesion()" style="font-size:12px;padding:5px 10px;border:0.5px solid var(--border);border-radius:var(--r);background:transparent;cursor:pointer;color:var(--text2)">Salir</button>
+  </div>
 </nav>
 
 <div class="shell">
@@ -456,6 +460,18 @@ const db=createClient(
   'https://sixtqtopppbclxqdardb.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpeHRxdG9wcHBiY2x4cWRhcmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5Njk2ODAsImV4cCI6MjA5MjU0NTY4MH0.WRYBP4006NZrRCNBpoclVWSz64zQfE2sjFslVc4imDg'
 );
+
+// Verificar sesión activa
+(async()=>{
+  const{data:{session}}=await db.auth.getSession();
+  if(!session){window.location.href='login.html';return;}
+  document.getElementById('nav-user').textContent=session.user.email;
+})();
+
+async function cerrarSesion(){
+  await db.auth.signOut();
+  window.location.href='login.html';
+}
 
 let REGIONAL_ID=null;
 let regionales=[];
