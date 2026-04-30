@@ -468,31 +468,44 @@ let USER_EMAIL = '';
 async function checkAuth(){
   const{data:{session}}=await db.auth.getSession();
   if(!session){window.location.href='login.html';return false;}
-  USER_EMAIL=session.user.email;
-  USER_ROL=session.user.user_metadata?.rol||'coordinador';
-  const regionalNombre=session.user.user_metadata?.regional||null;
-  document.getElementById('nav-user').textContent=USER_EMAIL;
-  // Mostrar rol en nav
-  const rolLabel = (USER_ROL==='gerente'||!USER_ROL) ? '(Gerente Nacional)' : '(Coordinador)';
-  document.getElementById('nav-user').textContent = USER_EMAIL + ' ' + rolLabel;
 
-  // Fijar regional según rol
+  USER_EMAIL = session.user.email;
+  const meta = session.user.user_metadata || {};
+  USER_ROL = meta.rol || 'coordinador';
+  const regionalNombre = meta.regional || null;
   const esGerente = USER_ROL==='gerente' || regionalNombre==='Nacional' || !regionalNombre;
-  if(!esGerente && regionalNombre){
-    const{data:reg}=await db.from('regionales').select('id,nombre').eq('nombre',regionalNombre).single();
-    if(reg){
-      REGIONAL_ID=reg.id;
-      // Coordinador: solo ve su regional, selector bloqueado
-      const sel=document.getElementById('filtro-regional');
-      sel.innerHTML=`<option value="${reg.id}">${reg.nombre}</option>`;
-      sel.disabled=true;
-      sel.style.opacity='0.7';
-      sel.style.cursor='default';
-    }
+
+  // Mostrar usuario y rol en nav
+  const rolLabel = esGerente ? 'Gerente Nacional' : 'Coordinador';
+  document.getElementById('nav-user').textContent = `${USER_EMAIL} · ${rolLabel}`;
+
+  if(esGerente){
+    USER_ROL = 'gerente';
+    REGIONAL_ID = null;
   } else {
-    // Gerente: ve todo, selector libre
-    USER_ROL='gerente';
-    REGIONAL_ID=null;
+    USER_ROL = 'coordinador';
+    // Buscar el ID de la regional por nombre
+    const{data:reg, error}=await db.from('regionales')
+      .select('id,nombre')
+      .eq('nombre', regionalNombre)
+      .single();
+
+    if(reg){
+      REGIONAL_ID = reg.id;
+    } else {
+      console.error('Regional no encontrada:', regionalNombre, error);
+      // Si no encuentra la regional, mostrar error y no dejar entrar
+      document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;flex-direction:column;gap:12px">
+        <div style="font-size:16px;font-weight:600;color:#1a1a18">Error de configuración</div>
+        <div style="font-size:13px;color:#6b6b67">No se encontró la regional: <strong>${regionalNombre}</strong></div>
+        <div style="font-size:12px;color:#9b9b96">Contacta al administrador</div>
+        <button onclick="db.auth.signOut().then(()=>location.href='login.html')" 
+          style="margin-top:8px;padding:8px 16px;font-size:13px;border:0.5px solid #ccc;border-radius:8px;cursor:pointer;background:#fff">
+          Cerrar sesión
+        </button>
+      </div>`;
+      return false;
+    }
   }
   return true;
 }
@@ -538,39 +551,53 @@ function ir(page){
 function onFiltro(){REGIONAL_ID=document.getElementById('filtro-regional').value||null;cargarDashboard();}
 
 async function init(){
-  const ok=await checkAuth();
-  if(!ok)return;
+  // 1. Verificar autenticación primero
+  const ok = await checkAuth();
+  if(!ok) return;
 
-  document.getElementById('nav-fecha').textContent=new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'});
-  document.getElementById('h-desde').value=hace30();
-  document.getElementById('h-hasta').value=hoy();
+  document.getElementById('nav-fecha').textContent =
+    new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('h-desde').value = hace30();
+  document.getElementById('h-hasta').value = hoy();
 
-  const{data:regs}=await db.from('regionales').select('id,nombre,cupo_requerido').eq('activa',true).order('nombre');
-  regionales=regs||[];
+  // 2. Cargar regionales
+  const{data:regs} = await db.from('regionales')
+    .select('id,nombre,cupo_requerido').eq('activa',true).order('nombre');
+  regionales = regs || [];
 
-  // Poblar selects de regional
-  ['filtro-regional','fl-reg'].forEach(id=>{
-    const sel=document.getElementById(id);if(!sel)return;
-    while(sel.options.length>1)sel.remove(1);
-    regionales.forEach(r=>{sel.add(new Option(r.nombre,r.id));});
-    // Si es coordinador, seleccionar su regional y bloquear
-    if(USER_ROL!=='gerente'&&REGIONAL_ID){
-      sel.value=REGIONAL_ID;
-      sel.disabled=true;
-      sel.style.opacity='0.7';
+  // 3. Configurar selectores según rol
+  if(USER_ROL === 'gerente'){
+    // Gerente: ve todas las regionales
+    ['filtro-regional','fl-reg'].forEach(id=>{
+      const sel=document.getElementById(id); if(!sel)return;
+      while(sel.options.length>1) sel.remove(1);
+      regionales.forEach(r=>sel.add(new Option(r.nombre,r.id)));
+    });
+    // figura-regional para gerente
+    const figSel=document.getElementById('figura-regional');
+    if(figSel){
+      while(figSel.options.length>1) figSel.remove(1);
+      regionales.forEach(r=>figSel.add(new Option(r.nombre,r.id)));
     }
-  });
-
-  // Poblar figura-regional siempre
-  const figSel=document.getElementById('figura-regional');
-  if(figSel){
-    // Si es coordinador, solo su regional
-    const regsParaFig=USER_ROL==='coordinador'
-      ? regionales.filter(r=>r.id===REGIONAL_ID)
-      : regionales;
-    while(figSel.options.length>1)figSel.remove(1);
-    regsParaFig.forEach(r=>figSel.add(new Option(r.nombre,r.id)));
-    if(REGIONAL_ID)figSel.value=REGIONAL_ID;
+  } else {
+    // Coordinador: selector bloqueado en su regional
+    const miRegional = regionales.find(r=>r.id===REGIONAL_ID);
+    ['filtro-regional','fl-reg'].forEach(id=>{
+      const sel=document.getElementById(id); if(!sel)return;
+      sel.innerHTML = miRegional
+        ? `<option value="${miRegional.id}">${miRegional.nombre}</option>`
+        : '<option value="">Sin regional</option>';
+      sel.disabled = true;
+      sel.style.opacity = '0.7';
+      sel.style.cursor = 'default';
+    });
+    // figura-regional bloqueado en su regional
+    const figSel=document.getElementById('figura-regional');
+    if(figSel && miRegional){
+      figSel.innerHTML=`<option value="${miRegional.id}">${miRegional.nombre}</option>`;
+      figSel.disabled=true;
+      figSel.style.opacity='0.7';
+    }
   }
 
   await cargarDashboard();
