@@ -416,6 +416,29 @@ async function enviarChecklist(){
     // Actualizar KM del vehículo
     await db.from('vehiculos').update({km_actuales:parseInt(km),updated_at:new Date().toISOString()}).eq('id',vehiculoActual.id);
 
+    // Calcular y guardar criticidad automáticamente
+    const pChasis = (estado.frenos===false||estado.nivel_aceite===false||estado.sin_fugas===false) ? 3
+                  : (estado.luces===false||estado.llantas===false) ? 2 : 1;
+
+    const pFurgon = estado.furgon_interno===false ? 3
+                  : (estado.cinturon===false||estado.botiquin===false||estado.extintor===false) ? 2 : 1;
+
+    const pPlataforma = estado.plataforma===false ? 3 : 1;
+
+    const pRefrig = estado.termo_refrigeracion===false ? 3 : 1;
+
+    await db.from('criticidad_vehiculo').upsert({
+      vehiculo_id: vehiculoActual.id,
+      regional_id: vehiculoActual.regional_id,
+      fecha: hoy(),
+      puntaje_chasis: pChasis,
+      puntaje_furgon: pFurgon,
+      puntaje_plataforma: pPlataforma,
+      puntaje_refrigeracion: pRefrig,
+      observaciones: document.getElementById('cl-obs').value || null,
+      fuente: 'checklist',
+    },{ onConflict:'vehiculo_id,fecha' });
+
     // Mostrar pantalla de éxito
     const fallas=Object.entries(estado).filter(([k,v])=>v===false).map(([k])=>LABELS[k]);
     document.getElementById('exito-info').textContent=

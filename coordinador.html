@@ -214,6 +214,10 @@ tr:hover td{background:var(--bg2)}
     <div class="snav-item" data-page="alertas" onclick="ir('alertas')"><span>Alertas</span><span class="badge b-amber" id="badge-alertas" style="display:none"></span></div>
     <div class="snav-item" data-page="historial" onclick="ir('historial')"><span>Historial</span></div>
     <div class="snav-item" data-page="flota" onclick="ir('flota')"><span>Flota completa</span></div>
+<div class="snav-item" data-page="criticidad" onclick="ir('criticidad')">
+  <span>Criticidad</span>
+  <span class="badge b-red" id="badge-crit" style="display:none"></span>
+</div>
     <div class="snav-sec">Registrar</div>
     <div class="snav-item" data-page="entrada" onclick="ir('entrada')"><span>Entrada a taller</span></div>
     <div class="snav-item" data-page="retorno" onclick="ir('retorno')"><span>Retorno al servicio</span></div>
@@ -451,7 +455,24 @@ tr:hover td{background:var(--bg2)}
       </div>
     </div>
 
-  </main>
+  
+    <!-- CRITICIDAD -->
+    <div id="page-criticidad" class="page">
+      <div class="metrics" id="crit-metrics">
+        <div class="metric"><div class="metric-label">Criticidad alta</div><div class="metric-val" id="crit-alta" style="color:var(--red)">—</div></div>
+        <div class="metric"><div class="metric-label">Media alta</div><div class="metric-val" id="crit-ma" style="color:var(--amber)">—</div></div>
+        <div class="metric"><div class="metric-label">Media baja</div><div class="metric-val" id="crit-mb" style="color:var(--blue)">—</div></div>
+        <div class="metric"><div class="metric-label">Baja</div><div class="metric-val" id="crit-baja" style="color:var(--green)">—</div></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr"><span class="card-title">Criticidad actual de flota</span></div>
+        <div class="tbl-wrap">
+          <table><tbody id="crit-body"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+</main>
 </div>
 
 <script>
@@ -545,6 +566,7 @@ function ir(page){
   if(page==='retorno')prepRetorno();
   if(page==='flota')cargarFlota();
   if(page==='respaldo')cargarRespaldos();
+  if(page==='criticidad')cargarCriticidad();
   if(page==='disponibilidad')cargarDispDetalle();
 }
 
@@ -1165,6 +1187,11 @@ async function submitRetorno(e){
     await Promise.all([cargarKPIs(),cargarFueraDash()]);ir('fuera');
   }catch(err){toast('Error: '+err.message,true);}
   finally{btn.disabled=false;btn.textContent='Registrar retorno';}
+}
+
+
+function cargarCriticidad(){
+  document.getElementById('crit-body').innerHTML='<tr><td>Cargando...</td></tr>';
 }
 
 init();
