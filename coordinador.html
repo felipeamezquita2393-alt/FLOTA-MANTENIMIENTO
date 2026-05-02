@@ -18,7 +18,6 @@
 }
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg2);color:var(--text);font-size:14px}
 .topnav{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:52px;background:var(--bg);border-bottom:0.5px solid var(--border);position:sticky;top:0;z-index:100}
-.topnav-brand{font-size:15px;font-weight:600}
 .shell{display:flex;min-height:calc(100vh - 52px)}
 .sidenav{width:210px;background:var(--bg);border-right:0.5px solid var(--border);padding:16px 0;flex-shrink:0}
 .snav-item{display:flex;align-items:center;justify-content:space-between;padding:9px 20px;font-size:13px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:all .12s}
@@ -55,7 +54,6 @@ tr:hover td{background:var(--bg2)}
 .field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
 .field label{font-size:12px;color:var(--text2);font-weight:500}
 .field input,.field select,.field textarea{padding:8px 10px;font-size:13px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text);outline:none;font-family:inherit}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(0,0,0,.35)}
 .field textarea{resize:vertical;min-height:72px}
 .form2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .full{grid-column:1/-1}
@@ -66,9 +64,10 @@ tr:hover td{background:var(--bg2)}
 .btn-sm{padding:5px 10px;font-size:12px}
 .btn-green{background:var(--green-bg);color:var(--green-dark);border-color:transparent}
 .btn-red{background:var(--red-bg);color:var(--red-dark);border-color:transparent}
+.btn-amber{background:var(--amber-bg);color:var(--amber-dark);border-color:transparent}
 .row-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--border)}
 .row-item:last-child{border-bottom:none}
-.plate{font-weight:600;width:80px;flex-shrink:0;font-size:13px}
+.plate{font-weight:600;width:80px;flex-shrink:0}
 .timeline{display:flex;flex-direction:column}
 .tl-item{display:flex;gap:14px;padding-bottom:20px}
 .tl-item:last-child{padding-bottom:0}
@@ -85,21 +84,13 @@ tr:hover td{background:var(--bg2)}
 .alert-info{background:var(--amber-bg);color:var(--amber-dark);border:0.5px solid #FAC775;padding:10px 14px;border-radius:var(--r);font-size:13px;margin-bottom:14px}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center}
 .modal-overlay.open{display:flex}
-.modal{background:var(--bg);border-radius:var(--rl);padding:24px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.15)}
+.modal{background:var(--bg);border-radius:var(--rl);padding:24px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.15)}
 .modal-title{font-size:14px;font-weight:600;margin-bottom:16px}
 .modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
-/* Figura toggles */
-.fig-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:0.5px solid var(--border)}
-.fig-row:last-child{border-bottom:none}
-.fig-plate{font-weight:600;width:80px;flex-shrink:0}
-.fig-info{flex:1;font-size:12px;color:var(--text2)}
-.tog{display:flex;gap:4px}
-.tog-btn{padding:4px 10px;font-size:11px;font-weight:500;border-radius:99px;border:0.5px solid var(--border);cursor:pointer;background:var(--bg);color:var(--text2);transition:all .12s}
-.tog-btn.sel-t{background:var(--green-bg);color:var(--green-dark);border-color:transparent}
-.tog-btn.sel-b{background:var(--purple-bg);color:var(--purple);border-color:transparent}
-.tog-btn.sel-a{background:var(--amber-bg);color:var(--amber-dark);border-color:transparent}
 .prog-bar{height:8px;border-radius:4px;background:var(--bg2);overflow:hidden;margin-top:6px}
 .prog-fill{height:100%;border-radius:4px;transition:width .4s}
+.check-detail-item{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:13px}
+.check-detail-item:last-child{border-bottom:none}
 @media(max-width:700px){.sidenav{display:none}.main{padding:16px}.form2{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}}
 </style>
 </head>
@@ -117,8 +108,8 @@ tr:hover td{background:var(--bg2)}
         <select id="mvh-tipo"><option value="camion">Camión</option><option value="remolque">Remolque</option><option value="furgon">Furgón</option><option value="camioneta">Camioneta</option></select></div>
       <div class="field"><label>Regional</label><select id="mvh-reg"></select></div>
       <div class="field"><label>Figura base</label>
-        <select id="mvh-figura"><option value="titular">Titular</option><option value="backup">Backup</option></select></div>
-      <div class="field"><label>KM actuales</label><input type="number" id="mvh-km" placeholder="0"></div>
+        <select id="mvh-figura"><option value="titular">Titular</option><option value="backup">Backup/Respaldo</option></select></div>
+      <div class="field"><label>KM actuales</label><input type="number" id="mvh-km"></div>
       <div class="field"><label>Estado</label>
         <select id="mvh-estado">
           <option value="disponible">Disponible</option>
@@ -128,6 +119,8 @@ tr:hover td{background:var(--bg2)}
           <option value="siniestro">Siniestro</option>
           <option value="inactivo">Inactivo</option>
         </select></div>
+      <div class="field full"><label>Camión asociado (solo remolques)</label>
+        <select id="mvh-camion"><option value="">Ninguno</option></select></div>
       <div class="field full"><label>Observaciones</label><textarea id="mvh-obs"></textarea></div>
     </div>
     <div class="modal-footer">
@@ -143,7 +136,7 @@ tr:hover td{background:var(--bg2)}
     <div class="modal-title">Retirar vehículo</div>
     <input type="hidden" id="ret-id">
     <div class="alert-info" id="ret-info2"></div>
-    <div class="field"><label>Motivo *</label><textarea id="ret-motivo" placeholder="Motivo del retiro..."></textarea></div>
+    <div class="field"><label>Motivo *</label><textarea id="ret-motivo"></textarea></div>
     <div class="field"><label>Fecha</label><input type="date" id="ret-fecha2"></div>
     <div class="modal-footer">
       <button class="btn" onclick="cerrarModal('modal-ret')">Cancelar</button>
@@ -152,17 +145,24 @@ tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
-<!-- Modal activar backup -->
-<div class="modal-overlay" id="modal-backup">
+<!-- Modal tercero -->
+<div class="modal-overlay" id="modal-tercero">
   <div class="modal">
-    <div class="modal-title">Activar vehículo de respaldo</div>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Selecciona el backup que entra a operar y el titular que reemplaza.</p>
-    <div class="field"><label>Backup que se activa *</label><select id="bk-backup"></select></div>
-    <div class="field"><label>Titular que reemplaza *</label><select id="bk-titular"></select></div>
-    <div class="field"><label>Motivo</label><input type="text" id="bk-motivo" placeholder="Ej: NHU147 entró a taller por falla en frenos"></div>
+    <div class="modal-title">Activar vehículo tercero</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Registra un vehículo externo que cubre temporalmente la operación.</p>
+    <div class="form2">
+      <div class="field"><label>Placa *</label><input type="text" id="tc-placa" placeholder="Ej: ABC123"></div>
+      <div class="field"><label>Empresa</label><input type="text" id="tc-empresa" placeholder="Nombre empresa"></div>
+      <div class="field"><label>Tipo</label>
+        <select id="tc-tipo"><option value="camion">Camión</option><option value="furgon">Furgón</option><option value="camioneta">Camioneta</option></select></div>
+      <div class="field"><label>Regional</label><select id="tc-reg"></select></div>
+      <div class="field"><label>Fecha inicio</label><input type="date" id="tc-inicio"></div>
+      <div class="field"><label>Fecha fin estimada</label><input type="date" id="tc-fin"></div>
+      <div class="field full"><label>Observaciones</label><textarea id="tc-obs" placeholder="Motivo de activación..."></textarea></div>
+    </div>
     <div class="modal-footer">
-      <button class="btn" onclick="cerrarModal('modal-backup')">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarBackup()">Registrar activación</button>
+      <button class="btn" onclick="cerrarModal('modal-tercero')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarTercero()">Activar tercero</button>
     </div>
   </div>
 </div>
@@ -172,7 +172,7 @@ tr:hover td{background:var(--bg2)}
   <div class="modal" style="max-width:540px">
     <div class="modal-title">Carga masiva — Vehículos en taller</div>
     <div class="field"><label>Placas (una por línea) *</label>
-      <textarea id="mas-placas" placeholder="KNZ427&#10;LCN165&#10;NHU147" style="min-height:100px"></textarea></div>
+      <textarea id="mas-placas" style="min-height:100px" placeholder="KNZ427&#10;LCN165&#10;NHU147"></textarea></div>
     <div class="form2">
       <div class="field"><label>Taller *</label><select id="mas-taller"></select></div>
       <div class="field"><label>Tipo *</label>
@@ -180,7 +180,7 @@ tr:hover td{background:var(--bg2)}
       <div class="field"><label>Fecha entrada *</label><input type="date" id="mas-fecha"></div>
       <div class="field"><label>Prioridad</label>
         <select id="mas-prior"><option value="normal">Normal</option><option value="urgente">Urgente</option></select></div>
-      <div class="field full"><label>Descripción</label><textarea id="mas-desc" placeholder="Descripción general..."></textarea></div>
+      <div class="field full"><label>Descripción</label><textarea id="mas-desc"></textarea></div>
     </div>
     <div id="mas-resultado"></div>
     <div class="modal-footer">
@@ -190,16 +190,27 @@ tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
+<!-- Modal detalle checklist -->
+<div class="modal-overlay" id="modal-cl">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title" id="modal-cl-title">Checklist del vehículo</div>
+    <div id="modal-cl-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="cerrarModal('modal-cl')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <nav class="topnav">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="data:image/png;base64,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" alt="Trasladar" style="height:30px;object-fit:contain">
+    <img id="logo-nav" src="" alt="Logo" style="height:30px;object-fit:contain;display:none">
     <select id="filtro-regional" onchange="onFiltro()" style="font-size:12px;padding:5px 10px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg)">
       <option value="">Todas las regionales</option>
     </select>
   </div>
-  <div style="display:flex;align-items:center;gap:12px">
+  <div style="display:flex;align-items:center;gap:10px">
     <span style="font-size:12px;color:var(--text2)" id="nav-fecha"></span>
-    <span style="font-size:12px;color:var(--text2)" id="nav-user"></span>
+    <span style="font-size:11px;color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="nav-user"></span>
     <button onclick="cerrarSesion()" style="font-size:12px;padding:5px 10px;border:0.5px solid var(--border);border-radius:var(--r);background:transparent;cursor:pointer;color:var(--text2)">Salir</button>
   </div>
 </nav>
@@ -209,18 +220,16 @@ tr:hover td{background:var(--bg2)}
     <div class="snav-sec">Principal</div>
     <div class="snav-item active" data-page="dashboard" onclick="ir('dashboard')"><span>Dashboard</span></div>
     <div class="snav-item" data-page="disponibilidad" onclick="ir('disponibilidad')"><span>Disponibilidad</span></div>
-    <div class="snav-item" data-page="respaldo" onclick="ir('respaldo')"><span>Respaldos activos</span><span class="badge b-amber" id="badge-bk" style="display:none"></span></div>
+    <div class="snav-item" data-page="checklists" onclick="ir('checklists')"><span>Checklists</span><span class="badge b-red" id="badge-cl-nav" style="display:none"></span></div>
+    <div class="snav-item" data-page="criticidad" onclick="ir('criticidad')"><span>Criticidad</span><span class="badge b-red" id="badge-crit" style="display:none"></span></div>
     <div class="snav-item" data-page="fuera" onclick="ir('fuera')"><span>Fuera de servicio</span><span class="badge b-red" id="badge-fuera" style="display:none"></span></div>
     <div class="snav-item" data-page="alertas" onclick="ir('alertas')"><span>Alertas</span><span class="badge b-amber" id="badge-alertas" style="display:none"></span></div>
     <div class="snav-item" data-page="historial" onclick="ir('historial')"><span>Historial</span></div>
     <div class="snav-item" data-page="flota" onclick="ir('flota')"><span>Flota completa</span></div>
-<div class="snav-item" data-page="criticidad" onclick="ir('criticidad')">
-  <span>Criticidad</span>
-  <span class="badge b-red" id="badge-crit" style="display:none"></span>
-</div>
     <div class="snav-sec">Registrar</div>
     <div class="snav-item" data-page="entrada" onclick="ir('entrada')"><span>Entrada a taller</span></div>
     <div class="snav-item" data-page="retorno" onclick="ir('retorno')"><span>Retorno al servicio</span></div>
+    <div class="snav-item" data-page="terceros" onclick="ir('terceros')"><span>Vehículos terceros</span></div>
   </nav>
 
   <main class="main">
@@ -228,57 +237,34 @@ tr:hover td{background:var(--bg2)}
     <!-- DASHBOARD -->
     <div id="page-dashboard" class="page active">
       <div class="metrics">
-        <div class="metric">
-          <div class="metric-label">Disponibilidad</div>
-          <div class="metric-val" id="k-pct" style="color:var(--green)">—</div>
-          <div class="metric-sub" id="k-pct-sub">—</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Cubriendo operación</div>
-          <div class="metric-val" id="k-cubriendo">—</div>
-          <div class="metric-sub" id="k-cupo-sub">de — requeridos</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Respaldos activos hoy</div>
-          <div class="metric-val" id="k-backups" style="color:var(--purple)">—</div>
-          <div class="metric-sub">Reemplazando titulares</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Fuera de servicio</div>
-          <div class="metric-val" id="k-fuera" style="color:var(--red)">—</div>
-          <div class="metric-sub">En taller actualmente</div>
-        </div>
+        <div class="metric"><div class="metric-label">Disponibilidad</div><div class="metric-val" id="k-pct" style="color:var(--green)">—</div><div class="metric-sub" id="k-sub">Cargando...</div></div>
+        <div class="metric"><div class="metric-label">Operativos</div><div class="metric-val" id="k-op">—</div><div class="metric-sub" id="k-cupo-sub">de — requeridos</div></div>
+        <div class="metric"><div class="metric-label">Fuera de servicio</div><div class="metric-val" id="k-fuera" style="color:var(--red)">—</div><div class="metric-sub">Sin reemplazo: <span id="k-sin-reem" style="color:var(--red)">—</span></div></div>
+        <div class="metric"><div class="metric-label">Respaldos activos</div><div class="metric-val" id="k-bk" style="color:var(--purple)">—</div><div class="metric-sub">Backups + <span id="k-tc">—</span> terceros</div></div>
       </div>
-
-      <!-- Disponibilidad por regional -->
-      <div class="card" style="margin-bottom:16px" id="reg-disp-card">
-        <div class="card-hdr"><span class="card-title">Disponibilidad por regional</span></div>
-        <div id="reg-disp-list"><div class="loading"><div class="spinner"></div></div></div>
-      </div>
-
+      <div id="reg-disp-list" class="card"><div class="loading"><div class="spinner"></div></div></div>
       <div class="two-col">
         <div class="card">
-          <div class="card-hdr"><span class="card-title">Checklists de hoy</span><span class="badge b-gray" id="badge-cl">—</span></div>
-          <div id="cl-list"><div class="loading"><div class="spinner"></div></div></div>
+          <div class="card-hdr"><span class="card-title">Checklists hoy</span><span class="badge b-gray" id="badge-cl">—</span></div>
+          <div id="cl-dash"><div class="loading"><div class="spinner"></div></div></div>
         </div>
         <div class="card">
           <div class="card-hdr"><span class="card-title">Alertas activas</span><span class="badge b-red" id="badge-al">0</span></div>
-          <div id="al-list"><div class="loading"><div class="spinner"></div></div></div>
+          <div id="al-dash"><div class="loading"><div class="spinner"></div></div></div>
         </div>
       </div>
-
       <div class="card">
         <div class="card-hdr">
           <span class="card-title">Fuera de servicio</span>
           <div style="display:flex;gap:8px">
-            <button class="btn btn-sm" onclick="abrirMasivo()">⬆ Carga masiva</button>
+            <button class="btn btn-sm" onclick="abrirMasivo()">⬆ Masivo</button>
             <button class="btn btn-sm btn-primary" onclick="ir('entrada')">+ Registrar</button>
           </div>
         </div>
         <div class="tbl-wrap">
           <table><thead><tr>
             <th>Placa</th><th>Regional</th><th>Taller</th><th>Ingresó</th>
-            <th style="text-align:center">Días</th><th>Motivo</th>
+            <th style="text-align:center">Días</th><th>Reemplazo activo</th>
           </tr></thead>
           <tbody id="fuera-dash"><tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr></tbody>
           </table>
@@ -286,34 +272,81 @@ tr:hover td{background:var(--bg2)}
       </div>
     </div>
 
-    <!-- DISPONIBILIDAD -->
+    <!-- DISPONIBILIDAD DETALLE -->
     <div id="page-disponibilidad" class="page">
       <div id="disp-detalle"><div class="loading"><div class="spinner"></div></div></div>
     </div>
 
-    <!-- RESPALDOS ACTIVOS -->
-    <div id="page-respaldo" class="page">
+    <!-- CHECKLISTS -->
+    <div id="page-checklists" class="page">
       <div class="card">
         <div class="card-hdr">
-          <span class="card-title">Respaldos activos hoy</span>
-          <button class="btn btn-sm btn-primary" onclick="abrirActivarBackup()">+ Activar respaldo</button>
+          <span class="card-title">Checklists registrados</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="date" id="cl-fecha-filtro" onchange="cargarChecklists()" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--r)">
+            <span id="cl-count" style="font-size:12px;color:var(--text2)"></span>
+          </div>
         </div>
         <div class="tbl-wrap">
           <table><thead><tr>
-            <th>Backup activo</th><th>Regional</th><th>Reemplaza a</th><th>Desde</th><th>Motivo</th><th></th>
+            <th>Placa</th><th>Conductor</th><th>Hora</th><th>KM</th>
+            <th>Combustible</th><th>Fallas</th><th>Estado</th><th></th>
           </tr></thead>
-          <tbody id="respaldo-body"><tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr></tbody>
+          <tbody id="cl-body"><tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr></tbody>
           </table>
         </div>
       </div>
+      <!-- Vehículos sin checklist hoy -->
       <div class="card">
-        <div class="card-hdr"><span class="card-title">Historial de respaldos</span></div>
+        <div class="card-hdr"><span class="card-title">Sin checklist hoy</span><span class="badge b-amber" id="badge-sin-cl">—</span></div>
+        <div id="sin-cl-lista"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+
+    <!-- CRITICIDAD -->
+    <div id="page-criticidad" class="page">
+      <div class="metrics">
+        <div class="metric"><div class="metric-label">Criticidad alta</div><div class="metric-val" id="crit-alta" style="color:var(--red)">—</div><div class="metric-sub">Intervención inmediata</div></div>
+        <div class="metric"><div class="metric-label">Media alta</div><div class="metric-val" id="crit-ma" style="color:var(--amber)">—</div><div class="metric-sub">Atención urgente</div></div>
+        <div class="metric"><div class="metric-label">Media baja</div><div class="metric-val" id="crit-mb" style="color:var(--blue)">—</div><div class="metric-sub">Monitorear</div></div>
+        <div class="metric"><div class="metric-label">Baja</div><div class="metric-val" id="crit-baja" style="color:var(--green)">—</div><div class="metric-sub">En buen estado</div></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-title">Criticidad actual</span>
+          <select id="crit-filtro" onchange="cargarCriticidad()" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--r)">
+            <option value="">Todas</option>
+            <option value="ALTA">Alta</option>
+            <option value="MEDIA ALTA">Media alta</option>
+            <option value="MEDIA BAJA">Media baja</option>
+            <option value="BAJA">Baja</option>
+          </select>
+        </div>
         <div class="tbl-wrap">
           <table><thead><tr>
-            <th>Backup</th><th>Regional</th><th>Reemplazó a</th><th>Fecha</th><th>Motivo</th>
+            <th>Placa</th><th>Regional</th>
+            <th style="text-align:center">Chasis</th>
+            <th style="text-align:center">Furgón</th>
+            <th style="text-align:center">Plataforma</th>
+            <th style="text-align:center">Refrigeración</th>
+            <th>Criticidad</th><th>Fecha</th><th></th>
           </tr></thead>
-          <tbody id="respaldo-hist"><tr><td colspan="5" class="loading"><div class="spinner"></div></td></tr></tbody>
+          <tbody id="crit-body"><tr><td colspan="9" class="loading"><div class="spinner"></div></td></tr></tbody>
           </table>
+        </div>
+      </div>
+      <div class="card" id="crit-hist-card" style="display:none">
+        <div class="card-hdr">
+          <span class="card-title" id="crit-hist-title">Historial criticidad</span>
+          <button class="btn btn-sm" onclick="document.getElementById('crit-hist-card').style.display='none'">Cerrar</button>
+        </div>
+        <div class="tbl-wrap">
+          <table><thead><tr>
+            <th>Fecha</th><th style="text-align:center">Chasis</th><th style="text-align:center">Furgón</th>
+            <th style="text-align:center">Plataforma</th><th style="text-align:center">Refrig.</th>
+            <th>Criticidad</th><th>Observaciones</th>
+          </tr></thead>
+          <tbody id="crit-hist-body"></tbody></table>
         </div>
       </div>
     </div>
@@ -324,14 +357,15 @@ tr:hover td{background:var(--bg2)}
         <div class="card-hdr">
           <span class="card-title">Vehículos fuera de servicio</span>
           <div style="display:flex;gap:8px">
-            <button class="btn btn-sm" onclick="abrirMasivo()">⬆ Carga masiva</button>
+            <button class="btn btn-sm" onclick="abrirMasivo()">⬆ Masivo</button>
             <button class="btn btn-sm btn-primary" onclick="ir('entrada')">+ Entrada</button>
           </div>
         </div>
         <div class="tbl-wrap">
           <table><thead><tr>
-            <th>Placa</th><th>Figura</th><th>Regional</th><th>Taller</th><th>Ingresó</th>
-            <th style="text-align:center">Días</th><th>Descripción</th><th>Prioridad</th><th></th>
+            <th>Placa</th><th>Figura</th><th>Regional</th><th>Taller</th>
+            <th>Ingresó</th><th style="text-align:center">Días</th>
+            <th>Reemplazo asignado</th><th>Prioridad</th><th></th>
           </tr></thead>
           <tbody id="fuera-body"><tr><td colspan="9" class="loading"><div class="spinner"></div></td></tr></tbody>
           </table>
@@ -411,19 +445,39 @@ tr:hover td{background:var(--bg2)}
 
     <!-- ENTRADA A TALLER -->
     <div id="page-entrada" class="page">
-      <div class="card" style="max-width:620px">
+      <div class="card" style="max-width:680px">
         <div class="card-hdr"><span class="card-title">Registrar entrada a taller</span></div>
         <form onsubmit="submitEntrada(event)">
           <div class="form2">
-            <div class="field"><label>Vehículo *</label><select id="e-vh" required><option value="">Seleccionar...</option></select></div>
+            <div class="field"><label>Vehículo *</label><select id="e-vh" required onchange="onSelectVh()"><option value="">Seleccionar...</option></select></div>
             <div class="field"><label>Taller *</label><select id="e-taller" required><option value="">Seleccionar...</option></select></div>
-            <div class="field"><label>Tipo de mantenimiento *</label><select id="e-tipomant" required><option value="">Seleccionar...</option></select></div>
+            <div class="field"><label>Tipo mantenimiento *</label><select id="e-tipomant" required><option value="">Seleccionar...</option></select></div>
             <div class="field"><label>Categoría *</label>
               <select id="e-tipo" required><option value="preventivo">Preventivo</option><option value="correctivo">Correctivo</option><option value="siniestro">Siniestro</option></select></div>
             <div class="field"><label>Fecha entrada *</label><input type="date" id="e-fecha" required></div>
             <div class="field"><label>Prioridad</label>
               <select id="e-prior"><option value="normal">Normal</option><option value="urgente">Urgente</option><option value="programado">Programado</option></select></div>
             <div class="field full"><label>Descripción</label><textarea id="e-desc" placeholder="Motivo de la entrada..."></textarea></div>
+          </div>
+          <!-- Sección reemplazo -->
+          <div style="background:var(--bg2);border-radius:var(--r);padding:14px;margin-bottom:14px">
+            <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">Asignar reemplazo</div>
+            <div class="form2">
+              <div class="field"><label>Tipo de reemplazo</label>
+                <select id="e-reem-tipo" onchange="onReemTipo()">
+                  <option value="ninguno">Sin reemplazo disponible</option>
+                  <option value="backup">Vehículo de respaldo propio</option>
+                  <option value="tercero">Vehículo tercero</option>
+                </select></div>
+              <div class="field" id="e-reem-wrap" style="display:none">
+                <label id="e-reem-label">Vehículo reemplazo</label>
+                <select id="e-reem-vh"><option value="">Seleccionar...</option></select>
+              </div>
+              <div class="field full" id="e-reem-obs-wrap" style="display:none">
+                <label>Observación del reemplazo</label>
+                <input type="text" id="e-reem-obs" placeholder="Ej: Backup KSQ187 entra a cubrir ruta Cota Norte">
+              </div>
+            </div>
           </div>
           <div style="display:flex;gap:10px">
             <button type="button" class="btn" onclick="ir('dashboard')">Cancelar</button>
@@ -433,7 +487,7 @@ tr:hover td{background:var(--bg2)}
       </div>
     </div>
 
-    <!-- RETORNO -->
+    <!-- RETORNO AL SERVICIO -->
     <div id="page-retorno" class="page">
       <div class="card" style="max-width:620px">
         <div class="card-hdr"><span class="card-title">Registrar retorno al servicio</span></div>
@@ -445,7 +499,7 @@ tr:hover td{background:var(--bg2)}
             <div class="field"><label>Fecha de salida *</label><input type="date" id="r-fecha" required></div>
             <div class="field"><label>KM al retornar</label><input type="number" id="r-km" placeholder="82500"></div>
             <div class="field"><label>Costo total (COP)</label><input type="number" id="r-costo" placeholder="850000"></div>
-            <div class="field full"><label>Trabajo realizado</label><textarea id="r-desc" placeholder="Describe el trabajo realizado..."></textarea></div>
+            <div class="field full"><label>Trabajo realizado</label><textarea id="r-desc"></textarea></div>
           </div>
           <div style="display:flex;gap:10px">
             <button type="button" class="btn" onclick="ir('fuera')">Cancelar</button>
@@ -455,24 +509,25 @@ tr:hover td{background:var(--bg2)}
       </div>
     </div>
 
-  
-    <!-- CRITICIDAD -->
-    <div id="page-criticidad" class="page">
-      <div class="metrics" id="crit-metrics">
-        <div class="metric"><div class="metric-label">Criticidad alta</div><div class="metric-val" id="crit-alta" style="color:var(--red)">—</div></div>
-        <div class="metric"><div class="metric-label">Media alta</div><div class="metric-val" id="crit-ma" style="color:var(--amber)">—</div></div>
-        <div class="metric"><div class="metric-label">Media baja</div><div class="metric-val" id="crit-mb" style="color:var(--blue)">—</div></div>
-        <div class="metric"><div class="metric-label">Baja</div><div class="metric-val" id="crit-baja" style="color:var(--green)">—</div></div>
-      </div>
+    <!-- VEHÍCULOS TERCEROS -->
+    <div id="page-terceros" class="page">
       <div class="card">
-        <div class="card-hdr"><span class="card-title">Criticidad actual de flota</span></div>
+        <div class="card-hdr">
+          <span class="card-title">Vehículos terceros activos</span>
+          <button class="btn btn-sm btn-primary" onclick="abrirTercero()">+ Activar tercero</button>
+        </div>
         <div class="tbl-wrap">
-          <table><tbody id="crit-body"></tbody></table>
+          <table><thead><tr>
+            <th>Placa</th><th>Empresa</th><th>Regional</th><th>Tipo</th>
+            <th>Inicio</th><th>Fin estimado</th><th>Observaciones</th><th></th>
+          </tr></thead>
+          <tbody id="terceros-body"><tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr></tbody>
+          </table>
         </div>
       </div>
     </div>
 
-</main>
+  </main>
 </div>
 
 <script>
@@ -482,61 +537,7 @@ const db=createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpeHRxdG9wcHBiY2x4cWRhcmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5Njk2ODAsImV4cCI6MjA5MjU0NTY4MH0.WRYBP4006NZrRCNBpoclVWSz64zQfE2sjFslVc4imDg'
 );
 
-// ── Autenticación y rol ──────────────────────────────────
-let USER_ROL = null;
-let USER_EMAIL = '';
-
-async function checkAuth(){
-  const{data:{session}}=await db.auth.getSession();
-  if(!session){window.location.href='login.html';return false;}
-
-  USER_EMAIL = session.user.email;
-  const meta = session.user.user_metadata || {};
-  USER_ROL = meta.rol || 'coordinador';
-  const regionalNombre = meta.regional || null;
-  const esGerente = USER_ROL==='gerente' || regionalNombre==='Nacional' || !regionalNombre;
-
-  // Mostrar usuario y rol en nav
-  const rolLabel = esGerente ? 'Gerente Nacional' : 'Coordinador';
-  document.getElementById('nav-user').textContent = `${USER_EMAIL} · ${rolLabel}`;
-
-  if(esGerente){
-    USER_ROL = 'gerente';
-    REGIONAL_ID = null;
-  } else {
-    USER_ROL = 'coordinador';
-    // Buscar el ID de la regional por nombre
-    const{data:reg, error}=await db.from('regionales')
-      .select('id,nombre')
-      .eq('nombre', regionalNombre)
-      .single();
-
-    if(reg){
-      REGIONAL_ID = reg.id;
-    } else {
-      console.error('Regional no encontrada:', regionalNombre, error);
-      // Si no encuentra la regional, mostrar error y no dejar entrar
-      document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;flex-direction:column;gap:12px">
-        <div style="font-size:16px;font-weight:600;color:#1a1a18">Error de configuración</div>
-        <div style="font-size:13px;color:#6b6b67">No se encontró la regional: <strong>${regionalNombre}</strong></div>
-        <div style="font-size:12px;color:#9b9b96">Contacta al administrador</div>
-        <button onclick="db.auth.signOut().then(()=>location.href='login.html')" 
-          style="margin-top:8px;padding:8px 16px;font-size:13px;border:0.5px solid #ccc;border-radius:8px;cursor:pointer;background:#fff">
-          Cerrar sesión
-        </button>
-      </div>`;
-      return false;
-    }
-  }
-  return true;
-}
-
-async function cerrarSesion(){
-  await db.auth.signOut();
-  window.location.href='login.html';
-}
-
-let REGIONAL_ID=null;
+let REGIONAL_ID=null, USER_ROL=null, USER_EMAIL='';
 let regionales=[];
 
 const hoy=()=>new Date().toISOString().split('T')[0];
@@ -545,16 +546,41 @@ function rNombre(id){return regionales.find(r=>r.id===id)?.nombre||'—';}
 function diasFuera(f){const d=new Date();d.setHours(0,0,0,0);return Math.max(0,Math.floor((d-new Date(f+'T00:00:00'))/86400000));}
 function clrDias(d){return d>=7?'dias-crit':d>=3?'dias-warn':'dias-ok';}
 function fmtF(iso){if(!iso)return'—';return new Date(iso+'T00:00:00').toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'});}
+function fmtT(iso){if(!iso)return'—';return new Date(iso).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});}
 function fmtM(v){return v?'$'+Number(v).toLocaleString('es-CO'):'—';}
 function lTaller(t){return{taller_propio:'Taller propio',concesionario:'Concesionario',patios:'Patios',siniestro:'Siniestro'}[t]||t;}
 function bPrior(p){if(p==='urgente')return'<span class="badge b-red">Urgente</span>';if(p==='programado')return'<span class="badge b-blue">Programado</span>';return'<span class="badge b-gray">Normal</span>';}
-function bFig(f,activo){if(f==='backup'&&activo)return'<span class="badge b-amber">Respaldo activo</span>';if(f==='backup')return'<span class="badge b-purple">Respaldo</span>';return'<span class="badge b-green">Titular</span>';}
-function bEst(e){return{disponible:'<span class="badge b-green">Disponible</span>',taller_propio:'<span class="badge b-amber">Taller propio</span>',concesionario:'<span class="badge b-blue">Concesionario</span>',en_patios:'<span class="badge b-amber">En patios</span>',siniestro:'<span class="badge b-red">Siniestro</span>',inactivo:'<span class="badge b-gray">Inactivo</span>'}[e]||`<span class="badge b-gray">${e}</span>`;}
+function bFig(f){if(f==='backup')return'<span class="badge b-purple">Respaldo</span>';if(f==='tercero')return'<span class="badge b-blue">Tercero</span>';return'<span class="badge b-green">Titular</span>';}
+function bEst(e){const m={disponible:'<span class="badge b-green">Disponible</span>',taller_propio:'<span class="badge b-amber">Taller propio</span>',concesionario:'<span class="badge b-blue">Concesionario</span>',en_patios:'<span class="badge b-amber">En patios</span>',siniestro:'<span class="badge b-red">Siniestro</span>',inactivo:'<span class="badge b-gray">Inactivo</span>'};return m[e]||`<span class="badge b-gray">${e}</span>`;}
+function bPuntaje(p){if(p===3)return'<span class="badge b-red" style="font-size:10px">3-Inmediata</span>';if(p===2)return'<span class="badge b-amber" style="font-size:10px">2-Semana</span>';return'<span class="badge b-green" style="font-size:10px">1-OK</span>';}
+function bCrit(c){if(c==='ALTA')return'<span class="badge b-red" style="font-weight:700">⚠ ALTA</span>';if(c==='MEDIA ALTA')return'<span class="badge b-amber">MEDIA ALTA</span>';if(c==='MEDIA BAJA')return'<span class="badge b-blue">MEDIA BAJA</span>';return'<span class="badge b-green">BAJA</span>';}
 function urgA(a){const h=hoy();if(a.tipo_alerta==='por_fecha'){if(!a.fecha_limite)return'prog';if(a.fecha_limite<h)return'venc';const d=Math.ceil((new Date(a.fecha_limite)-new Date())/86400000);if(d<=(a.anticipacion_dias||15))return'prox';}if(a.tipo_alerta==='por_km'){if((a.km_limite||0)-(a.vehiculos?.km_actuales||0)<=(a.anticipacion_km||500))return'prox_km';}return'prog';}
 function bUrg(u){return{venc:'<span class="badge b-red">Vencida</span>',prox:'<span class="badge b-amber">Próxima</span>',prox_km:'<span class="badge b-amber">Próx.km</span>',prog:'<span class="badge b-gray">Programada</span>'}[u]||'';}
 function toast(msg,err=false){const t=document.getElementById('toast');t.textContent=msg;t.style.background=err?'#A32D2D':'#1a1a18';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
 function cerrarModal(id){document.getElementById(id).classList.remove('open');}
 
+// ── Auth ──
+async function checkAuth(){
+  const{data:{session}}=await db.auth.getSession();
+  if(!session){window.location.href='login.html';return false;}
+  USER_EMAIL=session.user.email;
+  const meta=session.user.user_metadata||{};
+  USER_ROL=meta.rol||'coordinador';
+  const regNom=meta.regional||null;
+  const esGerente=USER_ROL==='gerente'||regNom==='Nacional'||!regNom;
+  document.getElementById('nav-user').textContent=`${USER_EMAIL} · ${esGerente?'Gerente':'Coordinador'}`;
+  if(esGerente){USER_ROL='gerente';REGIONAL_ID=null;}
+  else{
+    USER_ROL='coordinador';
+    const{data:reg}=await db.from('regionales').select('id,nombre').eq('nombre',regNom).single();
+    if(reg){REGIONAL_ID=reg.id;}
+    else{document.body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;flex-direction:column;gap:10px"><p>Regional no encontrada: ${regNom}</p><button onclick="db.auth.signOut().then(()=>location.href='login.html')" style="padding:8px 16px;cursor:pointer;border:1px solid #ccc;border-radius:6px">Cerrar sesión</button></div>`;return false;}
+  }
+  return true;
+}
+async function cerrarSesion(){await db.auth.signOut();window.location.href='login.html';}
+
+// ── Nav ──
 function ir(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.snav-item').forEach(a=>a.classList.remove('active'));
@@ -565,242 +591,199 @@ function ir(page){
   if(page==='entrada')prepEntrada();
   if(page==='retorno')prepRetorno();
   if(page==='flota')cargarFlota();
-  if(page==='respaldo')cargarRespaldos();
-  if(page==='criticidad')cargarCriticidad();
   if(page==='disponibilidad')cargarDispDetalle();
+  if(page==='checklists')cargarChecklists();
+  if(page==='criticidad')cargarCriticidad();
+  if(page==='terceros')cargarTerceros();
 }
+function onFiltro(){REGIONAL_ID=USER_ROL==='gerente'?(document.getElementById('filtro-regional').value||null):REGIONAL_ID;cargarDashboard();}
 
-function onFiltro(){REGIONAL_ID=document.getElementById('filtro-regional').value||null;cargarDashboard();}
-
+// ── Init ──
 async function init(){
-  // 1. Verificar autenticación primero
-  const ok = await checkAuth();
-  if(!ok) return;
-
-  document.getElementById('nav-fecha').textContent =
-    new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'});
-  document.getElementById('h-desde').value = hace30();
-  document.getElementById('h-hasta').value = hoy();
-
-  // 2. Cargar regionales
-  const{data:regs} = await db.from('regionales')
-    .select('id,nombre,cupo_requerido').eq('activa',true).order('nombre');
-  regionales = regs || [];
-
-  // 3. Configurar selectores según rol
-  if(USER_ROL === 'gerente'){
-    // Gerente: ve todas las regionales
+  const ok=await checkAuth();if(!ok)return;
+  document.getElementById('nav-fecha').textContent=new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('h-desde').value=hace30();
+  document.getElementById('h-hasta').value=hoy();
+  document.getElementById('cl-fecha-filtro').value=hoy();
+  const{data:regs}=await db.from('regionales').select('id,nombre,cupo_requerido').eq('activa',true).order('nombre');
+  regionales=regs||[];
+  if(USER_ROL==='gerente'){
     ['filtro-regional','fl-reg'].forEach(id=>{
-      const sel=document.getElementById(id); if(!sel)return;
-      while(sel.options.length>1) sel.remove(1);
+      const sel=document.getElementById(id);if(!sel)return;
+      while(sel.options.length>1)sel.remove(1);
       regionales.forEach(r=>sel.add(new Option(r.nombre,r.id)));
     });
-    // figura-regional para gerente
-    const figSel=document.getElementById('figura-regional');
-    if(figSel){
-      while(figSel.options.length>1) figSel.remove(1);
-      regionales.forEach(r=>figSel.add(new Option(r.nombre,r.id)));
-    }
-  } else {
-    // Coordinador: selector bloqueado en su regional
-    const miRegional = regionales.find(r=>r.id===REGIONAL_ID);
+  }else{
+    const miReg=regionales.find(r=>r.id===REGIONAL_ID);
     ['filtro-regional','fl-reg'].forEach(id=>{
-      const sel=document.getElementById(id); if(!sel)return;
-      sel.innerHTML = miRegional
-        ? `<option value="${miRegional.id}">${miRegional.nombre}</option>`
-        : '<option value="">Sin regional</option>';
-      sel.disabled = true;
-      sel.style.opacity = '0.7';
-      sel.style.cursor = 'default';
+      const sel=document.getElementById(id);if(!sel)return;
+      sel.innerHTML=miReg?`<option value="${miReg.id}">${miReg.nombre}</option>`:'';
+      sel.disabled=true;sel.style.opacity='0.7';
     });
-    // figura-regional bloqueado en su regional
-    const figSel=document.getElementById('figura-regional');
-    if(figSel && miRegional){
-      figSel.innerHTML=`<option value="${miRegional.id}">${miRegional.nombre}</option>`;
-      figSel.disabled=true;
-      figSel.style.opacity='0.7';
-    }
   }
-
   await cargarDashboard();
 }
 
 async function cargarDashboard(){
-  await Promise.all([cargarKPIs(),cargarCL(),cargarAlDash(),cargarFueraDash()]);
+  await Promise.all([cargarKPIs(),cargarClDash(),cargarAlDash(),cargarFueraDash()]);
 }
 
-// ── KPIs con modelo cupo ──
+// ── KPIs ──
 async function cargarKPIs(){
   try{
-    // Traer todos los vehículos activos (sin remolques)
     let qv=db.from('vehiculos').select('id,estado,figura,regional_id').eq('activo',true).neq('tipo','remolque');
     if(REGIONAL_ID)qv=qv.eq('regional_id',REGIONAL_ID);
     const{data:vhs,error}=await qv;if(error)throw error;
 
-    // Asignaciones de hoy (backups activos)
-    let qa=db.from('asignaciones_diarias').select('vehiculo_id,figura,activo').eq('fecha',hoy()).eq('activo',true);
-    if(REGIONAL_ID)qa=qa.eq('regional_id',REGIONAL_ID);
-    const{data:asigs}=await qa;
-    const activosHoy=new Set((asigs||[]).map(a=>a.vehiculo_id));
+    // Reemplazos activos (backups con reemplazo explícito)
+    let qr=db.from('reemplazos_activos').select('reemplazo_id,regional_id').eq('activo',true);
+    if(REGIONAL_ID)qr=qr.eq('regional_id',REGIONAL_ID);
+    const{data:reemps}=await qr;
+    const reempSet=new Set((reemps||[]).map(r=>r.reemplazo_id));
 
-    // Cupo requerido total
-    const cupoTotal=REGIONAL_ID
-      ? (regionales.find(r=>r.id===REGIONAL_ID)?.cupo_requerido||0)
-      : regionales.reduce((s,r)=>s+(r.cupo_requerido||0),0);
+    // Terceros activos
+    let qt=db.from('vehiculos_terceros').select('id,regional_id').eq('activo',true);
+    if(REGIONAL_ID)qt=qt.eq('regional_id',REGIONAL_ID);
+    const{data:terc}=await qt;
 
-    let titularesOp=0,backupsAct=0,enTaller=0;
+    let titOp=0,bkAct=reempSet.size,tcAct=(terc||[]).length,enT=0;
     (vhs||[]).forEach(v=>{
-      if(v.estado!=='disponible'){enTaller++;return;}
-      if(v.figura==='titular')titularesOp++;
-      else if(v.figura==='backup'&&activosHoy.has(v.id))backupsAct++;
+      if(v.estado!=='disponible'){enT++;return;}
+      if(v.figura==='titular')titOp++;
     });
 
-    const cubriendo=titularesOp+backupsAct;
-    const pct=cupoTotal?Math.min(100,Math.round(cubriendo*100/cupoTotal)):0;
+    const cupoTotal=REGIONAL_ID
+      ?(regionales.find(r=>r.id===REGIONAL_ID)?.cupo_requerido||0)
+      :regionales.reduce((s,r)=>s+(r.cupo_requerido||0),0);
+
+    const operativos=titOp+bkAct+tcAct;
+    const pct=cupoTotal?Math.min(100,Math.round(operativos*100/cupoTotal)):0;
+    const sinReem=enT-bkAct-tcAct;
     const color=pct>=100?'var(--green)':pct>=85?'var(--amber)':'var(--red)';
 
     document.getElementById('k-pct').textContent=pct+'%';
     document.getElementById('k-pct').style.color=color;
-    document.getElementById('k-pct-sub').textContent=REGIONAL_ID?rNombre(REGIONAL_ID):'Todas las regionales';
-    document.getElementById('k-cubriendo').textContent=cubriendo;
+    document.getElementById('k-sub').textContent=REGIONAL_ID?rNombre(REGIONAL_ID):'Todas las regionales';
+    document.getElementById('k-op').textContent=operativos;
     document.getElementById('k-cupo-sub').textContent='de '+cupoTotal+' requeridos';
-    document.getElementById('k-backups').textContent=backupsAct;
-    document.getElementById('k-fuera').textContent=enTaller;
+    document.getElementById('k-fuera').textContent=enT;
+    document.getElementById('k-sin-reem').textContent=Math.max(0,sinReem);
+    document.getElementById('k-bk').textContent=bkAct+tcAct;
+    document.getElementById('k-tc').textContent=tcAct;
 
-    const bbk=document.getElementById('badge-bk');
-    if(backupsAct>0){bbk.textContent=backupsAct;bbk.style.display='';}
-
-    // Disponibilidad por regional en dashboard
-    await cargarDispRegionales();
+    await cargarDispRegionales(vhs,reempSet,terc||[]);
   }catch(e){console.error('KPIs:',e.message);}
 }
 
-async function cargarDispRegionales(){
+async function cargarDispRegionales(vhs,reempSet,terc){
   const el=document.getElementById('reg-disp-list');
-  try{
-    const{data:vhs}=await db.from('vehiculos').select('id,estado,figura,regional_id').eq('activo',true).neq('tipo','remolque');
-    const{data:asigs}=await db.from('asignaciones_diarias').select('vehiculo_id,regional_id,activo').eq('fecha',hoy()).eq('activo',true);
-    const activosSet=new Set((asigs||[]).map(a=>a.vehiculo_id));
-
-    const regsToShow=REGIONAL_ID?regionales.filter(r=>r.id===REGIONAL_ID):regionales;
-
-    el.innerHTML=regsToShow.map(r=>{
-      const vhsR=(vhs||[]).filter(v=>v.regional_id===r.id);
-      let titOp=0,bkAct=0,enT=0;
-      vhsR.forEach(v=>{
-        if(v.estado!=='disponible'){enT++;return;}
-        if(v.figura==='titular')titOp++;
-        else if(v.figura==='backup'&&activosSet.has(v.id))bkAct++;
-      });
-      const cubriendo=titOp+bkAct;
-      const cupo=r.cupo_requerido||0;
-      const pct=cupo?Math.min(100,Math.round(cubriendo*100/cupo)):0;
-      const color=pct>=100?'var(--green)':pct>=85?'var(--amber)':'var(--red)';
-      const faltantes=Math.max(0,cupo-cubriendo);
-      return`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--border)">
-        <span style="font-size:13px;font-weight:500;width:160px;flex-shrink:0">${r.nombre}</span>
-        <div style="flex:1">
-          <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${color}"></div></div>
-          <div style="font-size:11px;color:var(--text2);margin-top:3px">${cubriendo}/${cupo} • ${enT} en taller • ${bkAct} respaldo(s) activo(s)</div>
-        </div>
-        <span style="font-size:18px;font-weight:600;color:${color};width:52px;text-align:right">${pct}%</span>
-        ${faltantes>0?`<span class="badge b-red">-${faltantes}</span>`:'<span class="badge b-green">✓</span>'}
-      </div>`;
-    }).join('');
-  }catch(e){el.innerHTML='<div class="empty">Error cargando disponibilidad</div>';}
+  const regsShow=REGIONAL_ID?regionales.filter(r=>r.id===REGIONAL_ID):regionales;
+  el.innerHTML='<div class="card-hdr" style="margin-bottom:12px"><span class="card-title">Disponibilidad por regional</span></div>'+
+  regsShow.map(r=>{
+    const vhsR=(vhs||[]).filter(v=>v.regional_id===r.id);
+    let titOp=0,enT=0;
+    vhsR.forEach(v=>{if(v.estado!=='disponible'){enT++;}else if(v.figura==='titular')titOp++;});
+    const bkR=[...reempSet].filter(id=>vhsR.find(v=>v.id===id)).length;
+    const tcR=(terc||[]).filter(t=>t.regional_id===r.id).length;
+    const op=titOp+bkR+tcR;
+    const cupo=r.cupo_requerido||0;
+    const pct=cupo?Math.min(100,Math.round(op*100/cupo)):0;
+    const color=pct>=100?'var(--green)':pct>=85?'var(--amber)':'var(--red)';
+    return`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--border)">
+      <span style="font-size:13px;font-weight:500;width:160px;flex-shrink:0">${r.nombre}</span>
+      <div style="flex:1"><div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div style="font-size:11px;color:var(--text2);margin-top:3px">${op}/${cupo} operativos • ${enT} fuera • ${bkR} respaldo(s) • ${tcR} tercero(s)</div></div>
+      <span style="font-size:18px;font-weight:700;color:${color};width:50px;text-align:right">${pct}%</span>
+      ${op<cupo?`<span class="badge b-red">-${cupo-op}</span>`:'<span class="badge b-green">✓</span>'}
+    </div>`;
+  }).join('');
 }
 
-// ── Disponibilidad detalle ──
-async function cargarDispDetalle(){
-  const el=document.getElementById('disp-detalle');
-  el.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+// ── Checklists dash ──
+async function cargarClDash(){
+  const el=document.getElementById('cl-dash');
   try{
-    const{data:vhs}=await db.from('vehiculos').select('id,placa,tipo,figura,estado,regional_id').eq('activo',true).neq('tipo','remolque').order('placa');
-    const{data:asigs}=await db.from('asignaciones_diarias').select('vehiculo_id,regional_id,activo,titular_reemplazado_id,motivo').eq('fecha',hoy()).eq('activo',true);
-    const activosMap=new Map((asigs||[]).map(a=>[a.vehiculo_id,a]));
-    // Mapa de titulares reemplazados
-    const titReemplazadoMap=new Map();
-    (asigs||[]).forEach(a=>{if(a.titular_reemplazado_id)titReemplazadoMap.set(a.titular_reemplazado_id,a.vehiculo_id);});
-
-    const regsToShow=REGIONAL_ID?regionales.filter(r=>r.id===REGIONAL_ID):regionales;
-
-    el.innerHTML=regsToShow.map(r=>{
-      const vhsR=(vhs||[]).filter(v=>v.regional_id===r.id);
-      const titulares=vhsR.filter(v=>v.figura==='titular');
-      const backups=vhsR.filter(v=>v.figura==='backup');
-      let titOp=0,bkAct=0,enT=0;
-      vhsR.forEach(v=>{
-        if(v.estado!=='disponible'){enT++;return;}
-        if(v.figura==='titular')titOp++;
-        else if(v.figura==='backup'&&activosMap.has(v.id))bkAct++;
-      });
-      const cubriendo=titOp+bkAct;
-      const cupo=r.cupo_requerido||0;
-      const pct=cupo?Math.min(100,Math.round(cubriendo*100/cupo)):0;
-      const color=pct>=100?'var(--green)':pct>=85?'var(--amber)':'var(--red)';
-
-      const titRows=titulares.map(v=>{
-        const enTaller=v.estado!=='disponible';
-        const bkReemplaza=(vhs||[]).find(b=>titReemplazadoMap.get(v.id)===b.id);
-        return`<tr>
-          <td style="font-weight:600">${v.placa}</td>
-          <td><span class="badge b-green" style="font-size:10px">Titular</span></td>
-          <td>${bEst(v.estado)}</td>
-          <td>${enTaller?`<span style="font-size:12px;color:var(--purple)">${bkReemplaza?'Resp: '+bkReemplaza.placa:'Sin respaldo'}</span>`:'<span style="font-size:12px;color:var(--text3)">—</span>'}</td>
-        </tr>`;
-      }).join('');
-
-      const bkRows=backups.map(v=>{
-        const asig=activosMap.get(v.id);
-        const titReemp=asig?.titular_reemplazado_id?(vhs||[]).find(t=>t.id===asig.titular_reemplazado_id):null;
-        return`<tr>
-          <td style="font-weight:600">${v.placa}</td>
-          <td>${bFig(v.figura,!!asig)}</td>
-          <td>${bEst(v.estado)}</td>
-          <td>${asig?`<span style="font-size:12px;color:var(--amber-dark)">Reemplaza: ${titReemp?titReemp.placa:'—'}</span>`:'<span style="font-size:12px;color:var(--text3)">En espera</span>'}</td>
-        </tr>`;
-      }).join('');
-
-      return`<div class="card">
-        <div class="card-hdr">
-          <div>
-            <div class="card-title">${r.nombre}</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:2px">${cubriendo}/${cupo} operativos • ${enT} en taller</div>
-          </div>
-          <span style="font-size:22px;font-weight:700;color:${color}">${pct}%</span>
-        </div>
-        <div class="tbl-wrap">
-          <table><thead><tr><th>Placa</th><th>Figura</th><th>Estado</th><th>Respaldo/Reemplazo</th></tr></thead>
-          <tbody>${titRows}${bkRows}</tbody></table>
-        </div>
-      </div>`;
-    }).join('');
-  }catch(e){el.innerHTML=`<div class="card"><div class="empty" style="color:var(--red)">Error: ${e.message}</div></div>`;}
-}
-
-// ── Checklists ──
-async function cargarCL(){
-  const el=document.getElementById('cl-list');
-  try{
-    let qv=db.from('vehiculos').select('id,placa').eq('activo',true).neq('tipo','remolque').neq('figura','backup');
+    let qv=db.from('vehiculos').select('id,placa').eq('activo',true).neq('tipo','remolque').eq('figura','titular');
     if(REGIONAL_ID)qv=qv.eq('regional_id',REGIONAL_ID);
     const{data:vhs}=await qv;
     let qc=db.from('checklists').select('vehiculo_id,tiene_fallas').eq('fecha',hoy());
     if(REGIONAL_ID)qc=qc.eq('regional_id',REGIONAL_ID);
     const{data:cls}=await qc;
     const clMap=new Map((cls||[]).map(c=>[c.vehiculo_id,c]));
-    document.getElementById('badge-cl').textContent=`${(cls||[]).length}/${(vhs||[]).length}`;
-    if(!(vhs||[]).length){el.innerHTML='<div class="empty">Sin vehículos</div>';return;}
+    const recibidos=(cls||[]).length;
+    const total=(vhs||[]).length;
+    document.getElementById('badge-cl').textContent=`${recibidos}/${total}`;
+    const faltantes=total-recibidos;
+    const bcnav=document.getElementById('badge-cl-nav');
+    if(faltantes>0){bcnav.textContent=faltantes;bcnav.style.display='';}
+    if(!total){el.innerHTML='<div class="empty">Sin vehículos</div>';return;}
     el.innerHTML=(vhs||[]).slice(0,8).map(v=>{
       const c=clMap.get(v.id);
       return`<div class="row-item"><span class="plate">${v.placa}</span><span style="flex:1"></span>${c?(c.tiene_fallas?'<span class="badge b-red">Fallas</span>':'<span class="badge b-green">OK</span>'):'<span class="badge b-gray">Pendiente</span>'}</div>`;
-    }).join('')+((vhs||[]).length>8?`<div style="padding:8px;font-size:12px;color:var(--text2);text-align:center">+${(vhs||[]).length-8} más</div>`:'');
-  }catch(e){el.innerHTML='<div class="empty">Sin checklists</div>';}
+    }).join('')+(total>8?`<div style="padding:8px;font-size:12px;color:var(--text2);text-align:center">+${total-8} más</div>`:'');
+  }catch(e){el.innerHTML='<div class="empty">Error</div>';}
+}
+
+// ── Checklists página completa ──
+async function cargarChecklists(){
+  const tb=document.getElementById('cl-body');
+  const sinLista=document.getElementById('sin-cl-lista');
+  const fecha=document.getElementById('cl-fecha-filtro').value||hoy();
+  try{
+    let qc=db.from('checklists').select('*,vehiculos(placa,tipo)').eq('fecha',fecha).order('created_at',{ascending:false});
+    if(REGIONAL_ID)qc=qc.eq('regional_id',REGIONAL_ID);
+    const{data:cls,error}=await qc;if(error)throw error;
+    document.getElementById('cl-count').textContent=`${(cls||[]).length} registros`;
+    if(!cls?.length){tb.innerHTML='<tr><td colspan="8" class="empty">Sin checklists para esta fecha</td></tr>';}
+    else{
+      tb.innerHTML=cls.map(c=>{
+        const fallas=Object.entries(c).filter(([k,v])=>['soat','tecnomecanica','luces','llantas','nivel_aceite','nivel_agua','sin_fugas','frenos','extintor','botiquin','cinturon','plataforma','termo_refrigeracion','furgon_interno'].includes(k)&&v===false).map(([k])=>k);
+        return`<tr>
+          <td style="font-weight:600">${c.vehiculos?.placa||'—'}</td>
+          <td>${c.conductor_nombre||'—'}</td>
+          <td>${fmtT(c.created_at)}</td>
+          <td>${c.km_inicio?c.km_inicio.toLocaleString('es-CO')+' km':'—'}</td>
+          <td>${c.combustible||'—'}</td>
+          <td>${fallas.length>0?`<span class="badge b-red">${fallas.length} falla(s)</span>`:'<span class="badge b-green">Sin fallas</span>'}</td>
+          <td>${c.tiene_fallas?'<span class="badge b-red">Con fallas</span>':'<span class="badge b-green">OK</span>'}</td>
+          <td><button class="btn btn-sm" onclick='verChecklist(${JSON.stringify(c).replace(/'/g,"&#39;")})'>Ver</button></td>
+        </tr>`;
+      }).join('');
+    }
+    // Vehículos sin checklist
+    let qv=db.from('vehiculos').select('id,placa,figura').eq('activo',true).neq('tipo','remolque');
+    if(REGIONAL_ID)qv=qv.eq('regional_id',REGIONAL_ID);
+    const{data:vhs}=await qv;
+    const conCl=new Set((cls||[]).map(c=>c.vehiculo_id));
+    const sinCl=(vhs||[]).filter(v=>!conCl.has(v.id));
+    document.getElementById('badge-sin-cl').textContent=sinCl.length;
+    sinLista.innerHTML=sinCl.length?sinCl.map(v=>`<div class="row-item"><span class="plate">${v.placa}</span>${bFig(v.figura)}</div>`).join(''):'<div class="empty">Todos enviaron su checklist ✓</div>';
+  }catch(e){tb.innerHTML=`<tr><td colspan="8" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
+}
+
+function verChecklist(c){
+  const LABELS={soat:'SOAT',tecnomecanica:'Tecnicomecánica',luces:'Luces',llantas:'Llantas',nivel_aceite:'Nivel aceite',nivel_agua:'Nivel agua',sin_fugas:'Sin fugas',frenos:'Frenos',extintor:'Extintor',botiquin:'Botiquín',cinturon:'Cinturón',plataforma:'Plataforma',termo_refrigeracion:'Termo refrigeración',furgon_interno:'Furgón interno'};
+  document.getElementById('modal-cl-title').textContent=`Checklist — ${c.vehiculos?.placa||'—'} · ${fmtF(c.fecha)}`;
+  const items=Object.entries(LABELS).map(([k,label])=>{
+    const val=c[k];
+    const badge=val===true?'<span class="badge b-green">Bien</span>':val===false?'<span class="badge b-red">Falla</span>':'<span class="badge b-gray">N/A</span>';
+    return`<div class="check-detail-item"><span>${label}</span>${badge}</div>`;
+  }).join('');
+  document.getElementById('modal-cl-body').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <div><span style="font-size:11px;color:var(--text2)">Conductor</span><div style="font-size:13px;font-weight:500">${c.conductor_nombre||'—'}</div></div>
+      <div><span style="font-size:11px;color:var(--text2)">KM</span><div style="font-size:13px;font-weight:500">${c.km_inicio?c.km_inicio.toLocaleString('es-CO')+' km':'—'}</div></div>
+      <div><span style="font-size:11px;color:var(--text2)">Combustible</span><div style="font-size:13px">${c.combustible||'—'}</div></div>
+      <div><span style="font-size:11px;color:var(--text2)">Hora</span><div style="font-size:13px">${fmtT(c.created_at)}</div></div>
+    </div>
+    ${items}
+    ${c.observacion?`<div style="margin-top:12px;padding:10px;background:var(--bg2);border-radius:var(--r);font-size:13px;color:var(--text2)"><strong>Observación:</strong> ${c.observacion}</div>`:''}`;
+  document.getElementById('modal-cl').classList.add('open');
 }
 
 // ── Alertas dash ──
 async function cargarAlDash(){
-  const el=document.getElementById('al-list');
+  const el=document.getElementById('al-dash');
   try{
     let q=db.from('alertas').select('id,tipo_alerta,fecha_limite,km_limite,anticipacion_dias,anticipacion_km,vehiculos(placa,km_actuales),tipos_mantenimiento(nombre)').not('estado','eq','resuelta');
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
@@ -818,107 +801,141 @@ async function cargarAlDash(){
 async function cargarFueraDash(){
   const tb=document.getElementById('fuera-dash');
   try{
-    let q=db.from('eventos_mantenimiento').select('id,fecha_entrada,prioridad,descripcion_trabajo,regional_id,vehiculos(id,placa,tipo,figura),talleres(nombre,tipo),tipos_mantenimiento(nombre)').eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
+    let q=db.from('eventos_mantenimiento')
+      .select('id,fecha_entrada,prioridad,descripcion_trabajo,regional_id,vehiculos(id,placa,tipo,figura),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
+      .eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
-    const{data,error}=await q;if(error)throw error;
-    const ev=data||[];
+    const{data:ev,error}=await q;if(error)throw error;
+
+    // Reemplazos activos
+    let qr=db.from('reemplazos_activos').select('titular_id,reemplazo_id,vehiculos_terceros(placa)').eq('activo',true);
+    const{data:reemps}=await qr;
+    // Buscar placas de reemplazos
+    const reempIds=(reemps||[]).map(r=>r.reemplazo_id).filter(Boolean);
+    let placaMap={};
+    if(reempIds.length){
+      const{data:pvhs}=await db.from('vehiculos').select('id,placa').in('id',reempIds);
+      (pvhs||[]).forEach(v=>placaMap[v.id]=v.placa);
+    }
+    const rMap=new Map((reemps||[]).map(r=>[r.titular_id,placaMap[r.reemplazo_id]||'—']));
+
     const bf=document.getElementById('badge-fuera');
-    if(ev.length){bf.textContent=ev.length;bf.style.display='';}else bf.style.display='none';
-    if(!ev.length){tb.innerHTML='<tr><td colspan="6" class="empty">Sin vehículos fuera ✓</td></tr>';return;}
-    tb.innerHTML=ev.map(e=>{const d=diasFuera(e.fecha_entrada);return`<tr><td style="font-weight:600">${e.vehiculos?.placa||'—'}</td><td>${rNombre(e.regional_id)}</td><td>${e.talleres?.nombre||'—'}</td><td>${fmtF(e.fecha_entrada)}</td><td style="text-align:center"><span class="${clrDias(d)}">${d}</span></td><td style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.descripcion_trabajo||e.tipos_mantenimiento?.nombre||'—'}</td></tr>`;}).join('');
+    if((ev||[]).length){bf.textContent=(ev||[]).length;bf.style.display='';}else bf.style.display='none';
+    if(!(ev||[]).length){tb.innerHTML='<tr><td colspan="6" class="empty">Sin vehículos fuera ✓</td></tr>';return;}
+    tb.innerHTML=(ev||[]).map(e=>{
+      const d=diasFuera(e.fecha_entrada);
+      const reem=rMap.get(e.vehiculos?.id);
+      return`<tr>
+        <td style="font-weight:600">${e.vehiculos?.placa||'—'}</td>
+        <td>${rNombre(e.regional_id)}</td>
+        <td>${e.talleres?.nombre||'—'}</td>
+        <td>${fmtF(e.fecha_entrada)}</td>
+        <td style="text-align:center"><span class="${clrDias(d)}">${d}</span></td>
+        <td>${reem?`<span class="badge b-purple">${reem}</span>`:'<span class="badge b-gray">Sin reemplazo</span>'}</td>
+      </tr>`;
+    }).join('');
   }catch(e){tb.innerHTML=`<tr><td colspan="6" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
 }
 
-// ── RESPALDOS ──
-async function abrirActivarBackup(){
-  const{data:bks}=await db.from('vehiculos').select('id,placa,regional_id').eq('activo',true).eq('figura','backup').eq('estado','disponible').order('placa');
-  const{data:tits}=await db.from('vehiculos').select('id,placa,regional_id').eq('activo',true).eq('figura','titular').order('placa');
-  const sel1=document.getElementById('bk-backup');
-  const sel2=document.getElementById('bk-titular');
-  sel1.innerHTML='<option value="">Seleccionar backup...</option>'+(bks||[]).map(v=>`<option value="${v.id}">${v.placa} [${rNombre(v.regional_id)}]</option>`).join('');
-  sel2.innerHTML='<option value="">Seleccionar titular que reemplaza...</option>'+(tits||[]).map(v=>`<option value="${v.id}">${v.placa} [${rNombre(v.regional_id)}]</option>`).join('');
-  document.getElementById('bk-motivo').value='';
-  document.getElementById('modal-backup').classList.add('open');
+// ── Disponibilidad detalle ──
+async function cargarDispDetalle(){
+  const el=document.getElementById('disp-detalle');
+  el.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  try{
+    const{data:vhs}=await db.from('vehiculos').select('id,placa,tipo,figura,estado,regional_id').eq('activo',true).order('placa');
+    let qr=db.from('reemplazos_activos').select('titular_id,reemplazo_id').eq('activo',true);
+    const{data:reemps}=await qr;
+    const reempSet=new Set((reemps||[]).map(r=>r.reemplazo_id));
+    const rMapTit=new Map((reemps||[]).map(r=>[r.titular_id,r.reemplazo_id]));
+    const{data:terc}=await db.from('vehiculos_terceros').select('*').eq('activo',true);
+    const regsShow=REGIONAL_ID?regionales.filter(r=>r.id===REGIONAL_ID):regionales;
+
+    el.innerHTML=regsShow.map(r=>{
+      const vhsR=(vhs||[]).filter(v=>v.regional_id===r.id);
+      const tcR=(terc||[]).filter(t=>t.regional_id===r.id);
+      let titOp=0,enT=0;
+      vhsR.forEach(v=>{if(v.estado!=='disponible')enT++;else if(v.figura==='titular')titOp++;});
+      const bkR=vhsR.filter(v=>reempSet.has(v.id)).length;
+      const op=titOp+bkR+tcR.length;
+      const cupo=r.cupo_requerido||0;
+      const pct=cupo?Math.min(100,Math.round(op*100/cupo)):0;
+      const color=pct>=100?'var(--green)':pct>=85?'var(--amber)':'var(--red)';
+
+      const rows=vhsR.map(v=>{
+        const enTaller=v.estado!=='disponible';
+        const esReemplazo=reempSet.has(v.id);
+        const titReem=rMapTit.get(v.id);
+        const titReemPlaca=(vhs||[]).find(t=>t.id===titReem)?.placa;
+        let situacion='';
+        if(enTaller)situacion=`<span class="badge b-red">${bEst(v.estado)}</span>`;
+        else if(v.figura==='titular')situacion='<span class="badge b-green">Operando</span>';
+        else if(esReemplazo)situacion=`<span class="badge b-amber">Reemplaza: ${titReemPlaca||'—'}</span>`;
+        else situacion='<span class="badge b-gray">En espera</span>';
+        return`<tr><td style="font-weight:600">${v.placa}</td><td>${bFig(v.figura)}</td><td>${bEst(v.estado)}</td><td>${situacion}</td></tr>`;
+      }).join('');
+
+      const tcRows=tcR.map(t=>`<tr><td style="font-weight:600">${t.placa}</td><td>${bFig('tercero')}</td><td><span class="badge b-green">Operando</span></td><td><span class="badge b-blue">Tercero ${t.empresa||''}</span></td></tr>`).join('');
+
+      return`<div class="card">
+        <div class="card-hdr">
+          <div><div class="card-title">${r.nombre}</div><div style="font-size:12px;color:var(--text2);margin-top:2px">${op}/${cupo} operativos • ${enT} fuera de servicio</div></div>
+          <span style="font-size:22px;font-weight:700;color:${color}">${pct}%</span>
+        </div>
+        <div class="tbl-wrap"><table><thead><tr><th>Placa</th><th>Figura</th><th>Estado</th><th>Situación</th></tr></thead>
+        <tbody>${rows}${tcRows}</tbody></table></div>
+      </div>`;
+    }).join('');
+  }catch(e){el.innerHTML=`<div class="card"><div class="empty" style="color:var(--red)">Error: ${e.message}</div></div>`;}
 }
 
-async function guardarBackup(){
-  const bkId=document.getElementById('bk-backup').value;
-  const titId=document.getElementById('bk-titular').value;
-  const motivo=document.getElementById('bk-motivo').value;
-  if(!bkId||!titId){toast('Selecciona el backup y el titular que reemplaza',true);return;}
+// ── Criticidad ──
+async function cargarCriticidad(){
+  const tb=document.getElementById('crit-body');
+  tb.innerHTML='<tr><td colspan="9" class="loading"><div class="spinner"></div></td></tr>';
   try{
-    const{data:bk}=await db.from('vehiculos').select('regional_id').eq('id',bkId).single();
-    await db.from('asignaciones_diarias').upsert({
-      vehiculo_id:bkId,regional_id:bk?.regional_id,fecha:hoy(),
-      figura:'backup',activo:true,titular_reemplazado_id:titId,motivo,
-    },{onConflict:'vehiculo_id,fecha'});
-    toast('Respaldo activado ✓');
-    cerrarModal('modal-backup');
-    await cargarKPIs();
-    cargarRespaldos();
-  }catch(e){toast('Error: '+e.message,true);}
+    let q=db.from('criticidad_vehiculo').select('id,fecha,puntaje_chasis,puntaje_furgon,puntaje_plataforma,puntaje_refrigeracion,criticidad,observaciones,fuente,vehiculo_id,regional_id,vehiculos(placa,tipo,figura)').order('fecha',{ascending:false});
+    if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
+    const filtro=document.getElementById('crit-filtro').value;
+    if(filtro)q=q.eq('criticidad',filtro);
+    const{data,error}=await q;if(error)throw error;
+    const seen=new Set();
+    const ultimos=(data||[]).filter(r=>{if(seen.has(r.vehiculo_id))return false;seen.add(r.vehiculo_id);return true;});
+    const alta=ultimos.filter(r=>r.criticidad==='ALTA').length;
+    const ma=ultimos.filter(r=>r.criticidad==='MEDIA ALTA').length;
+    const mb=ultimos.filter(r=>r.criticidad==='MEDIA BAJA').length;
+    const baja=ultimos.filter(r=>r.criticidad==='BAJA').length;
+    document.getElementById('crit-alta').textContent=alta;
+    document.getElementById('crit-ma').textContent=ma;
+    document.getElementById('crit-mb').textContent=mb;
+    document.getElementById('crit-baja').textContent=baja;
+    const bc=document.getElementById('badge-crit');
+    if(alta>0){bc.textContent=alta;bc.style.display='';}
+    if(!ultimos.length){tb.innerHTML='<tr><td colspan="9" class="empty">Sin registros — los conductores deben enviar checklists para generar criticidad</td></tr>';return;}
+    const ord={'ALTA':0,'MEDIA ALTA':1,'MEDIA BAJA':2,'BAJA':3};
+    ultimos.sort((a,b)=>(ord[a.criticidad]||3)-(ord[b.criticidad]||3));
+    tb.innerHTML=ultimos.map(r=>`<tr>
+      <td style="font-weight:600">${r.vehiculos?.placa||'—'}</td>
+      <td style="font-size:12px">${rNombre(r.regional_id)}</td>
+      <td style="text-align:center">${bPuntaje(r.puntaje_chasis)}</td>
+      <td style="text-align:center">${bPuntaje(r.puntaje_furgon)}</td>
+      <td style="text-align:center">${bPuntaje(r.puntaje_plataforma)}</td>
+      <td style="text-align:center">${bPuntaje(r.puntaje_refrigeracion)}</td>
+      <td>${bCrit(r.criticidad)}</td>
+      <td style="font-size:12px">${fmtF(r.fecha)}</td>
+      <td><button class="btn btn-sm" onclick="verHistCrit('${r.vehiculo_id}','${r.vehiculos?.placa||''}')">Historial</button></td>
+    </tr>`).join('');
+  }catch(e){tb.innerHTML=`<tr><td colspan="9" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
 }
 
-async function desactivarBackup(asigId,bkPlaca){
-  if(!confirm(`¿Desactivar el respaldo ${bkPlaca}?`))return;
-  try{
-    await db.from('asignaciones_diarias').update({activo:false}).eq('id',asigId);
-    toast('Respaldo desactivado ✓');
-    await cargarKPIs();cargarRespaldos();
-  }catch(e){toast('Error: '+e.message,true);}
-}
-
-async function cargarRespaldos(){
-  const tb=document.getElementById('respaldo-body');
-  const tbH=document.getElementById('respaldo-hist');
-  try{
-    // Activos hoy
-    let qa=db.from('asignaciones_diarias').select('id,vehiculo_id,regional_id,titular_reemplazado_id,motivo,fecha').eq('fecha',hoy()).eq('activo',true);
-    if(REGIONAL_ID)qa=qa.eq('regional_id',REGIONAL_ID);
-    const{data:act}=await qa;
-
-    // Enriquecer con nombres de placas
-    const vids=[...(act||[]).map(a=>a.vehiculo_id),...(act||[]).map(a=>a.titular_reemplazado_id).filter(Boolean)];
-    const placaMap=new Map();
-    if(vids.length){
-      const{data:pvhs}=await db.from('vehiculos').select('id,placa').in('id',vids);
-      (pvhs||[]).forEach(v=>placaMap.set(v.id,v.placa));
-    }
-
-    if(!(act||[]).length){tb.innerHTML='<tr><td colspan="6" class="empty">Sin respaldos activos hoy</td></tr>';}
-    else{
-      tb.innerHTML=(act||[]).map(a=>`<tr>
-        <td style="font-weight:600">${placaMap.get(a.vehiculo_id)||'—'}</td>
-        <td>${rNombre(a.regional_id)}</td>
-        <td style="font-weight:500;color:var(--amber-dark)">${placaMap.get(a.titular_reemplazado_id)||'—'}</td>
-        <td>${fmtF(a.fecha)}</td>
-        <td style="font-size:12px">${a.motivo||'—'}</td>
-        <td><button class="btn btn-sm btn-red" onclick="desactivarBackup('${a.id}','${placaMap.get(a.vehiculo_id)||''}')">Desactivar</button></td>
-      </tr>`).join('');
-    }
-
-    // Historial últimos 30 días
-    let qh=db.from('asignaciones_diarias').select('vehiculo_id,regional_id,titular_reemplazado_id,motivo,fecha').gte('fecha',hace30()).order('fecha',{ascending:false}).limit(50);
-    if(REGIONAL_ID)qh=qh.eq('regional_id',REGIONAL_ID);
-    const{data:hist}=await qh;
-
-    const hids=[...(hist||[]).map(a=>a.vehiculo_id),...(hist||[]).map(a=>a.titular_reemplazado_id).filter(Boolean)];
-    if(hids.length){
-      const{data:hvhs}=await db.from('vehiculos').select('id,placa').in('id',hids);
-      (hvhs||[]).forEach(v=>placaMap.set(v.id,v.placa));
-    }
-
-    if(!(hist||[]).length){tbH.innerHTML='<tr><td colspan="5" class="empty">Sin historial</td></tr>';}
-    else{
-      tbH.innerHTML=(hist||[]).map(a=>`<tr>
-        <td style="font-weight:600">${placaMap.get(a.vehiculo_id)||'—'}</td>
-        <td>${rNombre(a.regional_id)}</td>
-        <td>${placaMap.get(a.titular_reemplazado_id)||'—'}</td>
-        <td>${fmtF(a.fecha)}</td>
-        <td style="font-size:12px">${a.motivo||'—'}</td>
-      </tr>`).join('');
-    }
-  }catch(e){tb.innerHTML=`<tr><td colspan="6" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
+async function verHistCrit(vid,placa){
+  const card=document.getElementById('crit-hist-card');
+  const body=document.getElementById('crit-hist-body');
+  document.getElementById('crit-hist-title').textContent=`Historial criticidad — ${placa}`;
+  body.innerHTML='<tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr>';
+  card.style.display='block';card.scrollIntoView({behavior:'smooth',block:'start'});
+  const{data}=await db.from('criticidad_vehiculo').select('fecha,puntaje_chasis,puntaje_furgon,puntaje_plataforma,puntaje_refrigeracion,criticidad,observaciones').eq('vehiculo_id',vid).order('fecha',{ascending:false}).limit(60);
+  if(!data?.length){body.innerHTML='<tr><td colspan="7" class="empty">Sin historial</td></tr>';return;}
+  body.innerHTML=data.map(r=>`<tr><td>${fmtF(r.fecha)}</td><td style="text-align:center">${bPuntaje(r.puntaje_chasis)}</td><td style="text-align:center">${bPuntaje(r.puntaje_furgon)}</td><td style="text-align:center">${bPuntaje(r.puntaje_plataforma)}</td><td style="text-align:center">${bPuntaje(r.puntaje_refrigeracion)}</td><td>${bCrit(r.criticidad)}</td><td style="font-size:12px;color:var(--text2)">${r.observaciones||'—'}</td></tr>`).join('');
 }
 
 // ── Fuera página ──
@@ -927,9 +944,31 @@ async function cargarFuera(){
   try{
     let q=db.from('eventos_mantenimiento').select('id,fecha_entrada,prioridad,descripcion_trabajo,regional_id,vehiculos(id,placa,tipo,figura),talleres(nombre,tipo),tipos_mantenimiento(nombre)').eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
-    const{data,error}=await q;if(error)throw error;
-    if(!data?.length){tb.innerHTML='<tr><td colspan="9" class="empty">Sin vehículos fuera ✓</td></tr>';return;}
-    tb.innerHTML=data.map(e=>{const d=diasFuera(e.fecha_entrada);return`<tr><td style="font-weight:600">${e.vehiculos?.placa||'—'}</td><td>${bFig(e.vehiculos?.figura||'titular',false)}</td><td>${rNombre(e.regional_id)}</td><td>${e.talleres?.nombre||'—'}<br><span style="font-size:11px;color:var(--text2)">${e.talleres?.tipo?lTaller(e.talleres.tipo):''}</span></td><td>${fmtF(e.fecha_entrada)}</td><td style="text-align:center"><span class="${clrDias(d)}">${d}</span></td><td style="font-size:12px">${e.descripcion_trabajo||'—'}</td><td>${bPrior(e.prioridad)}</td><td><button class="btn btn-sm" onclick="irRet('${e.id}')">Retorno</button></td></tr>`;}).join('');
+    const{data:ev,error}=await q;if(error)throw error;
+
+    let qr=db.from('reemplazos_activos').select('titular_id,reemplazo_id,motivo').eq('activo',true);
+    const{data:reemps}=await qr;
+    const reempIds=(reemps||[]).map(r=>r.reemplazo_id).filter(Boolean);
+    let placaMap={};
+    if(reempIds.length){const{data:pvhs}=await db.from('vehiculos').select('id,placa').in('id',reempIds);(pvhs||[]).forEach(v=>placaMap[v.id]=v.placa);}
+    const rMap=new Map((reemps||[]).map(r=>[r.titular_id,{placa:placaMap[r.reemplazo_id]||'—',motivo:r.motivo}]));
+
+    if(!ev?.length){tb.innerHTML='<tr><td colspan="9" class="empty">Sin vehículos fuera ✓</td></tr>';return;}
+    tb.innerHTML=ev.map(e=>{
+      const d=diasFuera(e.fecha_entrada);
+      const reem=rMap.get(e.vehiculos?.id);
+      return`<tr>
+        <td style="font-weight:600">${e.vehiculos?.placa||'—'}</td>
+        <td>${bFig(e.vehiculos?.figura||'titular')}</td>
+        <td>${rNombre(e.regional_id)}</td>
+        <td>${e.talleres?.nombre||'—'}<br><span style="font-size:11px;color:var(--text2)">${e.talleres?.tipo?lTaller(e.talleres.tipo):''}</span></td>
+        <td>${fmtF(e.fecha_entrada)}</td>
+        <td style="text-align:center"><span class="${clrDias(d)}">${d}</span></td>
+        <td>${reem?`<span class="badge b-purple">${reem.placa}</span>`:'<span class="badge b-gray">Sin reemplazo</span>'}</td>
+        <td>${bPrior(e.prioridad)}</td>
+        <td><button class="btn btn-sm" onclick="irRet('${e.id}')">Retorno</button></td>
+      </tr>`;
+    }).join('');
   }catch(e){tb.innerHTML=`<tr><td colspan="9" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
 }
 
@@ -970,8 +1009,8 @@ async function verTL(vid,placa){
   document.getElementById('tl-title').textContent=`Historial — ${placa}`;
   body.innerHTML='<div class="loading"><div class="spinner"></div></div>';
   card.style.display='block';card.scrollIntoView({behavior:'smooth',block:'start'});
-  const{data,error}=await db.from('eventos_mantenimiento').select('*,talleres(nombre),tipos_mantenimiento(nombre)').eq('vehiculo_id',vid).order('fecha_entrada',{ascending:false});
-  if(error||!data?.length){body.innerHTML='<div class="empty">Sin eventos</div>';return;}
+  const{data}=await db.from('eventos_mantenimiento').select('*,talleres(nombre),tipos_mantenimiento(nombre)').eq('vehiculo_id',vid).order('fecha_entrada',{ascending:false});
+  if(!data?.length){body.innerHTML='<div class="empty">Sin eventos</div>';return;}
   body.innerHTML=data.map(e=>{const ec=!e.fecha_salida;const col=ec?'var(--amber)':e.tipo==='siniestro'?'var(--red)':'var(--green)';return`<div class="tl-item"><div class="tl-left"><div class="tl-dot" style="background:${col}"></div><div class="tl-line"></div></div><div><div style="font-size:13px;font-weight:500">${e.tipos_mantenimiento?.nombre||e.tipo||'—'} — ${e.talleres?.nombre||'—'}</div><div style="font-size:12px;color:var(--text2);margin-top:2px">${fmtF(e.fecha_entrada)} → ${fmtF(e.fecha_salida)}</div><div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap"><span class="badge ${ec?'b-amber':'b-green'}">${e.dias_en_taller!=null?e.dias_en_taller+' días':'En curso'}</span>${e.costo?`<span class="badge b-gray">${fmtM(e.costo)}</span>`:''}${e.descripcion_trabajo?`<span style="font-size:11px;color:var(--text2)">${e.descripcion_trabajo}</span>`:''}</div></div></div>`;}).join('');
 }
 
@@ -985,7 +1024,7 @@ async function cargarFlota(){
     const fF=document.getElementById('fl-fig').value;
     const aF=document.getElementById('fl-act').value;
     let q=db.from('vehiculos').select('id,placa,tipo,figura,estado,km_actuales,activo,regional_id').order('placa');
-    if(rF)q=q.eq('regional_id',rF);
+    if(rF)q=q.eq('regional_id',rF);else if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     if(tF)q=q.eq('tipo',tF);
     if(fF)q=q.eq('figura',fF);
     if(aF!=='')q=q.eq('activo',aF==='true');
@@ -996,11 +1035,11 @@ async function cargarFlota(){
       <td style="font-weight:600">${v.placa}</td>
       <td>${v.tipo||'—'}</td>
       <td>${rNombre(v.regional_id)}</td>
-      <td>${bFig(v.figura,false)}</td>
+      <td>${bFig(v.figura)}</td>
       <td>${bEst(v.estado)}</td>
       <td>${v.km_actuales?v.km_actuales.toLocaleString('es-CO')+' km':'—'}</td>
       <td style="display:flex;gap:4px;flex-wrap:wrap;padding:6px 10px">
-        <button class="btn btn-sm" onclick='editarVh(${JSON.stringify(v)})'>Editar</button>
+        <button class="btn btn-sm" onclick='editarVh(${JSON.stringify(v).replace(/"/g,"&quot;")})'>Editar</button>
         <button class="btn btn-sm" onclick="verTL('${v.id}','${v.placa}');ir('historial')">Hist.</button>
         ${v.activo?`<button class="btn btn-sm btn-red" onclick="abrirRetiro('${v.id}','${v.placa}')">Retirar</button>`:`<button class="btn btn-sm btn-green" onclick="reactivar('${v.id}','${v.placa}')">Reactivar</button>`}
       </td>
@@ -1020,7 +1059,18 @@ function abrirNuevoVh(){
   const sel=document.getElementById('mvh-reg');
   while(sel.options.length)sel.remove(0);
   regionales.forEach(r=>sel.add(new Option(r.nombre,r.id)));
+  // Camiones para asociar remolque
+  cargarCamionesModal();
   document.getElementById('modal-vh').classList.add('open');
+}
+
+async function cargarCamionesModal(){
+  const sel=document.getElementById('mvh-camion');
+  sel.innerHTML='<option value="">Ninguno</option>';
+  let q=db.from('vehiculos').select('id,placa').eq('tipo','camion').eq('activo',true).order('placa');
+  if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
+  const{data}=await q;
+  (data||[]).forEach(v=>sel.add(new Option(v.placa,v.id)));
 }
 
 function editarVh(v){
@@ -1035,12 +1085,13 @@ function editarVh(v){
   const sel=document.getElementById('mvh-reg');
   while(sel.options.length)sel.remove(0);
   regionales.forEach(r=>{const o=new Option(r.nombre,r.id);if(r.id===v.regional_id)o.selected=true;sel.add(o);});
+  cargarCamionesModal();
   document.getElementById('modal-vh').classList.add('open');
 }
 
 async function guardarVh(){
   const id=document.getElementById('mvh-id').value;
-  const datos={placa:document.getElementById('mvh-placa').value.trim().toUpperCase(),tipo:document.getElementById('mvh-tipo').value,figura:document.getElementById('mvh-figura').value,regional_id:document.getElementById('mvh-reg').value,km_actuales:parseInt(document.getElementById('mvh-km').value)||0,estado:document.getElementById('mvh-estado').value,observaciones:document.getElementById('mvh-obs').value,activo:true,updated_at:new Date().toISOString()};
+  const datos={placa:document.getElementById('mvh-placa').value.trim().toUpperCase(),tipo:document.getElementById('mvh-tipo').value,figura:document.getElementById('mvh-figura').value,regional_id:document.getElementById('mvh-reg').value,km_actuales:parseInt(document.getElementById('mvh-km').value)||0,estado:document.getElementById('mvh-estado').value,observaciones:document.getElementById('mvh-obs').value,camion_asociado_id:document.getElementById('mvh-camion').value||null,activo:true,updated_at:new Date().toISOString()};
   try{
     if(id){const{error}=await db.from('vehiculos').update(datos).eq('id',id);if(error)throw error;toast('Vehículo actualizado ✓');}
     else{const{error}=await db.from('vehiculos').insert(datos);if(error)throw error;toast('Vehículo agregado ✓');}
@@ -1060,79 +1111,65 @@ async function confirmarRetiro(){
   const vid=document.getElementById('ret-id').value;
   const motivo=document.getElementById('ret-motivo').value.trim();
   const fecha=document.getElementById('ret-fecha2').value;
-  if(!motivo){toast('Ingresa el motivo del retiro',true);return;}
+  if(!motivo){toast('Ingresa el motivo',true);return;}
   try{
     const{error}=await db.from('vehiculos').update({activo:false,estado:'inactivo',fecha_retiro:fecha,motivo_retiro:motivo,updated_at:new Date().toISOString()}).eq('id',vid);
     if(error)throw error;
-    toast('Vehículo retirado de operación');
-    cerrarModal('modal-ret');cargarFlota();cargarKPIs();
+    toast('Vehículo retirado');cerrarModal('modal-ret');cargarFlota();cargarKPIs();
   }catch(e){toast('Error: '+e.message,true);}
 }
 
 async function reactivar(vid,placa){
   if(!confirm(`¿Reactivar ${placa}?`))return;
   try{
-    const{error}=await db.from('vehiculos').update({activo:true,estado:'disponible',fecha_retiro:null,motivo_retiro:null,updated_at:new Date().toISOString()}).eq('id',vid);
-    if(error)throw error;
+    await db.from('vehiculos').update({activo:true,estado:'disponible',fecha_retiro:null,motivo_retiro:null,updated_at:new Date().toISOString()}).eq('id',vid);
     toast(`${placa} reactivado ✓`);cargarFlota();cargarKPIs();
   }catch(e){toast('Error: '+e.message,true);}
 }
 
-// ── Carga masiva ──
-async function abrirMasivo(){
-  const{data:tal}=await db.from('talleres').select('id,nombre,tipo').eq('activo',true).order('nombre');
-  const sel=document.getElementById('mas-taller');
-  while(sel.options.length)sel.remove(0);
-  (tal||[]).forEach(t=>sel.add(new Option(`${t.nombre} (${lTaller(t.tipo)})`,t.id)));
-  document.getElementById('mas-fecha').value=hoy();
-  document.getElementById('mas-placas').value='';
-  document.getElementById('mas-resultado').innerHTML='';
-  document.getElementById('modal-masivo').classList.add('open');
-}
-
-async function ejecutarMasivo(){
-  const placas=document.getElementById('mas-placas').value.split('\n').map(p=>p.trim().toUpperCase()).filter(Boolean);
-  const tallerId=document.getElementById('mas-taller').value;
-  const tipo=document.getElementById('mas-tipo').value;
-  const fecha=document.getElementById('mas-fecha').value;
-  const prior=document.getElementById('mas-prior').value;
-  const desc=document.getElementById('mas-desc').value;
-  if(!placas.length||!tallerId||!fecha){toast('Completa todos los campos',true);return;}
-  const btn=document.getElementById('btn-masivo');
-  btn.disabled=true;btn.textContent='Procesando...';
-  const{data:talData}=await db.from('talleres').select('tipo').eq('id',tallerId).single();
-  const talTipo=talData?.tipo||'taller_propio';
-  const{data:tmData}=await db.from('tipos_mantenimiento').select('id').eq('nombre','Falla mecánica').single();
-  const tmId=tmData?.id||null;
-  let ok=0;const errores=[];
-  for(const placa of placas){
-    const{data:vh}=await db.from('vehiculos').select('id,regional_id').eq('placa',placa).single();
-    if(!vh){errores.push(`${placa}: No encontrado`);continue;}
-    const{error}=await db.from('eventos_mantenimiento').insert({vehiculo_id:vh.id,taller_id:tallerId,tipo_mantenimiento_id:tmId,regional_id:vh.regional_id,origen:talTipo,tipo,prioridad:prior,fecha_entrada:fecha,descripcion_trabajo:desc||null,estado:'en_proceso'});
-    if(error){errores.push(`${placa}: ${error.message}`);continue;}
-    await db.from('vehiculos').update({estado:talTipo}).eq('id',vh.id);
-    ok++;
-  }
-  let html=`<div style="font-size:13px;margin-bottom:8px"><strong>${ok} vehículo(s) registrados</strong></div>`;
-  if(errores.length)html+=`<div style="font-size:12px;color:var(--red-dark);background:var(--red-bg);padding:8px 12px;border-radius:var(--r)">${errores.join('<br>')}</div>`;
-  document.getElementById('mas-resultado').innerHTML=html;
-  if(ok>0){toast(`${ok} vehículos registrados ✓`);cargarKPIs();cargarFueraDash();}
-  btn.disabled=false;btn.textContent='Registrar entradas';
-}
-
-// ── Entrada ──
+// ── Entrada a taller con reemplazo ──
 async function prepEntrada(){
   try{
     let qv=db.from('vehiculos').select('id,placa,tipo,figura,estado,regional_id').eq('activo',true).order('placa');
     if(REGIONAL_ID)qv=qv.eq('regional_id',REGIONAL_ID);
     const{data:vhs}=await qv;
-    const{data:tal}=await db.from('talleres').select('id,nombre,tipo').eq('activo',true).order('nombre');
+    const{data:tal}=await db.from('talleres').select('id,nombre,tipo,regional_id').eq('activo',true).order('nombre');
     const{data:tms}=await db.from('tipos_mantenimiento').select('id,nombre').eq('activo',true).order('nombre');
-    document.getElementById('e-vh').innerHTML='<option value="">Seleccionar vehículo...</option>'+(vhs||[]).map(v=>`<option value="${v.id}" data-reg="${v.regional_id||''}">${v.placa} [${rNombre(v.regional_id)}] — ${v.figura} — ${v.estado}</option>`).join('');
-    document.getElementById('e-taller').innerHTML='<option value="">Seleccionar taller...</option>'+(tal||[]).map(t=>`<option value="${t.id}" data-tipo="${t.tipo}">${t.nombre} (${lTaller(t.tipo)})</option>`).join('');
+
+    document.getElementById('e-vh').innerHTML='<option value="">Seleccionar vehículo...</option>'+(vhs||[]).filter(v=>v.tipo!=='remolque').map(v=>`<option value="${v.id}" data-reg="${v.regional_id||''}" data-fig="${v.figura}">${v.placa} [${rNombre(v.regional_id)}] — ${v.figura} — ${v.estado}</option>`).join('');
+
+    // Talleres filtrados por regional si aplica
+    const talFiltrados=REGIONAL_ID?(tal||[]).filter(t=>!t.regional_id||t.regional_id===REGIONAL_ID):(tal||[]);
+    document.getElementById('e-taller').innerHTML='<option value="">Seleccionar taller...</option>'+talFiltrados.map(t=>`<option value="${t.id}" data-tipo="${t.tipo}">${t.nombre} (${lTaller(t.tipo)})</option>`).join('');
+
     document.getElementById('e-tipomant').innerHTML='<option value="">Seleccionar tipo...</option>'+(tms||[]).map(m=>`<option value="${m.id}">${m.nombre}</option>`).join('');
     document.getElementById('e-fecha').value=hoy();
+
+    // Backups disponibles para reemplazo
+    const backups=(vhs||[]).filter(v=>v.figura==='backup'&&v.estado==='disponible'&&v.tipo!=='remolque');
+    document.getElementById('e-reem-vh').innerHTML='<option value="">Seleccionar...</option>'+backups.map(v=>`<option value="${v.id}" data-tipo="backup">${v.placa} [${rNombre(v.regional_id)}]</option>`).join('');
+    document.getElementById('e-reem-tipo').value='ninguno';
+    document.getElementById('e-reem-wrap').style.display='none';
+    document.getElementById('e-reem-obs-wrap').style.display='none';
   }catch(e){toast('Error: '+e.message,true);}
+}
+
+function onSelectVh(){}
+
+function onReemTipo(){
+  const tipo=document.getElementById('e-reem-tipo').value;
+  const wrap=document.getElementById('e-reem-wrap');
+  const obsWrap=document.getElementById('e-reem-obs-wrap');
+  if(tipo==='ninguno'){wrap.style.display='none';obsWrap.style.display='none';return;}
+  wrap.style.display='block';
+  obsWrap.style.display='block';
+  const label=document.getElementById('e-reem-label');
+  if(tipo==='backup'){
+    label.textContent='Vehículo de respaldo';
+  }else{
+    label.textContent='Placa del tercero';
+    document.getElementById('e-reem-vh').innerHTML='<option value="tercero_manual">Ingresar placa manualmente</option>';
+  }
 }
 
 async function submitEntrada(e){
@@ -1141,11 +1178,42 @@ async function submitEntrada(e){
   const vhSel=document.getElementById('e-vh');const vhOpt=vhSel.options[vhSel.selectedIndex];
   const talSel=document.getElementById('e-taller');const talOpt=talSel.options[talSel.selectedIndex];
   const origen=talOpt?.dataset.tipo||'taller_propio';
+  const reemTipo=document.getElementById('e-reem-tipo').value;
+  const reemVhId=document.getElementById('e-reem-vh').value;
+  const reemObs=document.getElementById('e-reem-obs').value;
   try{
-    const{error}=await db.from('eventos_mantenimiento').insert({vehiculo_id:vhOpt.value,taller_id:talSel.value,tipo_mantenimiento_id:document.getElementById('e-tipomant').value,regional_id:vhOpt.dataset.reg||null,origen,tipo:document.getElementById('e-tipo').value,prioridad:document.getElementById('e-prior').value,fecha_entrada:document.getElementById('e-fecha').value,descripcion_trabajo:document.getElementById('e-desc').value,estado:'en_proceso'});
+    // 1. Crear evento de mantenimiento
+    const{data:ev,error}=await db.from('eventos_mantenimiento').insert({
+      vehiculo_id:vhOpt.value,taller_id:talSel.value,
+      tipo_mantenimiento_id:document.getElementById('e-tipomant').value,
+      regional_id:vhOpt.dataset.reg||null,
+      origen,tipo:document.getElementById('e-tipo').value,
+      prioridad:document.getElementById('e-prior').value,
+      fecha_entrada:document.getElementById('e-fecha').value,
+      descripcion_trabajo:document.getElementById('e-desc').value,
+      estado:'en_proceso',
+    }).select().single();
     if(error)throw error;
-    await db.from('vehiculos').update({estado:origen}).eq('id',vhOpt.value);
+
+    // 2. Actualizar estado del vehículo
+    await db.from('vehiculos').update({estado:origen,updated_at:new Date().toISOString()}).eq('id',vhOpt.value);
+
+    // 3. Registrar reemplazo si aplica
+    if(reemTipo!=='ninguno'&&reemVhId){
+      await db.from('reemplazos_activos').insert({
+        titular_id:vhOpt.value,
+        reemplazo_id:reemVhId!=='tercero_manual'?reemVhId:null,
+        evento_id:ev.id,
+        regional_id:vhOpt.dataset.reg||null,
+        fecha_inicio:document.getElementById('e-fecha').value,
+        activo:true,
+        motivo:reemObs||null,
+      });
+    }
+
     e.target.reset();document.getElementById('e-fecha').value=hoy();
+    document.getElementById('e-reem-wrap').style.display='none';
+    document.getElementById('e-reem-obs-wrap').style.display='none';
     toast('Entrada registrada ✓');
     await Promise.all([cargarKPIs(),cargarFueraDash()]);ir('fuera');
   }catch(err){toast('Error: '+err.message,true);}
@@ -1178,10 +1246,24 @@ async function submitRetorno(e){
   e.preventDefault();
   const btn=document.getElementById('btn-ret');btn.disabled=true;btn.textContent='Registrando...';
   const sel=document.getElementById('r-evento');const opt=sel.options[sel.selectedIndex];
+  const vhId=opt.dataset.vh;
   try{
-    const{error}=await db.from('eventos_mantenimiento').update({fecha_salida:document.getElementById('r-fecha').value,km_entrada:parseInt(document.getElementById('r-km').value)||null,costo:parseFloat(document.getElementById('r-costo').value)||null,descripcion_trabajo:document.getElementById('r-desc').value,estado:'completado',updated_at:new Date().toISOString()}).eq('id',opt.value);
+    // 1. Cerrar evento
+    const{error}=await db.from('eventos_mantenimiento').update({
+      fecha_salida:document.getElementById('r-fecha').value,
+      km_entrada:parseInt(document.getElementById('r-km').value)||null,
+      costo:parseFloat(document.getElementById('r-costo').value)||null,
+      descripcion_trabajo:document.getElementById('r-desc').value,
+      estado:'completado',updated_at:new Date().toISOString(),
+    }).eq('id',opt.value);
     if(error)throw error;
-    await db.from('vehiculos').update({estado:'disponible',updated_at:new Date().toISOString()}).eq('id',opt.dataset.vh);
+
+    // 2. Vehículo vuelve a disponible
+    await db.from('vehiculos').update({estado:'disponible',updated_at:new Date().toISOString()}).eq('id',vhId);
+
+    // 3. Cerrar reemplazo activo si existe
+    await db.from('reemplazos_activos').update({activo:false,fecha_fin:document.getElementById('r-fecha').value}).eq('titular_id',vhId).eq('activo',true);
+
     e.target.reset();document.getElementById('r-info-wrap').style.display='none';
     toast('Retorno registrado — vehículo disponible ✓');
     await Promise.all([cargarKPIs(),cargarFueraDash()]);ir('fuera');
@@ -1189,9 +1271,106 @@ async function submitRetorno(e){
   finally{btn.disabled=false;btn.textContent='Registrar retorno';}
 }
 
+// ── Terceros ──
+function abrirTercero(){
+  const sel=document.getElementById('tc-reg');
+  while(sel.options.length)sel.remove(0);
+  regionales.forEach(r=>sel.add(new Option(r.nombre,r.id)));
+  if(REGIONAL_ID){sel.value=REGIONAL_ID;sel.disabled=true;}
+  document.getElementById('tc-placa').value='';
+  document.getElementById('tc-empresa').value='';
+  document.getElementById('tc-obs').value='';
+  document.getElementById('tc-inicio').value=hoy();
+  document.getElementById('tc-fin').value='';
+  document.getElementById('modal-tercero').classList.add('open');
+}
 
-function cargarCriticidad(){
-  document.getElementById('crit-body').innerHTML='<tr><td>Cargando...</td></tr>';
+async function guardarTercero(){
+  const placa=document.getElementById('tc-placa').value.trim().toUpperCase();
+  if(!placa){toast('Ingresa la placa',true);return;}
+  try{
+    const{error}=await db.from('vehiculos_terceros').insert({
+      placa,empresa:document.getElementById('tc-empresa').value,
+      tipo:document.getElementById('tc-tipo').value,
+      regional_id:document.getElementById('tc-reg').value,
+      activo:true,
+      fecha_inicio:document.getElementById('tc-inicio').value,
+      fecha_fin:document.getElementById('tc-fin').value||null,
+      observaciones:document.getElementById('tc-obs').value,
+    });
+    if(error)throw error;
+    toast('Tercero activado ✓');cerrarModal('modal-tercero');
+    cargarTerceros();cargarKPIs();
+  }catch(e){toast('Error: '+e.message,true);}
+}
+
+async function cargarTerceros(){
+  const tb=document.getElementById('terceros-body');
+  try{
+    let q=db.from('vehiculos_terceros').select('*').eq('activo',true).order('fecha_inicio',{ascending:false});
+    if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
+    const{data,error}=await q;if(error)throw error;
+    if(!data?.length){tb.innerHTML='<tr><td colspan="8" class="empty">Sin vehículos terceros activos</td></tr>';return;}
+    tb.innerHTML=data.map(t=>`<tr>
+      <td style="font-weight:600">${t.placa}</td>
+      <td>${t.empresa||'—'}</td>
+      <td>${rNombre(t.regional_id)}</td>
+      <td>${t.tipo||'—'}</td>
+      <td>${fmtF(t.fecha_inicio)}</td>
+      <td>${fmtF(t.fecha_fin)}</td>
+      <td style="font-size:12px;color:var(--text2)">${t.observaciones||'—'}</td>
+      <td><button class="btn btn-sm btn-red" onclick="desactivarTercero('${t.id}','${t.placa}')">Desactivar</button></td>
+    </tr>`).join('');
+  }catch(e){tb.innerHTML=`<tr><td colspan="8" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
+}
+
+async function desactivarTercero(id,placa){
+  if(!confirm(`¿Desactivar el tercero ${placa}?`))return;
+  try{
+    await db.from('vehiculos_terceros').update({activo:false,fecha_fin:hoy()}).eq('id',id);
+    toast(`${placa} desactivado ✓`);cargarTerceros();cargarKPIs();
+  }catch(e){toast('Error: '+e.message,true);}
+}
+
+// ── Carga masiva ──
+async function abrirMasivo(){
+  const{data:tal}=await db.from('talleres').select('id,nombre,tipo').eq('activo',true).order('nombre');
+  const sel=document.getElementById('mas-taller');
+  while(sel.options.length)sel.remove(0);
+  (tal||[]).forEach(t=>sel.add(new Option(`${t.nombre} (${lTaller(t.tipo)})`,t.id)));
+  document.getElementById('mas-fecha').value=hoy();
+  document.getElementById('mas-placas').value='';
+  document.getElementById('mas-resultado').innerHTML='';
+  document.getElementById('modal-masivo').classList.add('open');
+}
+
+async function ejecutarMasivo(){
+  const placas=document.getElementById('mas-placas').value.split('\n').map(p=>p.trim().toUpperCase()).filter(Boolean);
+  const tallerId=document.getElementById('mas-taller').value;
+  const tipo=document.getElementById('mas-tipo').value;
+  const fecha=document.getElementById('mas-fecha').value;
+  const prior=document.getElementById('mas-prior').value;
+  const desc=document.getElementById('mas-desc').value;
+  if(!placas.length||!tallerId||!fecha){toast('Completa todos los campos',true);return;}
+  const btn=document.getElementById('btn-masivo');btn.disabled=true;btn.textContent='Procesando...';
+  const{data:talData}=await db.from('talleres').select('tipo').eq('id',tallerId).single();
+  const talTipo=talData?.tipo||'taller_propio';
+  const{data:tmData}=await db.from('tipos_mantenimiento').select('id').eq('nombre','Falla mecánica').single();
+  const tmId=tmData?.id||null;
+  let ok=0;const errores=[];
+  for(const placa of placas){
+    const{data:vh}=await db.from('vehiculos').select('id,regional_id').eq('placa',placa).single();
+    if(!vh){errores.push(`${placa}: No encontrado`);continue;}
+    const{error}=await db.from('eventos_mantenimiento').insert({vehiculo_id:vh.id,taller_id:tallerId,tipo_mantenimiento_id:tmId,regional_id:vh.regional_id,origen:talTipo,tipo,prioridad:prior,fecha_entrada:fecha,descripcion_trabajo:desc||null,estado:'en_proceso'});
+    if(error){errores.push(`${placa}: ${error.message}`);continue;}
+    await db.from('vehiculos').update({estado:talTipo}).eq('id',vh.id);
+    ok++;
+  }
+  let html=`<div style="font-size:13px;margin-bottom:8px"><strong>${ok} vehículo(s) registrados</strong></div>`;
+  if(errores.length)html+=`<div style="font-size:12px;color:var(--red-dark);background:var(--red-bg);padding:8px 12px;border-radius:var(--r)">${errores.join('<br>')}</div>`;
+  document.getElementById('mas-resultado').innerHTML=html;
+  if(ok>0){toast(`${ok} vehículos registrados ✓`);cargarKPIs();cargarFueraDash();}
+  btn.disabled=false;btn.textContent='Registrar entradas';
 }
 
 init();
