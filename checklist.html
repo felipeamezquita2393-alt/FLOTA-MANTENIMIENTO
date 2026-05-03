@@ -428,17 +428,34 @@ async function enviarChecklist(){
       const pPlataforma = estado.plataforma===false ? 3 : 1;
       const pRefrig     = estado.termo_refrigeracion===false ? 3 : 1;
 
-      await db.from('criticidad_vehiculo').upsert({
-        vehiculo_id: vehiculoActual.id,
-        regional_id: vehiculoActual.regional_id,
-        fecha: hoy(),
-        puntaje_chasis: pChasis,
-        puntaje_furgon: pFurgon,
-        puntaje_plataforma: pPlataforma,
-        puntaje_refrigeracion: pRefrig,
-        observaciones: document.getElementById('cl-obs').value||null,
-        fuente: 'checklist',
-      },{onConflict:'vehiculo_id,fecha'});
+      // Verificar si ya existe registro hoy
+      const{data:existing}=await db.from('criticidad_vehiculo')
+        .select('id').eq('vehiculo_id',vehiculoActual.id).eq('fecha',hoy()).single();
+
+      if(existing){
+        // Actualizar registro existente
+        await db.from('criticidad_vehiculo').update({
+          puntaje_chasis: pChasis,
+          puntaje_furgon: pFurgon,
+          puntaje_plataforma: pPlataforma,
+          puntaje_refrigeracion: pRefrig,
+          observaciones: document.getElementById('cl-obs').value||null,
+          fuente: 'checklist',
+        }).eq('id', existing.id);
+      } else {
+        // Insertar nuevo registro
+        await db.from('criticidad_vehiculo').insert({
+          vehiculo_id: vehiculoActual.id,
+          regional_id: vehiculoActual.regional_id,
+          fecha: hoy(),
+          puntaje_chasis: pChasis,
+          puntaje_furgon: pFurgon,
+          puntaje_plataforma: pPlataforma,
+          puntaje_refrigeracion: pRefrig,
+          observaciones: document.getElementById('cl-obs').value||null,
+          fuente: 'checklist',
+        });
+      }
     }catch(critErr){
       console.warn('Criticidad no guardada:', critErr.message);
     }
