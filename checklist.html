@@ -394,7 +394,8 @@ async function enviarChecklist(){
       km_inicio:parseInt(km)||null,
       combustible:document.getElementById('cl-combustible').value||null,
       observacion:document.getElementById('cl-obs').value||null,
-      tiene_fallas: tieneFallas,
+      // NOTA: tiene_fallas se calcula AUTOMATICAMENTE por el trigger SQL
+      // No enviar desde el frontend
       // Ítems
       soat:estado.soat??true,
       tecnomecanica:estado.tecnomecanica??true,
