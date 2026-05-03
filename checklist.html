@@ -226,9 +226,6 @@ const db=createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpeHRxdG9wcHBiY2x4cWRhcmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5Njk2ODAsImV4cCI6MjA5MjU0NTY4MH0.WRYBP4006NZrRCNBpoclVWSz64zQfE2sjFslVc4imDg'
 );
 
-// Endpoint de la Edge Function para enviar checklists (bypass RLS)
-const FUNCTION_ENDPOINT = 'https://sixtqtopppbclxqdardb.supabase.co/functions/v1/submit-checklist';
-
 // El checklist es de acceso público — no requiere login
 // Los conductores acceden directamente sin cuenta
 
@@ -389,45 +386,40 @@ async function enviarChecklist(){
   try{
     const tieneFallas=Object.values(estado).some(v=>v===false);
 
-    // Preparar payload para la Edge Function
-    const payload={
-      placa: vehiculoActual.placa,
-      conductor_nombre: conductor,
-      km_inicio: parseInt(km),
-      combustible: document.getElementById('cl-combustible').value || null,
-      observacion: document.getElementById('cl-obs').value || null,
-      // Ítems del checklist
-      soat: estado.soat ?? true,
-      tecnomecanica: estado.tecnomecanica ?? true,
-      luces: estado.luces ?? true,
-      llantas: estado.llantas ?? true,
-      nivel_aceite: estado.nivel_aceite ?? true,
-      nivel_agua: estado.nivel_agua ?? true,
-      sin_fugas: estado.sin_fugas ?? true,
-      frenos: estado.frenos ?? true,
-      extintor: estado.extintor ?? true,
-      botiquin: estado.botiquin ?? true,
-      cinturon: estado.cinturon ?? true,
-      plataforma: estado.plataforma ?? true,
-      termo_refrigeracion: estado.termo_refrigeracion ?? true,
-      furgon_interno: estado.furgon_interno ?? true,
+    const registro={
+      vehiculo_id:vehiculoActual.id,
+      regional_id:vehiculoActual.regional_id,
+      conductor_nombre:conductor,
+      fecha:hoy(),
+      km_inicio:parseInt(km)||null,
+      combustible:document.getElementById('cl-combustible').value||null,
+      observacion:document.getElementById('cl-obs').value||null,
+      tiene_fallas: tieneFallas,
+      // Ítems
+      soat:estado.soat??true,
+      tecnomecanica:estado.tecnomecanica??true,
+      luces:estado.luces??true,
+      llantas:estado.llantas??true,
+      nivel_aceite:estado.nivel_aceite??true,
+      nivel_agua:estado.nivel_agua??true,
+      sin_fugas:estado.sin_fugas??true,
+      frenos:estado.frenos??true,
+      extintor:estado.extintor??true,
+      botiquin:estado.botiquin??true,
+      cinturon:estado.cinturon??true,
+      plataforma:estado.plataforma??true,
+      termo_refrigeracion:estado.termo_refrigeracion??true,
+      furgon_interno:estado.furgon_interno??true,
     };
 
-    // Enviar a la Edge Function (bypass RLS)
-    const res = await fetch(FUNCTION_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
+    const{error}=await db.from('checklists').insert(registro);
+    if(error)throw error;
 
-    if (!res.ok) {
-      throw new Error(data.error || 'Error al enviar checklist');
-    }
-
-    // Actualizar KM del vehículo en el frontend (opcional, la Edge Function ya lo hace)
-    // Pero lo hacemos aquí para reflejar inmediatamente en la UI si vuelve a seleccionar
+    // Actualizar KM del vehículo
     await db.from('vehiculos').update({km_actuales:parseInt(km),updated_at:new Date().toISOString()}).eq('id',vehiculoActual.id);
+
+    // NOTA: La criticidad se calcula AUTOMATICAMENTE por el trigger SQL
+    // trg_criticidad_on_checklist. No es necesario insertarla aquí.
 
     // Mostrar pantalla de éxito
     const fallas=Object.entries(estado).filter(([k,v])=>v===false).map(([k])=>LABELS[k]);
