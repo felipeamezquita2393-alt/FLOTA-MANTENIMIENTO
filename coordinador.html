@@ -93,6 +93,7 @@ tr:hover td{background:var(--bg2)}
 .check-detail-item:last-child{border-bottom:none}
 @media(max-width:700px){.sidenav{display:none}.main{padding:16px}.form2{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}}
 </style>
+<base target="_blank">
 </head>
 <body>
 <div id="toast"></div>
@@ -631,11 +632,19 @@ async function cargarDashboard(){
 // ── KPIs ──
 async function cargarKPIs(){
   try{
-    let qv=db.from('vehiculos').select('id,estado,figura,regional_id').eq('activo',true).neq('tipo','remolque');
+    // Traer TODOS los vehículos activos incluyendo remolques para detectar bitrains
+    let qv=db.from('vehiculos').select('id,estado,figura,regional_id,tipo,camion_asociado_id').eq('activo',true);
     if(REGIONAL_ID)qv=qv.eq('regional_id',REGIONAL_ID);
-    const{data:vhs,error}=await qv;if(error)throw error;
+    const{data:allVhs,error}=await qv;if(error)throw error;
 
-    // Reemplazos activos (backups con reemplazo explícito)
+    const remolques=(allVhs||[]).filter(v=>v.tipo==='remolque');
+    const noRemolques=(allVhs||[]).filter(v=>v.tipo!=='remolque');
+
+    // Mapa: camion_id -> remolque asociado (para detectar bitrains)
+    const remMap=new Map();
+    remolques.forEach(r=>{if(r.camion_asociado_id)remMap.set(r.camion_asociado_id,r);});
+
+    // Reemplazos activos (backups cubriendo titular)
     let qr=db.from('reemplazos_activos').select('reemplazo_id,regional_id').eq('activo',true);
     if(REGIONAL_ID)qr=qr.eq('regional_id',REGIONAL_ID);
     const{data:reemps}=await qr;
@@ -646,55 +655,76 @@ async function cargarKPIs(){
     if(REGIONAL_ID)qt=qt.eq('regional_id',REGIONAL_ID);
     const{data:terc}=await qt;
 
-    let titOp=0,bkAct=reempSet.size,tcAct=(terc||[]).length,enT=0;
-    (vhs||[]).forEach(v=>{
-      if(v.estado!=='disponible'){enT++;return;}
-      if(v.figura==='titular')titOp++;
+    // Contar solo TITULARES para el cupo base (backups no cuentan)
+    let titOp=0,titFuera=0;
+    noRemolques.forEach(v=>{
+      if(v.figura!=='titular')return;
+      const rem=remMap.get(v.id);
+      const remolqueFuera=rem && rem.estado!=='disponible';
+      if(v.estado!=='disponible' || remolqueFuera){titFuera++;}
+      else{titOp++;}
     });
 
+    // Backups activos como reemplazo
+    const bkAct=reempSet.size;
+    const tcAct=(terc||[]).length;
+
+    // Cupo = titulares requeridos (configurable por regional)
     const cupoTotal=REGIONAL_ID
       ?(regionales.find(r=>r.id===REGIONAL_ID)?.cupo_requerido||0)
       :regionales.reduce((s,r)=>s+(r.cupo_requerido||0),0);
 
     const operativos=titOp+bkAct+tcAct;
     const pct=cupoTotal?Math.min(100,Math.round(operativos*100/cupoTotal)):0;
-    const sinReem=enT-bkAct-tcAct;
+    const sinReem=Math.max(0,titFuera-bkAct-tcAct);
     const color=pct>=100?'var(--green)':pct>=85?'var(--amber)':'var(--red)';
 
     document.getElementById('k-pct').textContent=pct+'%';
     document.getElementById('k-pct').style.color=color;
     document.getElementById('k-sub').textContent=REGIONAL_ID?rNombre(REGIONAL_ID):'Todas las regionales';
     document.getElementById('k-op').textContent=operativos;
-    document.getElementById('k-cupo-sub').textContent='de '+cupoTotal+' requeridos';
-    document.getElementById('k-fuera').textContent=enT;
-    document.getElementById('k-sin-reem').textContent=Math.max(0,sinReem);
+    document.getElementById('k-cupo-sub').textContent='de '+cupoTotal+' titulares requeridos';
+    document.getElementById('k-fuera').textContent=titFuera;
+    document.getElementById('k-sin-reem').textContent=sinReem;
     document.getElementById('k-bk').textContent=bkAct+tcAct;
     document.getElementById('k-tc').textContent=tcAct;
 
-    await cargarDispRegionales(vhs,reempSet,terc||[]);
-  }catch(e){console.error('KPIs:',e.message);}
+    await cargarDispRegionales(noRemolques,remMap,reempSet,terc||[]);
+  }catch(e){
+    console.error('KPIs:',e.message);
+    document.getElementById('k-pct').textContent='Err';
+    document.getElementById('k-sub').textContent='Error cargando datos';
+  }
 }
 
-async function cargarDispRegionales(vhs,reempSet,terc){
+async function cargarDispRegionales(noRemolques,remMap,reempSet,terc){
   const el=document.getElementById('reg-disp-list');
   const regsShow=REGIONAL_ID?regionales.filter(r=>r.id===REGIONAL_ID):regionales;
   el.innerHTML='<div class="card-hdr" style="margin-bottom:12px"><span class="card-title">Disponibilidad por regional</span></div>'+
   regsShow.map(r=>{
-    const vhsR=(vhs||[]).filter(v=>v.regional_id===r.id);
-    let titOp=0,enT=0;
-    vhsR.forEach(v=>{if(v.estado!=='disponible'){enT++;}else if(v.figura==='titular')titOp++;});
+    const vhsR=noRemolques.filter(v=>v.regional_id===r.id);
+    let titOp=0,titFuera=0;
+    vhsR.forEach(v=>{
+      if(v.figura!=='titular')return;
+      const rem=remMap.get(v.id);
+      const remFuera=rem && rem.estado!=='disponible';
+      if(v.estado!=='disponible' || remFuera){titFuera++;}
+      else{titOp++;}
+    });
     const bkR=[...reempSet].filter(id=>vhsR.find(v=>v.id===id)).length;
     const tcR=(terc||[]).filter(t=>t.regional_id===r.id).length;
     const op=titOp+bkR+tcR;
     const cupo=r.cupo_requerido||0;
     const pct=cupo?Math.min(100,Math.round(op*100/cupo)):0;
     const color=pct>=100?'var(--green)':pct>=85?'var(--amber)':'var(--red)';
+    const bitrains=vhsR.filter(v=>v.figura==='titular' && remMap.has(v.id)).length;
     return`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--border)">
       <span style="font-size:13px;font-weight:500;width:160px;flex-shrink:0">${r.nombre}</span>
       <div style="flex:1"><div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${color}"></div></div>
-      <div style="font-size:11px;color:var(--text2);margin-top:3px">${op}/${cupo} operativos • ${enT} fuera • ${bkR} respaldo(s) • ${tcR} tercero(s)</div></div>
+      <div style="font-size:11px;color:var(--text2);margin-top:3px">${op}/${cupo} operativos • ${titFuera} fuera • ${bkR} respaldo(s) • ${tcR} tercero(s)${bitrains?' • '+bitrains+' bitrain(s)':''}</div></div>
       <span style="font-size:18px;font-weight:700;color:${color};width:50px;text-align:right">${pct}%</span>
       ${op<cupo?`<span class="badge b-red">-${cupo-op}</span>`:'<span class="badge b-green">✓</span>'}
+      <button class="btn btn-sm" onclick="abrirCupo('${r.id}','${r.nombre}',${r.cupo_requerido||0})" title="Editar cupo">✏️</button>
     </div>`;
   }).join('');
 }
@@ -842,7 +872,12 @@ async function cargarDispDetalle(){
   const el=document.getElementById('disp-detalle');
   el.innerHTML='<div class="loading"><div class="spinner"></div></div>';
   try{
-    const{data:vhs}=await db.from('vehiculos').select('id,placa,tipo,figura,estado,regional_id').eq('activo',true).order('placa');
+    const{data:vhs}=await db.from('vehiculos').select('id,placa,tipo,figura,estado,regional_id,camion_asociado_id').eq('activo',true).order('placa');
+    const remolques=(vhs||[]).filter(v=>v.tipo==='remolque');
+    const noRemolques=(vhs||[]).filter(v=>v.tipo!=='remolque');
+    const remMap=new Map();
+    remolques.forEach(r=>{if(r.camion_asociado_id)remMap.set(r.camion_asociado_id,r);});
+
     let qr=db.from('reemplazos_activos').select('titular_id,reemplazo_id').eq('activo',true);
     const{data:reemps}=await qr;
     const reempSet=new Set((reemps||[]).map(r=>r.reemplazo_id));
@@ -851,10 +886,16 @@ async function cargarDispDetalle(){
     const regsShow=REGIONAL_ID?regionales.filter(r=>r.id===REGIONAL_ID):regionales;
 
     el.innerHTML=regsShow.map(r=>{
-      const vhsR=(vhs||[]).filter(v=>v.regional_id===r.id);
+      const vhsR=noRemolques.filter(v=>v.regional_id===r.id);
       const tcR=(terc||[]).filter(t=>t.regional_id===r.id);
-      let titOp=0,enT=0;
-      vhsR.forEach(v=>{if(v.estado!=='disponible')enT++;else if(v.figura==='titular')titOp++;});
+      let titOp=0,titFuera=0;
+      vhsR.forEach(v=>{
+        if(v.figura!=='titular')return;
+        const rem=remMap.get(v.id);
+        const remFuera=rem && rem.estado!=='disponible';
+        if(v.estado!=='disponible' || remFuera){titFuera++;}
+        else{titOp++;}
+      });
       const bkR=vhsR.filter(v=>reempSet.has(v.id)).length;
       const op=titOp+bkR+tcR.length;
       const cupo=r.cupo_requerido||0;
@@ -862,13 +903,19 @@ async function cargarDispDetalle(){
       const color=pct>=100?'var(--green)':pct>=85?'var(--amber)':'var(--red)';
 
       const rows=vhsR.map(v=>{
-        const enTaller=v.estado!=='disponible';
+        const rem=remMap.get(v.id);
+        const remolqueFuera=rem && rem.estado!=='disponible';
+        const enTaller=v.estado!=='disponible' || remolqueFuera;
         const esReemplazo=reempSet.has(v.id);
         const titReem=rMapTit.get(v.id);
         const titReemPlaca=(vhs||[]).find(t=>t.id===titReem)?.placa;
         let situacion='';
-        if(enTaller)situacion=`<span class="badge b-red">${bEst(v.estado)}</span>`;
-        else if(v.figura==='titular')situacion='<span class="badge b-green">Operando</span>';
+        if(enTaller){
+          const remInfo=remolqueFuera?` / Rem: ${bEst(rem.estado)}`:
+'';
+          situacion=`<span class="badge b-red">${bEst(v.estado)}${remInfo}</span>`;
+        }
+        else if(v.figura==='titular')situacion='<span class="badge b-green">Operando</span>'+(rem?'<span class="badge b-blue" style="margin-left:4px">Bitrain</span>':'');
         else if(esReemplazo)situacion=`<span class="badge b-amber">Reemplaza: ${titReemPlaca||'—'}</span>`;
         else situacion='<span class="badge b-gray">En espera</span>';
         return`<tr><td style="font-weight:600">${v.placa}</td><td>${bFig(v.figura)}</td><td>${bEst(v.estado)}</td><td>${situacion}</td></tr>`;
@@ -878,7 +925,7 @@ async function cargarDispDetalle(){
 
       return`<div class="card">
         <div class="card-hdr">
-          <div><div class="card-title">${r.nombre}</div><div style="font-size:12px;color:var(--text2);margin-top:2px">${op}/${cupo} operativos • ${enT} fuera de servicio</div></div>
+          <div><div class="card-title">${r.nombre}</div><div style="font-size:12px;color:var(--text2);margin-top:2px">${op}/${cupo} operativos • ${titFuera} fuera de servicio</div></div>
           <span style="font-size:22px;font-weight:700;color:${color}">${pct}%</span>
         </div>
         <div class="tbl-wrap"><table><thead><tr><th>Placa</th><th>Figura</th><th>Estado</th><th>Situación</th></tr></thead>
@@ -1373,7 +1420,43 @@ async function ejecutarMasivo(){
   btn.disabled=false;btn.textContent='Registrar entradas';
 }
 
+function abrirCupo(regId,nombre,cupoActual){
+  document.getElementById('cupo-reg-id').value=regId;
+  document.getElementById('cupo-reg-nombre').value=nombre;
+  document.getElementById('cupo-valor').value=cupoActual||0;
+  document.getElementById('modal-cupo').classList.add('open');
+}
+
+async function guardarCupo(){
+  const id=document.getElementById('cupo-reg-id').value;
+  const val=parseInt(document.getElementById('cupo-valor').value)||0;
+  if(val<0){toast('El cupo no puede ser negativo',true);return;}
+  try{
+    const{error}=await db.from('regionales').update({cupo_requerido:val}).eq('id',id);
+    if(error)throw error;
+    const r=regionales.find(x=>x.id===id);
+    if(r)r.cupo_requerido=val;
+    toast('Cupo actualizado ✓');
+    cerrarModal('modal-cupo');
+    cargarKPIs();
+  }catch(e){toast('Error: '+e.message,true);}
+}
+
 init();
 </script>
+<!-- Modal editar cupo -->
+<div class="modal-overlay" id="modal-cupo">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title">Editar cupo requerido</div>
+    <input type="hidden" id="cupo-reg-id">
+    <div class="field"><label>Regional</label><input type="text" id="cupo-reg-nombre" readonly style="background:var(--bg2);color:var(--text2)"></div>
+    <div class="field"><label>Cupo titulares requeridos *</label><input type="number" id="cupo-valor" min="0" placeholder="Ej: 24"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-cupo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarCupo()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
