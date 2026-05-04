@@ -861,7 +861,10 @@ async function cargarFueraDash(){
         <td>${e.talleres?.nombre||'—'}</td>
         <td>${fmtF(e.fecha_entrada)}</td>
         <td style="text-align:center"><span class="${clrDias(d)}">${d}</span></td>
-        <td>${reem?`<span class="badge b-purple">${reem}</span>`:'<span class="badge b-gray">Sin reemplazo</span>'}</td>
+        <td>
+          ${reem?`<span class="badge b-purple">${reem}</span>`:''}
+          <button class="btn btn-sm" style="margin-left:4px" onclick="asignarReemplazo('${e.id}','${e.vehiculos?.id||''}','${e.vehiculos?.placa||''}')">${reem?'Cambiar':'+ Asignar'}</button>
+        </td>
       </tr>`;
     }).join('');
   }catch(e){tb.innerHTML=`<tr><td colspan="6" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
@@ -969,7 +972,10 @@ async function cargarCriticidad(){
       <td style="text-align:center">${bPuntaje(r.puntaje_refrigeracion)}</td>
       <td>${bCrit(r.criticidad)}</td>
       <td style="font-size:12px">${fmtF(r.fecha)}</td>
-      <td><button class="btn btn-sm" onclick="verHistCrit('${r.vehiculo_id}','${r.vehiculos?.placa||''}')">Historial</button></td>
+      <td style="display:flex;gap:4px">
+        <button class="btn btn-sm" onclick="verHistCrit('${r.vehiculo_id}','${r.vehiculos?.placa||''}')">Historial</button>
+        ${r.criticidad!=='BAJA'?`<button class="btn btn-sm btn-green" onclick="confirmarReparacion('${r.vehiculo_id}','${r.vehiculos?.placa||''}','${r.id}')">✓ Reparado</button>`:''}
+      </td>
     </tr>`).join('');
   }catch(e){tb.innerHTML=`<tr><td colspan="9" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
 }
@@ -1013,7 +1019,10 @@ async function cargarFuera(){
         <td style="text-align:center"><span class="${clrDias(d)}">${d}</span></td>
         <td>${reem?`<span class="badge b-purple">${reem.placa}</span>`:'<span class="badge b-gray">Sin reemplazo</span>'}</td>
         <td>${bPrior(e.prioridad)}</td>
-        <td><button class="btn btn-sm" onclick="irRet('${e.id}')">Retorno</button></td>
+        <td style="display:flex;gap:4px;flex-wrap:wrap">
+          <button class="btn btn-sm" onclick="irRet('${e.id}')">Retorno</button>
+          <button class="btn btn-sm btn-amber" onclick="asignarReemplazo('${e.id}','${e.vehiculos?.id||''}','${e.vehiculos?.placa||''}')">Reemplazo</button>
+        </td>
       </tr>`;
     }).join('');
   }catch(e){tb.innerHTML=`<tr><td colspan="9" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
@@ -1440,6 +1449,95 @@ async function guardarCupo(){
     cerrarModal('modal-cupo');
     cargarKPIs();
   }catch(e){toast('Error: '+e.message,true);}
+}
+
+
+// ── Confirmar reparación manual ────────────────────────────
+async function confirmarReparacion(vid, placa, critId){
+  if(!confirm(`¿Confirmar que ${placa} fue reparado y su criticidad puede bajar?`))return;
+  try{
+    // Actualizar con puntajes en 1 (todo bien) y liberar bloqueo
+    const{error}=await db.from('criticidad_vehiculo').update({
+      puntaje_chasis: 1,
+      puntaje_furgon: 1,
+      puntaje_plataforma: 1,
+      puntaje_refrigeracion: 1,
+      bloqueada: false,
+      fecha_reparacion: new Date().toISOString().split('T')[0],
+      observaciones: 'Reparación confirmada por coordinador',
+      fuente: 'manual',
+    }).eq('id', critId);
+    if(error)throw error;
+    toast(`${placa} — criticidad actualizada a BAJA ✓`);
+    cargarCriticidad();
+  }catch(e){toast('Error: '+e.message,true);}
+}
+
+// ── Asignar reemplazo desde fuera de servicio ──────────────
+async function asignarReemplazo(eventoId, titularId, titularPlaca){
+  // Cargar backups disponibles
+  let q=db.from('vehiculos').select('id,placa,regional_id').eq('activo',true).eq('figura','backup').eq('estado','disponible');
+  if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
+  const{data:bks}=await q;
+
+  const{data:terc}=await db.from('vehiculos_terceros').select('id,placa').eq('activo',true);
+
+  const opsBk=(bks||[]).map(v=>`<option value="bk_${v.id}">${v.placa} [Respaldo]</option>`).join('');
+  const opsTc=(terc||[]).map(t=>`<option value="tc_${t.id}">${t.placa} [Tercero]</option>`).join('');
+
+  const sel=`<select id="reem-sel-modal" style="width:100%;padding:10px;font-size:14px;border:0.5px solid var(--border);border-radius:var(--r);margin-bottom:10px">
+    <option value="">Sin reemplazo disponible</option>
+    ${opsBk}${opsTc}
+  </select>
+  <input type="text" id="reem-obs-modal" placeholder="Observación (opcional)" style="width:100%;padding:10px;font-size:13px;border:0.5px solid var(--border);border-radius:var(--r)">`;
+
+  // Crear modal simple
+  const overlay=document.createElement('div');
+  overlay.style='position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:300;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML=`<div style="background:#fff;border-radius:12px;padding:24px;width:100%;max-width:420px;margin:20px">
+    <div style="font-size:14px;font-weight:600;margin-bottom:8px">Asignar reemplazo — ${titularPlaca}</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Selecciona el vehículo que cubrirá la operación mientras ${titularPlaca} está fuera.</p>
+    ${sel}
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
+      <button class="btn" onclick="this.closest('[style*=fixed]').remove()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarReemplazoModal('${eventoId}','${titularId}',this)">Guardar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function guardarReemplazoModal(eventoId, titularId, btn){
+  const sel=document.getElementById('reem-sel-modal').value;
+  const obs=document.getElementById('reem-obs-modal').value;
+  const overlay=btn.closest('[style*=fixed]');
+
+  // Cerrar reemplazo anterior si existe
+  await db.from('reemplazos_activos').update({activo:false,fecha_fin:new Date().toISOString().split('T')[0]}).eq('titular_id',titularId).eq('activo',true);
+
+  if(sel){
+    const esBk=sel.startsWith('bk_');
+    const reemId=sel.replace('bk_','').replace('tc_','');
+
+    // Obtener regional del titular
+    const{data:vhData}=await db.from('vehiculos').select('regional_id').eq('id',titularId).single();
+
+    await db.from('reemplazos_activos').insert({
+      titular_id: titularId,
+      reemplazo_id: esBk ? reemId : null,
+      evento_id: eventoId,
+      regional_id: vhData?.regional_id||REGIONAL_ID,
+      fecha_inicio: new Date().toISOString().split('T')[0],
+      activo: true,
+      motivo: obs||null,
+    });
+    toast('Reemplazo asignado ✓');
+  }else{
+    toast('Sin reemplazo asignado');
+  }
+
+  overlay.remove();
+  await Promise.all([cargarKPIs(),cargarFueraDash()]);
+  cargarFuera();
 }
 
 init();
