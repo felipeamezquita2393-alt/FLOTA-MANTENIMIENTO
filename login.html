@@ -64,8 +64,7 @@ async function checkSession(){
 function redirigir(user){
   // Redirigir según rol guardado en metadata
   const rol=user.user_metadata?.rol||'coordinador';
-  if(rol==='gerente') window.location.href='gerente.html';
-  else window.location.href='coordinador.html';
+  window.location.href='coordinador.html';
 }
 
 async function login(e){
