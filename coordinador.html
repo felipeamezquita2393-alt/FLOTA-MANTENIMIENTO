@@ -1628,18 +1628,18 @@ function switchCritTab(tab){
 // ── Cargar resumen criticidad ───────────────────────────────
 async function cargarResumenCriticidad(){
   try{
-    let q = db.from('criticidad_vehiculo')
-      .select('vehiculo_id,criticidad,puntaje_chasis,puntaje_furgon,puntaje_plataforma,puntaje_refrigeracion,fecha,regional_id,vehiculos(placa,tipo)')
-      .order('fecha',{ascending:false});
+    // Usar la vista v_criticidad_actual que ya trae el último registro por vehículo
+    let q = db.from('v_criticidad_actual')
+      .select('vehiculo_id,criticidad,puntaje_chasis,puntaje_furgon,puntaje_plataforma,puntaje_refrigeracion,fecha,regional,placa,tipo');
     if(REGIONAL_ID) q = q.eq('regional_id', REGIONAL_ID);
     const{data, error} = await q; if(error) throw error;
 
-    // Deduplicar: solo último registro por vehículo
-    const seen = new Set();
-    const ultimos = (data||[]).filter(r=>{
-      if(seen.has(r.vehiculo_id)) return false;
-      seen.add(r.vehiculo_id); return true;
-    });
+    // La vista ya deduplica, agregar regional_id para compatibilidad
+    const ultimos = (data||[]).map(r=>({
+      ...r,
+      regional_id: r.regional_id || null,
+      vehiculos: {placa: r.placa, tipo: r.tipo}
+    }));
 
     const alta  = ultimos.filter(r=>r.criticidad==='ALTA');
     const ma    = ultimos.filter(r=>r.criticidad==='MEDIA ALTA');
@@ -1674,8 +1674,8 @@ function poblarListaCrit(tbId, rows){
   const tb = document.getElementById(tbId);
   if(!rows.length){ tb.innerHTML='<tr><td colspan="7" class="empty">Sin vehículos en esta categoría</td></tr>'; return; }
   tb.innerHTML = rows.map(r=>`<tr>
-    <td style="font-weight:600">${r.vehiculos?.placa||'—'}</td>
-    <td style="font-size:12px">${rNombre(r.regional_id)}</td>
+    <td style="font-weight:600">${r.vehiculos?.placa||r.placa||'—'}</td>
+    <td style="font-size:12px">${r.regional||rNombre(r.regional_id)}</td>
     <td style="text-align:center">${bPuntaje(r.puntaje_chasis)}</td>
     <td style="text-align:center">${bPuntaje(r.puntaje_furgon)}</td>
     <td style="text-align:center">${bPuntaje(r.puntaje_plataforma)}</td>
@@ -1773,7 +1773,7 @@ function cargarDistPorRegional(ultimos){
   const regsShow = REGIONAL_ID ? regionales.filter(r=>r.id===REGIONAL_ID) : regionales;
 
   el.innerHTML = regsShow.map(reg=>{
-    const vhsReg = ultimos.filter(r=>r.regional_id===reg.id);
+    const vhsReg = ultimos.filter(r=>r.regional_id===reg.id||r.regional===reg.nombre);
     const total  = vhsReg.length;
     if(!total) return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:13px"><span style="color:var(--text2)">${reg.nombre}</span><span class="badge b-gray">Sin datos</span></div>`;
     const alta  = vhsReg.filter(r=>r.criticidad==='ALTA').length;
