@@ -306,48 +306,114 @@ tr:hover td{background:var(--bg2)}
 
     <!-- CRITICIDAD -->
     <div id="page-criticidad" class="page">
-      <div class="metrics">
-        <div class="metric"><div class="metric-label">Criticidad alta</div><div class="metric-val" id="crit-alta" style="color:var(--red)">—</div><div class="metric-sub">Intervención inmediata</div></div>
-        <div class="metric"><div class="metric-label">Media alta</div><div class="metric-val" id="crit-ma" style="color:var(--amber)">—</div><div class="metric-sub">Atención urgente</div></div>
-        <div class="metric"><div class="metric-label">Media baja</div><div class="metric-val" id="crit-mb" style="color:var(--blue)">—</div><div class="metric-sub">Monitorear</div></div>
-        <div class="metric"><div class="metric-label">Baja</div><div class="metric-val" id="crit-baja" style="color:var(--green)">—</div><div class="metric-sub">En buen estado</div></div>
+      <!-- Tabs -->
+      <div style="display:flex;gap:4px;margin-bottom:20px;border-bottom:0.5px solid var(--border);padding-bottom:0">
+        <button class="crit-tab active" id="ctab-resumen" onclick="switchCritTab('resumen')"
+          style="padding:9px 18px;font-size:13px;font-weight:500;border:none;background:transparent;cursor:pointer;border-bottom:2px solid var(--text);color:var(--text);margin-bottom:-0.5px">
+          Resumen general
+        </button>
+        <button class="crit-tab" id="ctab-detalle" onclick="switchCritTab('detalle')"
+          style="padding:9px 18px;font-size:13px;font-weight:500;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text2);margin-bottom:-0.5px">
+          Detalle por vehículo
+        </button>
       </div>
-      <div class="card">
-        <div class="card-hdr">
-          <span class="card-title">Criticidad actual</span>
-          <select id="crit-filtro" onchange="cargarCriticidad()" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--r)">
-            <option value="">Todas</option>
-            <option value="ALTA">Alta</option>
-            <option value="MEDIA ALTA">Media alta</option>
-            <option value="MEDIA BAJA">Media baja</option>
-            <option value="BAJA">Baja</option>
-          </select>
+
+      <!-- PESTAÑA RESUMEN -->
+      <div id="crit-tab-resumen">
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">Criticidad alta</div><div class="metric-val" id="crit-alta" style="color:var(--red)">—</div><div class="metric-sub">Intervención inmediata</div></div>
+          <div class="metric"><div class="metric-label">Media alta</div><div class="metric-val" id="crit-ma" style="color:var(--amber)">—</div><div class="metric-sub">Atención urgente</div></div>
+          <div class="metric"><div class="metric-label">Media baja</div><div class="metric-val" id="crit-mb" style="color:var(--blue)">—</div><div class="metric-sub">Monitorear</div></div>
+          <div class="metric"><div class="metric-label">Baja</div><div class="metric-val" id="crit-baja" style="color:var(--green)">—</div><div class="metric-sub">En buen estado</div></div>
         </div>
-        <div class="tbl-wrap">
-          <table><thead><tr>
-            <th>Placa</th><th>Regional</th>
-            <th style="text-align:center">Chasis</th>
-            <th style="text-align:center">Furgón</th>
-            <th style="text-align:center">Plataforma</th>
-            <th style="text-align:center">Refrigeración</th>
-            <th>Criticidad</th><th>Fecha</th><th></th>
-          </tr></thead>
-          <tbody id="crit-body"><tr><td colspan="9" class="loading"><div class="spinner"></div></td></tr></tbody>
-          </table>
+
+        <!-- Gráfica y resumen -->
+        <div class="two-col" style="margin-bottom:16px">
+          <div class="card" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <div class="card-title" style="margin-bottom:16px;align-self:flex-start">Criticidad general de flota</div>
+            <canvas id="crit-pie" width="220" height="220"></canvas>
+            <div id="crit-pie-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;justify-content:center"></div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="margin-bottom:14px">Distribución por regional</div>
+            <div id="crit-por-regional"></div>
+          </div>
+        </div>
+
+        <!-- Listados por criticidad -->
+        <div class="card" id="crit-alta-lista-card" style="display:none">
+          <div class="card-hdr">
+            <span class="card-title" style="color:var(--red-dark)">⚠ Vehículos criticidad alta</span>
+            <button class="btn btn-sm" onclick="document.getElementById('crit-alta-lista-card').style.display='none'">Cerrar</button>
+          </div>
+          <div class="tbl-wrap"><table><thead><tr><th>Placa</th><th>Regional</th><th>Chasis</th><th>Furgón</th><th>Plataforma</th><th>Refrig.</th><th>Última actualización</th></tr></thead>
+          <tbody id="crit-alta-body"></tbody></table></div>
+        </div>
+        <div class="card" id="crit-ma-lista-card" style="display:none">
+          <div class="card-hdr">
+            <span class="card-title" style="color:var(--amber-dark)">Vehículos criticidad media alta</span>
+            <button class="btn btn-sm" onclick="document.getElementById('crit-ma-lista-card').style.display='none'">Cerrar</button>
+          </div>
+          <div class="tbl-wrap"><table><thead><tr><th>Placa</th><th>Regional</th><th>Chasis</th><th>Furgón</th><th>Plataforma</th><th>Refrig.</th><th>Última actualización</th></tr></thead>
+          <tbody id="crit-ma-body"></tbody></table></div>
+        </div>
+        <div class="card" id="crit-mb-lista-card" style="display:none">
+          <div class="card-hdr">
+            <span class="card-title" style="color:var(--blue)">Vehículos criticidad media baja</span>
+            <button class="btn btn-sm" onclick="document.getElementById('crit-mb-lista-card').style.display='none'">Cerrar</button>
+          </div>
+          <div class="tbl-wrap"><table><thead><tr><th>Placa</th><th>Regional</th><th>Chasis</th><th>Furgón</th><th>Plataforma</th><th>Refrig.</th><th>Última actualización</th></tr></thead>
+          <tbody id="crit-mb-body"></tbody></table></div>
+        </div>
+        <div class="card" id="crit-baja-lista-card" style="display:none">
+          <div class="card-hdr">
+            <span class="card-title" style="color:var(--green-dark)">Vehículos criticidad baja</span>
+            <button class="btn btn-sm" onclick="document.getElementById('crit-baja-lista-card').style.display='none'">Cerrar</button>
+          </div>
+          <div class="tbl-wrap"><table><thead><tr><th>Placa</th><th>Regional</th><th>Chasis</th><th>Furgón</th><th>Plataforma</th><th>Refrig.</th><th>Última actualización</th></tr></thead>
+          <tbody id="crit-baja-body"></tbody></table></div>
         </div>
       </div>
-      <div class="card" id="crit-hist-card" style="display:none">
-        <div class="card-hdr">
-          <span class="card-title" id="crit-hist-title">Historial criticidad</span>
-          <button class="btn btn-sm" onclick="document.getElementById('crit-hist-card').style.display='none'">Cerrar</button>
+
+      <!-- PESTAÑA DETALLE -->
+      <div id="crit-tab-detalle" style="display:none">
+        <div class="card">
+          <div class="card-hdr">
+            <span class="card-title">Criticidad por vehículo</span>
+            <select id="crit-filtro" onchange="cargarCriticidad()" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--r)">
+              <option value="">Todas</option>
+              <option value="ALTA">Alta</option>
+              <option value="MEDIA ALTA">Media alta</option>
+              <option value="MEDIA BAJA">Media baja</option>
+              <option value="BAJA">Baja</option>
+            </select>
+          </div>
+          <div class="tbl-wrap">
+            <table><thead><tr>
+              <th>Placa</th><th>Regional</th>
+              <th style="text-align:center">Chasis</th>
+              <th style="text-align:center">Furgón</th>
+              <th style="text-align:center">Plataforma</th>
+              <th style="text-align:center">Refrigeración</th>
+              <th>Criticidad</th><th>Fecha</th><th></th>
+            </tr></thead>
+            <tbody id="crit-body"><tr><td colspan="9" class="loading"><div class="spinner"></div></td></tr></tbody>
+            </table>
+          </div>
         </div>
-        <div class="tbl-wrap">
-          <table><thead><tr>
-            <th>Fecha</th><th style="text-align:center">Chasis</th><th style="text-align:center">Furgón</th>
-            <th style="text-align:center">Plataforma</th><th style="text-align:center">Refrig.</th>
-            <th>Criticidad</th><th>Observaciones</th>
-          </tr></thead>
-          <tbody id="crit-hist-body"></tbody></table>
+        <div class="card" id="crit-hist-card" style="display:none">
+          <div class="card-hdr">
+            <span class="card-title" id="crit-hist-title">Historial criticidad</span>
+            <button class="btn btn-sm" onclick="document.getElementById('crit-hist-card').style.display='none'">Cerrar</button>
+          </div>
+          <div class="tbl-wrap">
+            <table><thead><tr>
+              <th>Fecha</th><th style="text-align:center">Chasis</th><th style="text-align:center">Furgón</th>
+              <th style="text-align:center">Plataforma</th><th style="text-align:center">Refrig.</th>
+              <th>Criticidad</th><th>Observaciones</th>
+            </tr></thead>
+            <tbody id="crit-hist-body"></tbody></table>
+          </div>
         </div>
       </div>
     </div>
@@ -594,7 +660,7 @@ function ir(page){
   if(page==='flota')cargarFlota();
   if(page==='disponibilidad')cargarDispDetalle();
   if(page==='checklists')cargarChecklists();
-  if(page==='criticidad')cargarCriticidad();
+  if(page==='criticidad'){switchCritTab('resumen');cargarResumenCriticidad();}
   if(page==='terceros')cargarTerceros();
 }
 function onFiltro(){REGIONAL_ID=USER_ROL==='gerente'?(document.getElementById('filtro-regional').value||null):REGIONAL_ID;cargarDashboard();}
@@ -940,6 +1006,11 @@ async function cargarDispDetalle(){
 
 // ── Criticidad ──
 async function cargarCriticidad(){
+  // Si estamos en pestaña resumen, cargar resumen
+  if(document.getElementById('crit-tab-resumen')?.style.display!=='none'){
+    await cargarResumenCriticidad();
+    return;
+  }
   const tb=document.getElementById('crit-body');
   tb.innerHTML='<tr><td colspan="9" class="loading"><div class="spinner"></div></td></tr>';
   try{
@@ -1538,6 +1609,198 @@ async function guardarReemplazoModal(eventoId, titularId, btn){
   overlay.remove();
   await Promise.all([cargarKPIs(),cargarFueraDash()]);
   cargarFuera();
+}
+
+
+// ── Switch tabs criticidad ──────────────────────────────────
+function switchCritTab(tab){
+  document.getElementById('crit-tab-resumen').style.display = tab==='resumen'?'block':'none';
+  document.getElementById('crit-tab-detalle').style.display = tab==='detalle'?'block':'none';
+  document.getElementById('ctab-resumen').style.borderBottomColor = tab==='resumen'?'var(--text)':'transparent';
+  document.getElementById('ctab-resumen').style.color = tab==='resumen'?'var(--text)':'var(--text2)';
+  document.getElementById('ctab-resumen').style.fontWeight = tab==='resumen'?'500':'400';
+  document.getElementById('ctab-detalle').style.borderBottomColor = tab==='detalle'?'var(--text)':'transparent';
+  document.getElementById('ctab-detalle').style.color = tab==='detalle'?'var(--text)':'var(--text2)';
+  document.getElementById('ctab-detalle').style.fontWeight = tab==='detalle'?'500':'400';
+  if(tab==='detalle') cargarCriticidad();
+}
+
+// ── Cargar resumen criticidad ───────────────────────────────
+async function cargarResumenCriticidad(){
+  try{
+    let q = db.from('criticidad_vehiculo')
+      .select('vehiculo_id,criticidad,puntaje_chasis,puntaje_furgon,puntaje_plataforma,puntaje_refrigeracion,fecha,regional_id,vehiculos(placa,tipo)')
+      .order('fecha',{ascending:false});
+    if(REGIONAL_ID) q = q.eq('regional_id', REGIONAL_ID);
+    const{data, error} = await q; if(error) throw error;
+
+    // Deduplicar: solo último registro por vehículo
+    const seen = new Set();
+    const ultimos = (data||[]).filter(r=>{
+      if(seen.has(r.vehiculo_id)) return false;
+      seen.add(r.vehiculo_id); return true;
+    });
+
+    const alta  = ultimos.filter(r=>r.criticidad==='ALTA');
+    const ma    = ultimos.filter(r=>r.criticidad==='MEDIA ALTA');
+    const mb    = ultimos.filter(r=>r.criticidad==='MEDIA BAJA');
+    const baja  = ultimos.filter(r=>r.criticidad==='BAJA');
+    const total = ultimos.length;
+
+    // KPIs
+    document.getElementById('crit-alta').textContent = alta.length;
+    document.getElementById('crit-ma').textContent   = ma.length;
+    document.getElementById('crit-mb').textContent   = mb.length;
+    document.getElementById('crit-baja').textContent = baja.length;
+    const bc = document.getElementById('badge-crit');
+    if(alta.length){bc.textContent=alta.length;bc.style.display='';}
+
+    // Gráfica de torta
+    dibujarTorta(alta.length, ma.length, mb.length, baja.length, total);
+
+    // Distribución por regional
+    cargarDistPorRegional(ultimos);
+
+    // Poblar listas por criticidad
+    poblarListaCrit('crit-alta-body', alta);
+    poblarListaCrit('crit-ma-body',   ma);
+    poblarListaCrit('crit-mb-body',   mb);
+    poblarListaCrit('crit-baja-body', baja);
+
+  }catch(e){ console.error('Resumen criticidad:', e.message); }
+}
+
+function poblarListaCrit(tbId, rows){
+  const tb = document.getElementById(tbId);
+  if(!rows.length){ tb.innerHTML='<tr><td colspan="7" class="empty">Sin vehículos en esta categoría</td></tr>'; return; }
+  tb.innerHTML = rows.map(r=>`<tr>
+    <td style="font-weight:600">${r.vehiculos?.placa||'—'}</td>
+    <td style="font-size:12px">${rNombre(r.regional_id)}</td>
+    <td style="text-align:center">${bPuntaje(r.puntaje_chasis)}</td>
+    <td style="text-align:center">${bPuntaje(r.puntaje_furgon)}</td>
+    <td style="text-align:center">${bPuntaje(r.puntaje_plataforma)}</td>
+    <td style="text-align:center">${bPuntaje(r.puntaje_refrigeracion)}</td>
+    <td style="font-size:12px;color:var(--text2)">${fmtF(r.fecha)}</td>
+  </tr>`).join('');
+}
+
+function mostrarListaCrit(nivel){
+  // Ocultar todas
+  ['alta','ma','mb','baja'].forEach(n=>document.getElementById(`crit-${n}-lista-card`).style.display='none');
+  // Mostrar la seleccionada
+  const card = document.getElementById(`crit-${nivel}-lista-card`);
+  if(card){ card.style.display='block'; card.scrollIntoView({behavior:'smooth',block:'start'}); }
+}
+
+function dibujarTorta(alta, ma, mb, baja, total){
+  const canvas = document.getElementById('crit-pie');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 220, 220);
+
+  if(total === 0){
+    ctx.fillStyle = '#e5e5e5';
+    ctx.beginPath(); ctx.arc(110,110,90,0,Math.PI*2); ctx.fill();
+    const legend = document.getElementById('crit-pie-legend');
+    legend.innerHTML = '<span style="font-size:13px;color:var(--text2)">Sin datos de criticidad</span>';
+    return;
+  }
+
+  const datos = [
+    {val:alta,  color:'#E24B4A', label:'Alta',       nivel:'alta'},
+    {val:ma,    color:'#BA7517', label:'Media alta',  nivel:'ma'},
+    {val:mb,    color:'#185FA5', label:'Media baja',  nivel:'mb'},
+    {val:baja,  color:'#639922', label:'Baja',        nivel:'baja'},
+  ].filter(d=>d.val>0);
+
+  let startAngle = -Math.PI/2;
+  const cx=110, cy=110, r=90, rIn=50;
+
+  datos.forEach(d=>{
+    const slice = (d.val/total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, startAngle, startAngle+slice);
+    ctx.closePath();
+    ctx.fillStyle = d.color;
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Porcentaje dentro del slice
+    const midAngle = startAngle + slice/2;
+    const tx = cx + (r*0.65) * Math.cos(midAngle);
+    const ty = cy + (r*0.65) * Math.sin(midAngle);
+    const pct = Math.round(d.val/total*100);
+    if(pct >= 5){
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 13px -apple-system,sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(pct+'%', tx, ty);
+    }
+    startAngle += slice;
+  });
+
+  // Hueco central (donut)
+  ctx.beginPath();
+  ctx.arc(cx, cy, rIn, 0, Math.PI*2);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+
+  // Total en centro
+  ctx.fillStyle = '#1a1a18';
+  ctx.font = 'bold 20px -apple-system,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(total, cx, cy-8);
+  ctx.font = '11px -apple-system,sans-serif';
+  ctx.fillStyle = '#9b9b96';
+  ctx.fillText('vehículos', cx, cy+10);
+
+  // Leyenda clicable
+  const legend = document.getElementById('crit-pie-legend');
+  legend.innerHTML = datos.map(d=>`
+    <div onclick="mostrarListaCrit('${d.nivel}')" style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:background .12s"
+      onmouseover="this.style.background='#f7f6f2'" onmouseout="this.style.background='transparent'">
+      <div style="width:12px;height:12px;border-radius:3px;background:${d.color};flex-shrink:0"></div>
+      <span style="font-size:12px;color:var(--text)">${d.label}: <strong>${d.val}</strong></span>
+    </div>`).join('');
+}
+
+function cargarDistPorRegional(ultimos){
+  const el = document.getElementById('crit-por-regional');
+  const regsShow = REGIONAL_ID ? regionales.filter(r=>r.id===REGIONAL_ID) : regionales;
+
+  el.innerHTML = regsShow.map(reg=>{
+    const vhsReg = ultimos.filter(r=>r.regional_id===reg.id);
+    const total  = vhsReg.length;
+    if(!total) return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:13px"><span style="color:var(--text2)">${reg.nombre}</span><span class="badge b-gray">Sin datos</span></div>`;
+    const alta  = vhsReg.filter(r=>r.criticidad==='ALTA').length;
+    const ma    = vhsReg.filter(r=>r.criticidad==='MEDIA ALTA').length;
+    const mb    = vhsReg.filter(r=>r.criticidad==='MEDIA BAJA').length;
+    const baja  = vhsReg.filter(r=>r.criticidad==='BAJA').length;
+    // Mini barra apilada
+    const barW = (n)=> total ? Math.round(n/total*100) : 0;
+    return `<div style="padding:10px 0;border-bottom:0.5px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:13px;font-weight:500">${reg.nombre}</span>
+        <span style="font-size:11px;color:var(--text2)">${total} vehículos</span>
+      </div>
+      <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;gap:1px">
+        ${alta>0 ?`<div style="width:${barW(alta)}%;background:#E24B4A;border-radius:2px" title="Alta: ${alta}"></div>`:''}
+        ${ma>0   ?`<div style="width:${barW(ma)}%;background:#BA7517;border-radius:2px" title="Media alta: ${ma}"></div>`:''}
+        ${mb>0   ?`<div style="width:${barW(mb)}%;background:#185FA5;border-radius:2px" title="Media baja: ${mb}"></div>`:''}
+        ${baja>0 ?`<div style="width:${barW(baja)}%;background:#639922;border-radius:2px" title="Baja: ${baja}"></div>`:''}
+      </div>
+      <div style="display:flex;gap:10px;margin-top:5px;flex-wrap:wrap">
+        ${alta>0 ?`<span style="font-size:11px;color:#A32D2D">● Alta: ${alta}</span>`:''}
+        ${ma>0   ?`<span style="font-size:11px;color:#854F0B">● M.Alta: ${ma}</span>`:''}
+        ${mb>0   ?`<span style="font-size:11px;color:#185FA5">● M.Baja: ${mb}</span>`:''}
+        ${baja>0 ?`<span style="font-size:11px;color:#3B6D11">● Baja: ${baja}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 init();
