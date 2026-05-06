@@ -98,6 +98,88 @@ tr:hover td{background:var(--bg2)}
 <body>
 <div id="toast"></div>
 
+<!-- Modal ficha vehículo completa -->
+<div class="modal-overlay" id="modal-ficha" style="align-items:flex-start;padding:20px;overflow-y:auto">
+  <div class="modal" style="max-width:680px;margin:auto">
+    <div class="modal-title" id="ficha-title">Ficha del vehículo</div>
+    <input type="hidden" id="fv-id">
+    <!-- Tabs ficha -->
+    <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:0.5px solid var(--border)">
+      <button onclick="switchFichaTab('info')" id="ftab-info"
+        style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:transparent;cursor:pointer;border-bottom:2px solid var(--text);color:var(--text)">
+        Información
+      </button>
+      <button onclick="switchFichaTab('docs')" id="ftab-docs"
+        style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text2)">
+        Documentos
+      </button>
+    </div>
+    <!-- Tab info -->
+    <div id="ficha-tab-info">
+      <div class="form2">
+        <div class="field"><label>Placa *</label><input type="text" id="fv-placa"></div>
+        <div class="field"><label>Tipo</label>
+          <select id="fv-tipo"><option value="camion">Camión</option><option value="remolque">Remolque</option><option value="furgon">Furgón</option><option value="camioneta">Camioneta</option></select></div>
+        <div class="field"><label>Regional</label><select id="fv-reg"></select></div>
+        <div class="field"><label>Figura base</label>
+          <select id="fv-figura"><option value="titular">Titular</option><option value="backup">Backup/Respaldo</option></select></div>
+        <div class="field"><label>Marca</label><input type="text" id="fv-marca" placeholder="Ej: Kenworth, Chevrolet"></div>
+        <div class="field"><label>Modelo (año)</label><input type="number" id="fv-modelo" placeholder="Ej: 2020"></div>
+        <div class="field"><label>Tiro</label>
+          <select id="fv-tiro"><option value="">Seleccionar...</option><option value="sencillo">Sencillo</option><option value="doble">Doble troque</option><option value="turbo">Turbo</option><option value="otro">Otro</option></select></div>
+        <div class="field"><label>Ambiente</label>
+          <select id="fv-ambiente"><option value="seco">Seco</option><option value="refrigerado">Refrigerado</option></select></div>
+        <div class="field"><label>Marca furgón</label><input type="text" id="fv-marca-furgon" placeholder="Ej: Haceb, Carrier"></div>
+        <div class="field"><label>Sello electrónico</label>
+          <select id="fv-sello"><option value="false">No</option><option value="true">Sí</option></select></div>
+        <div class="field"><label>Poseedor</label><input type="text" id="fv-poseedor" placeholder="Nombre del propietario"></div>
+        <div class="field"><label>KM actuales</label><input type="number" id="fv-km" placeholder="0"></div>
+        <div class="field"><label>Fecha entrada operación</label><input type="date" id="fv-entrada-op"></div>
+        <div class="field"><label>Fecha matrícula</label><input type="date" id="fv-matricula"></div>
+        <div class="field"><label>Fecha salida (auto)</label><input type="date" id="fv-salida-op" disabled style="opacity:0.6"></div>
+        <div class="field"><label>No. Motor</label><input type="text" id="fv-motor"></div>
+        <div class="field"><label>No. Chasis</label><input type="text" id="fv-chasis"></div>
+        <div class="field"><label>Color</label><input type="text" id="fv-color"></div>
+        <div class="field"><label>Estado actual</label>
+          <select id="fv-estado">
+            <option value="disponible">Disponible</option>
+            <option value="taller_propio">Taller propio</option>
+            <option value="concesionario">Concesionario</option>
+            <option value="en_patios">En patios</option>
+            <option value="siniestro">Siniestro</option>
+            <option value="inactivo">Inactivo</option>
+          </select></div>
+        <div class="field full"><label>Observaciones</label><textarea id="fv-obs" rows="3"></textarea></div>
+      </div>
+    </div>
+    <!-- Tab documentos -->
+    <div id="ficha-tab-docs" style="display:none">
+      <div id="ficha-docs-lista"></div>
+      <div style="background:var(--bg2);border-radius:var(--r);padding:14px;margin-top:14px">
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.04em">Agregar / actualizar documento</div>
+        <div class="form2">
+          <div class="field"><label>Documento *</label>
+            <select id="doc-tipo" onchange="onDocTipo()">
+              <option value="soat">SOAT</option>
+              <option value="tecnomecanica">Tecnicomecánica</option>
+              <option value="acta_sanitaria">Acta sanitaria</option>
+              <option value="fumigacion">Fumigación</option>
+            </select></div>
+          <div class="field"><label>No. documento</label><input type="text" id="doc-numero" placeholder="Número o referencia"></div>
+          <div class="field"><label>Fecha expedición</label><input type="date" id="doc-expedicion"></div>
+          <div class="field"><label>Fecha vencimiento *</label><input type="date" id="doc-vencimiento"></div>
+          <div class="field full"><label>Observaciones</label><input type="text" id="doc-obs" placeholder="Nota opcional"></div>
+        </div>
+        <button class="btn btn-primary" onclick="guardarDocumento()" style="width:100%">Guardar documento</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-ficha')">Cerrar</button>
+      <button class="btn btn-primary" id="btn-ficha" onclick="guardarFicha()">Guardar vehículo</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal editar vehículo -->
 <div class="modal-overlay" id="modal-vh">
   <div class="modal">
@@ -231,6 +313,7 @@ tr:hover td{background:var(--bg2)}
     <div class="snav-item" data-page="entrada" onclick="ir('entrada')"><span>Entrada a taller</span></div>
     <div class="snav-item" data-page="retorno" onclick="ir('retorno')"><span>Retorno al servicio</span></div>
     <div class="snav-item" data-page="terceros" onclick="ir('terceros')"><span>Vehículos terceros</span></div>
+    <div class="snav-item" data-page="documentos" onclick="ir('documentos')"><span>Documentos</span><span class="badge b-red" id="badge-docs" style="display:none"></span></div>
   </nav>
 
   <main class="main">
@@ -594,6 +677,46 @@ tr:hover td{background:var(--bg2)}
       </div>
     </div>
 
+  <!-- DOCUMENTOS -->
+    <div id="page-documentos" class="page">
+      <div class="metrics">
+        <div class="metric"><div class="metric-label">Documentos vencidos</div><div class="metric-val" id="docs-vencidos" style="color:var(--red)">—</div><div class="metric-sub">Requieren renovación</div></div>
+        <div class="metric"><div class="metric-label">Próximos a vencer</div><div class="metric-val" id="docs-proximos" style="color:var(--amber)">—</div><div class="metric-sub">Próximos 30 días</div></div>
+        <div class="metric"><div class="metric-label">SOAT vencidos</div><div class="metric-val" id="docs-soat" style="color:var(--red)">—</div></div>
+        <div class="metric"><div class="metric-label">Fumigación vencida</div><div class="metric-val" id="docs-fumig" style="color:var(--red)">—</div></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-title">Estado de documentos</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="docs-filtro-tipo" onchange="cargarDocumentos()" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--r)">
+              <option value="">Todos los documentos</option>
+              <option value="soat">SOAT</option>
+              <option value="tecnomecanica">Tecnicomecánica</option>
+              <option value="acta_sanitaria">Acta sanitaria</option>
+              <option value="fumigacion">Fumigación</option>
+            </select>
+            <select id="docs-filtro-estado" onchange="cargarDocumentos()" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--r)">
+              <option value="">Todos los estados</option>
+              <option value="vencido">Vencidos</option>
+              <option value="proximo">Próximos a vencer</option>
+              <option value="vigente">Vigentes</option>
+            </select>
+            <span id="docs-count" style="font-size:12px;color:var(--text2)"></span>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table><thead><tr>
+            <th>Placa</th><th>Regional</th><th>Documento</th>
+            <th>Vencimiento</th><th style="text-align:center">Días</th>
+            <th>No. Documento</th><th>Estado</th><th></th>
+          </tr></thead>
+          <tbody id="docs-body"><tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -662,6 +785,7 @@ function ir(page){
   if(page==='checklists')cargarChecklists();
   if(page==='criticidad'){switchCritTab('resumen');cargarResumenCriticidad();}
   if(page==='terceros')cargarTerceros();
+  if(page==='documentos')cargarDocumentos();
 }
 function onFiltro(){REGIONAL_ID=USER_ROL==='gerente'?(document.getElementById('filtro-regional').value||null):REGIONAL_ID;cargarDashboard();}
 
@@ -1166,7 +1290,7 @@ async function cargarFlota(){
       <td>${bEst(v.estado)}</td>
       <td>${v.km_actuales?v.km_actuales.toLocaleString('es-CO')+' km':'—'}</td>
       <td style="display:flex;gap:4px;flex-wrap:wrap;padding:6px 10px">
-        <button class="btn btn-sm" onclick='editarVh(${JSON.stringify(v).replace(/"/g,"&quot;")})'>Editar</button>
+        <button class="btn btn-sm" onclick="abrirFicha('${JSON.stringify(v).replace(/"/g,"&quot;")}')" style="">Editar</button>
         <button class="btn btn-sm" onclick="verTL('${v.id}','${v.placa}');ir('historial')">Hist.</button>
         ${v.activo?`<button class="btn btn-sm btn-red" onclick="abrirRetiro('${v.id}','${v.placa}')">Retirar</button>`:`<button class="btn btn-sm btn-green" onclick="reactivar('${v.id}','${v.placa}')">Reactivar</button>`}
       </td>
@@ -1801,6 +1925,262 @@ function cargarDistPorRegional(ultimos){
       </div>
     </div>`;
   }).join('');
+}
+
+
+// ── FICHA VEHÍCULO ──────────────────────────────────────────
+function switchFichaTab(tab){
+  document.getElementById('ficha-tab-info').style.display  = tab==='info'?'block':'none';
+  document.getElementById('ficha-tab-docs').style.display  = tab==='docs'?'block':'none';
+  document.getElementById('ftab-info').style.borderBottomColor = tab==='info'?'var(--text)':'transparent';
+  document.getElementById('ftab-info').style.color = tab==='info'?'var(--text)':'var(--text2)';
+  document.getElementById('ftab-docs').style.borderBottomColor = tab==='docs'?'var(--text)':'transparent';
+  document.getElementById('ftab-docs').style.color = tab==='docs'?'var(--text)':'var(--text2)';
+  if(tab==='docs') cargarDocsFicha(document.getElementById('fv-id').value);
+}
+
+async function abrirFicha(vhId){
+  const{data:v, error}=await db.from('vehiculos').select('*').eq('id',vhId).single();
+  if(error||!v){toast('Error cargando vehículo',true);return;}
+  // Poblar campos
+  document.getElementById('fv-id').value          = v.id;
+  document.getElementById('fv-placa').value        = v.placa||'';
+  document.getElementById('fv-tipo').value         = v.tipo||'camion';
+  document.getElementById('fv-figura').value       = v.figura||'titular';
+  document.getElementById('fv-marca').value        = v.marca||'';
+  document.getElementById('fv-modelo').value       = v.modelo_anio||'';
+  document.getElementById('fv-tiro').value         = v.tiro||'';
+  document.getElementById('fv-ambiente').value     = v.ambiente||'seco';
+  document.getElementById('fv-sello').value        = String(v.sello_electronico||false);
+  document.getElementById('fv-marca-furgon').value = v.marca_furgon||'';
+  document.getElementById('fv-poseedor').value     = v.poseedor||'';
+  document.getElementById('fv-km').value           = v.km_actuales||0;
+  document.getElementById('fv-entrada-op').value   = v.fecha_entrada_operacion||'';
+  document.getElementById('fv-matricula').value    = v.fecha_matricula||'';
+  document.getElementById('fv-salida-op').value    = v.fecha_salida_operacion||'';
+  document.getElementById('fv-motor').value        = v.numero_motor||'';
+  document.getElementById('fv-chasis').value       = v.numero_chasis||'';
+  document.getElementById('fv-color').value        = v.color||'';
+  document.getElementById('fv-estado').value       = v.estado||'disponible';
+  document.getElementById('fv-obs').value          = v.observaciones||'';
+  // Regional
+  const selR=document.getElementById('fv-reg');
+  while(selR.options.length)selR.remove(0);
+  regionales.forEach(r=>{const o=new Option(r.nombre,r.id);if(r.id===v.regional_id)o.selected=true;selR.add(o);});
+  document.getElementById('ficha-title').textContent = `Ficha — ${v.placa}`;
+  switchFichaTab('info');
+  document.getElementById('modal-ficha').classList.add('open');
+}
+
+function abrirNuevaFicha(){
+  document.getElementById('fv-id').value='';
+  ['fv-placa','fv-marca','fv-modelo','fv-marca-furgon','fv-poseedor','fv-motor','fv-chasis','fv-color','fv-obs'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fv-tipo').value='camion';
+  document.getElementById('fv-figura').value='titular';
+  document.getElementById('fv-ambiente').value='seco';
+  document.getElementById('fv-sello').value='false';
+  document.getElementById('fv-km').value='0';
+  document.getElementById('fv-estado').value='disponible';
+  document.getElementById('fv-entrada-op').value='';
+  document.getElementById('fv-matricula').value='';
+  document.getElementById('fv-salida-op').value='';
+  const selR=document.getElementById('fv-reg');
+  while(selR.options.length)selR.remove(0);
+  regionales.forEach(r=>{const o=new Option(r.nombre,r.id);if(r.id===REGIONAL_ID)o.selected=true;selR.add(o);});
+  document.getElementById('ficha-title').textContent='Nuevo vehículo';
+  switchFichaTab('info');
+  document.getElementById('modal-ficha').classList.add('open');
+}
+
+// Calcular fecha salida al cambiar entrada
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('fv-entrada-op')?.addEventListener('change', function(){
+    if(this.value){
+      const d=new Date(this.value);d.setFullYear(d.getFullYear()+5);
+      document.getElementById('fv-salida-op').value=d.toISOString().split('T')[0];
+    }
+  });
+});
+
+async function guardarFicha(){
+  const id=document.getElementById('fv-id').value;
+  const btn=document.getElementById('btn-ficha');
+  btn.disabled=true;btn.textContent='Guardando...';
+  const entrada=document.getElementById('fv-entrada-op').value;
+  let salida='';
+  if(entrada){const d=new Date(entrada);d.setFullYear(d.getFullYear()+5);salida=d.toISOString().split('T')[0];}
+  const datos={
+    placa:document.getElementById('fv-placa').value.trim().toUpperCase(),
+    tipo:document.getElementById('fv-tipo').value,
+    figura:document.getElementById('fv-figura').value,
+    regional_id:document.getElementById('fv-reg').value,
+    marca:document.getElementById('fv-marca').value||null,
+    modelo_anio:parseInt(document.getElementById('fv-modelo').value)||null,
+    tiro:document.getElementById('fv-tiro').value||null,
+    ambiente:document.getElementById('fv-ambiente').value,
+    sello_electronico:document.getElementById('fv-sello').value==='true',
+    marca_furgon:document.getElementById('fv-marca-furgon').value||null,
+    poseedor:document.getElementById('fv-poseedor').value||null,
+    km_actuales:parseInt(document.getElementById('fv-km').value)||0,
+    fecha_entrada_operacion:entrada||null,
+    fecha_salida_operacion:salida||null,
+    fecha_matricula:document.getElementById('fv-matricula').value||null,
+    numero_motor:document.getElementById('fv-motor').value||null,
+    numero_chasis:document.getElementById('fv-chasis').value||null,
+    color:document.getElementById('fv-color').value||null,
+    estado:document.getElementById('fv-estado').value,
+    observaciones:document.getElementById('fv-obs').value||null,
+    activo:true,
+    updated_at:new Date().toISOString(),
+  };
+  try{
+    if(id){
+      const{error}=await db.from('vehiculos').update(datos).eq('id',id);
+      if(error)throw error;
+      toast('Vehículo actualizado ✓');
+    }else{
+      const{error}=await db.from('vehiculos').insert(datos);
+      if(error)throw error;
+      toast('Vehículo agregado ✓');
+    }
+    cerrarModal('modal-ficha');
+    cargarFlota();cargarKPIs();
+  }catch(e){toast('Error: '+e.message,true);}
+  finally{btn.disabled=false;btn.textContent='Guardar vehículo';}
+}
+
+// ── DOCUMENTOS POR VEHÍCULO ─────────────────────────────────
+const DOC_LABELS={soat:'SOAT',tecnomecanica:'Tecnicomecánica',acta_sanitaria:'Acta sanitaria',fumigacion:'Fumigación'};
+
+function onDocTipo(){
+  // Sugerir fecha de vencimiento según tipo
+  const tipo=document.getElementById('doc-tipo').value;
+  const exp=document.getElementById('doc-expedicion').value;
+  if(!exp)return;
+  const d=new Date(exp);
+  if(tipo==='soat'||tipo==='tecnomecanica'||tipo==='acta_sanitaria') d.setFullYear(d.getFullYear()+1);
+  if(tipo==='fumigacion') d.setMonth(d.getMonth()+3);
+  document.getElementById('doc-vencimiento').value=d.toISOString().split('T')[0];
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('doc-expedicion')?.addEventListener('change',onDocTipo);
+});
+
+async function cargarDocsFicha(vhId){
+  if(!vhId)return;
+  const el=document.getElementById('ficha-docs-lista');
+  el.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  const{data,error}=await db.from('documentos_vehiculo').select('*').eq('vehiculo_id',vhId).order('fecha_vencimiento',{ascending:true});
+  if(error||!data?.length){
+    el.innerHTML='<div class="empty">Sin documentos registrados. Agrega el primero abajo.</div>';
+    return;
+  }
+  el.innerHTML=data.map(d=>{
+    const dias=Math.ceil((new Date(d.fecha_vencimiento)-new Date())/86400000);
+    const color=dias<0?'var(--red)':dias<=30?'var(--amber)':'var(--green)';
+    const badge=dias<0?'b-red':dias<=30?'b-amber':'b-green';
+    return`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--border)">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500">${DOC_LABELS[d.tipo]||d.tipo}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px">Vence: ${fmtF(d.fecha_vencimiento)} ${d.numero_documento?'· '+d.numero_documento:''}</div>
+      </div>
+      <span class="badge ${badge}">${dias<0?'Vencido hace '+Math.abs(dias)+' días':dias===0?'Vence hoy':dias+' días'}</span>
+      <button class="btn btn-sm btn-red" onclick="eliminarDoc('${d.id}','${vhId}')">×</button>
+    </div>`;
+  }).join('');
+}
+
+async function guardarDocumento(){
+  const vhId=document.getElementById('fv-id').value;
+  if(!vhId){toast('Guarda el vehículo primero',true);return;}
+  const tipo=document.getElementById('doc-tipo').value;
+  const venc=document.getElementById('doc-vencimiento').value;
+  if(!venc){toast('Ingresa la fecha de vencimiento',true);return;}
+  // Obtener regional_id del vehículo
+  const{data:vh}=await db.from('vehiculos').select('regional_id').eq('id',vhId).single();
+  try{
+    // Upsert: si ya existe ese tipo para este vehículo, actualizar
+    const{data:existing}=await db.from('documentos_vehiculo').select('id').eq('vehiculo_id',vhId).eq('tipo',tipo).single();
+    if(existing){
+      await db.from('documentos_vehiculo').update({
+        fecha_expedicion:document.getElementById('doc-expedicion').value||null,
+        fecha_vencimiento:venc,
+        numero_documento:document.getElementById('doc-numero').value||null,
+        observaciones:document.getElementById('doc-obs').value||null,
+        updated_at:new Date().toISOString(),
+      }).eq('id',existing.id);
+    }else{
+      await db.from('documentos_vehiculo').insert({
+        vehiculo_id:vhId,
+        regional_id:vh?.regional_id||null,
+        tipo,
+        fecha_expedicion:document.getElementById('doc-expedicion').value||null,
+        fecha_vencimiento:venc,
+        numero_documento:document.getElementById('doc-numero').value||null,
+        observaciones:document.getElementById('doc-obs').value||null,
+      });
+    }
+    toast(`${DOC_LABELS[tipo]} guardado ✓`);
+    cargarDocsFicha(vhId);
+    // Limpiar campos doc
+    ['doc-numero','doc-expedicion','doc-vencimiento','doc-obs'].forEach(id=>document.getElementById(id).value='');
+  }catch(e){toast('Error: '+e.message,true);}
+}
+
+async function eliminarDoc(docId,vhId){
+  if(!confirm('¿Eliminar este documento?'))return;
+  await db.from('documentos_vehiculo').delete().eq('id',docId);
+  cargarDocsFicha(vhId);
+}
+
+// ── DOCUMENTOS PANEL GENERAL ────────────────────────────────
+async function cargarDocumentos(){
+  const tb=document.getElementById('docs-body');
+  tb.innerHTML='<tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr>';
+  try{
+    let q=db.from('documentos_vehiculo')
+      .select('*,vehiculos(placa,tipo)')
+      .order('fecha_vencimiento',{ascending:true});
+    if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
+    const tipoF=document.getElementById('docs-filtro-tipo').value;
+    const estF=document.getElementById('docs-filtro-estado').value;
+    if(tipoF)q=q.eq('tipo',tipoF);
+    if(estF)q=q.eq('estado',estF);
+    const{data,error}=await q;if(error)throw error;
+
+    const vencidos=(data||[]).filter(d=>d.estado==='vencido').length;
+    const proximos=(data||[]).filter(d=>d.estado==='proximo').length;
+    const soatV=(data||[]).filter(d=>d.tipo==='soat'&&d.estado==='vencido').length;
+    const fumigV=(data||[]).filter(d=>d.tipo==='fumigacion'&&d.estado==='vencido').length;
+
+    document.getElementById('docs-vencidos').textContent=vencidos;
+    document.getElementById('docs-proximos').textContent=proximos;
+    document.getElementById('docs-soat').textContent=soatV;
+    document.getElementById('docs-fumig').textContent=fumigV;
+    document.getElementById('docs-count').textContent=`${(data||[]).length} documentos`;
+
+    const bd=document.getElementById('badge-docs');
+    if(vencidos+proximos>0){bd.textContent=vencidos+proximos;bd.style.display='';}
+
+    if(!data?.length){tb.innerHTML='<tr><td colspan="8" class="empty">Sin documentos registrados</td></tr>';return;}
+
+    tb.innerHTML=data.map(d=>{
+      const dias=Math.ceil((new Date(d.fecha_vencimiento)-new Date())/86400000);
+      const badge=d.estado==='vencido'?'b-red':d.estado==='proximo'?'b-amber':'b-green';
+      const diasText=dias<0?`Vencido hace ${Math.abs(dias)} días`:dias===0?'Vence hoy':`${dias} días`;
+      return`<tr>
+        <td style="font-weight:600">${d.vehiculos?.placa||'—'}</td>
+        <td style="font-size:12px">${rNombre(d.regional_id)}</td>
+        <td>${DOC_LABELS[d.tipo]||d.tipo}</td>
+        <td>${fmtF(d.fecha_vencimiento)}</td>
+        <td style="text-align:center"><span class="badge ${badge}">${diasText}</span></td>
+        <td style="font-size:12px">${d.numero_documento||'—'}</td>
+        <td><span class="badge ${badge}">${d.estado==='vencido'?'Vencido':d.estado==='proximo'?'Próximo':'Vigente'}</span></td>
+        <td><button class="btn btn-sm" onclick="abrirFicha('${d.vehiculo_id}');setTimeout(()=>switchFichaTab('docs'),300)">Ver</button></td>
+      </tr>`;
+    }).join('');
+  }catch(e){tb.innerHTML=`<tr><td colspan="8" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
 }
 
 init();
