@@ -1290,7 +1290,7 @@ async function cargarFlota(){
       <td>${bEst(v.estado)}</td>
       <td>${v.km_actuales?v.km_actuales.toLocaleString('es-CO')+' km':'—'}</td>
       <td style="display:flex;gap:4px;flex-wrap:wrap;padding:6px 10px">
-        <button class="btn btn-sm" onclick="abrirFicha('${JSON.stringify(v).replace(/"/g,"&quot;")}')" style="">Editar</button>
+        <button class="btn btn-sm" onclick="abrirFicha('${v.id}')">Editar</button>
         <button class="btn btn-sm" onclick="verTL('${v.id}','${v.placa}');ir('historial')">Hist.</button>
         ${v.activo?`<button class="btn btn-sm btn-red" onclick="abrirRetiro('${v.id}','${v.placa}')">Retirar</button>`:`<button class="btn btn-sm btn-green" onclick="reactivar('${v.id}','${v.placa}')">Reactivar</button>`}
       </td>
