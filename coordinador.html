@@ -1097,7 +1097,7 @@ async function cargarFueraDash(){
   const tb=document.getElementById('fuera-dash');
   try{
     let q=db.from('eventos_mantenimiento')
-      .select('id,fecha_entrada,prioridad,descripcion_trabajo,regional_id,vehiculos(id,placa,tipo,figura),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
+      .select('id,fecha_entrada,horas,prioridad,descripcion_trabajo,regional_id,vehiculos(id,placa,tipo,figura),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
       .eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     const{data:ev,error}=await q;if(error)throw error;
@@ -1124,11 +1124,20 @@ async function cargarFueraDash(){
         <td style="font-weight:600">${e.vehiculos?.placa||'—'}</td>
         <td>${rNombre(e.regional_id)}</td>
         <td>${e.talleres?.nombre||'—'}</td>
-        <td>${fmtF(e.fecha_entrada)}</td>
-        <td style="text-align:center">
-          <span class="${clrDias(d)}">${d}d</span>
-        </td>
-        <td>
+<td>${fmtF(e.fecha_entrada)}</td>
+
+<td style="text-align:center">
+  <span class="${clrDias(d)}">${d}d</span>
+</td>
+
+<td>
+  ${e.horas || '-'}
+</td>
+
+<td>
+  ${reem?`<span class="badge b-purple">${reem}</span>`:''}
+  <button class="btn btn-sm" style="margin-left:4px" onclick="asignarReemplazo('${e.id}','${e.vehiculos?.id||''}','${e.vehiculos?.placa||''}')">${reem?'Cambiar':'+ Asignar'}</button>
+</td>
           ${reem?`<span class="badge b-purple">${reem}</span>`:''}
           <button class="btn btn-sm" style="margin-left:4px" onclick="asignarReemplazo('${e.id}','${e.vehiculos?.id||''}','${e.vehiculos?.placa||''}')">${reem?'Cambiar':'+ Asignar'}</button>
         </td>
