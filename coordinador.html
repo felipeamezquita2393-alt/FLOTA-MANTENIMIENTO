@@ -319,43 +319,116 @@ tr:hover td{background:var(--bg2)}
   <main class="main">
 
     <!-- DASHBOARD -->
-    <div id="page-dashboard" class="page active">
-      <div class="metrics">
-        <div class="metric"><div class="metric-label">Disponibilidad</div><div class="metric-val" id="k-pct" style="color:var(--green)">—</div><div class="metric-sub" id="k-sub">Cargando...</div></div>
-        <div class="metric"><div class="metric-label">Operativos</div><div class="metric-val" id="k-op">—</div><div class="metric-sub" id="k-cupo-sub">de — requeridos</div></div>
-        <div class="metric"><div class="metric-label">Fuera de servicio</div><div class="metric-val" id="k-fuera" style="color:var(--red)">—</div><div class="metric-sub">Sin reemplazo: <span id="k-sin-reem" style="color:var(--red)">—</span></div></div>
-        <div class="metric"><div class="metric-label">Respaldos activos</div><div class="metric-val" id="k-bk" style="color:var(--purple)">—</div><div class="metric-sub">Backups + <span id="k-tc">—</span> terceros</div></div>
+<div id="page-dashboard" class="page active">
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">Disponibilidad</div>
+      <div class="metric-val" id="k-pct" style="color:var(--green)">—</div>
+      <div class="metric-sub" id="k-sub">Cargando...</div>
+    </div>
+
+    <div class="metric">
+      <div class="metric-label">Operativos</div>
+      <div class="metric-val" id="k-op">—</div>
+      <div class="metric-sub" id="k-cupo-sub">de — requeridos</div>
+    </div>
+
+    <div class="metric">
+      <div class="metric-label">Fuera de servicio</div>
+      <div class="metric-val" id="k-fuera" style="color:var(--red)">—</div>
+      <div class="metric-sub">
+        Sin reemplazo:
+        <span id="k-sin-reem" style="color:var(--red)">—</span>
       </div>
-      <div id="reg-disp-list" class="card"><div class="loading"><div class="spinner"></div></div></div>
-      <div class="two-col">
-        <div class="card">
-          <div class="card-hdr"><span class="card-title">Checklists hoy</span><span class="badge b-gray" id="badge-cl">—</span></div>
-          <div id="cl-dash"><div class="loading"><div class="spinner"></div></div></div>
-        </div>
-        <div class="card">
-          <div class="card-hdr"><span class="card-title">Alertas activas</span><span class="badge b-red" id="badge-al">0</span></div>
-          <div id="al-dash"><div class="loading"><div class="spinner"></div></div></div>
-        </div>
+    </div>
+
+    <div class="metric">
+      <div class="metric-label">Respaldos activos</div>
+      <div class="metric-val" id="k-bk" style="color:var(--purple)">—</div>
+      <div class="metric-sub">
+        Backups + <span id="k-tc">—</span> terceros
       </div>
-      <div class="card">
-        <div class="card-hdr">
-          <span class="card-title">Fuera de servicio</span>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-sm" onclick="abrirMasivo()">⬆ Masivo</button>
-            <button class="btn btn-sm btn-primary" onclick="ir('entrada')">+ Registrar</button>
-          </div>
-        </div>
-        <div class="tbl-wrap">
-          <table><thead><tr>
-            <th>Placa</th><th>Regional</th><th>Taller</th><th>Ingresó</th>
-            <th style="text-align:center">Días</th><th>Reemplazo activo</th>
-          </tr></thead>
-          <tbody id="fuera-dash"><tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr></tbody>
-          </table>
+    </div>
+  </div>
+
+  <!-- DISPONIBILIDAD POR REGIONAL -->
+  <div id="reg-disp-list" class="card">
+    <div class="loading">
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <!-- FUERA DE SERVICIO -->
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-title">Fuera de servicio</span>
+
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" onclick="abrirMasivo()">⬆ Masivo</button>
+        <button class="btn btn-sm btn-primary" onclick="ir('entrada')">
+          + Registrar
+        </button>
+      </div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Placa</th>
+            <th>Regional</th>
+            <th>Taller</th>
+            <th>Ingresó</th>
+            <th style="text-align:center">Días</th>
+            <th>Reemplazo activo</th>
+            <th>Placa reemplazo</th>
+          </tr>
+        </thead>
+
+        <tbody id="fuera-dash">
+          <tr>
+            <td colspan="6" class="loading">
+              <div class="spinner"></div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CHECKLISTS Y ALERTAS -->
+  <div class="two-col">
+
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-title">Checklists hoy</span>
+        <span class="badge b-gray" id="badge-cl">—</span>
+      </div>
+
+      <div id="cl-dash">
+        <div class="loading">
+          <div class="spinner"></div>
         </div>
       </div>
     </div>
 
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-title">Alertas activas</span>
+        <span class="badge b-red" id="badge-al">0</span>
+      </div>
+
+      <div id="al-dash">
+        <div class="loading">
+          <div class="spinner"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
     <!-- DISPONIBILIDAD DETALLE -->
     <div id="page-disponibilidad" class="page">
       <div id="disp-detalle"><div class="loading"><div class="spinner"></div></div></div>
