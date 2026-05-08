@@ -319,116 +319,47 @@ tr:hover td{background:var(--bg2)}
   <main class="main">
 
     <!-- DASHBOARD -->
-<div id="page-dashboard" class="page active">
-
-  <div class="metrics">
-    <div class="metric">
-      <div class="metric-label">Disponibilidad</div>
-      <div class="metric-val" id="k-pct" style="color:var(--green)">—</div>
-      <div class="metric-sub" id="k-sub">Cargando...</div>
-    </div>
-
-    <div class="metric">
-      <div class="metric-label">Operativos</div>
-      <div class="metric-val" id="k-op">—</div>
-      <div class="metric-sub" id="k-cupo-sub">de — requeridos</div>
-    </div>
-
-    <div class="metric">
-      <div class="metric-label">Fuera de servicio</div>
-      <div class="metric-val" id="k-fuera" style="color:var(--red)">—</div>
-      <div class="metric-sub">
-        Sin reemplazo:
-        <span id="k-sin-reem" style="color:var(--red)">—</span>
+    <div id="page-dashboard" class="page active">
+      <div class="metrics">
+        <div class="metric"><div class="metric-label">Disponibilidad</div><div class="metric-val" id="k-pct" style="color:var(--green)">—</div><div class="metric-sub" id="k-sub">Cargando...</div></div>
+        <div class="metric"><div class="metric-label">Operativos</div><div class="metric-val" id="k-op">—</div><div class="metric-sub" id="k-cupo-sub">de — requeridos</div></div>
+        <div class="metric"><div class="metric-label">Fuera de servicio</div><div class="metric-val" id="k-fuera" style="color:var(--red)">—</div><div class="metric-sub">Sin reemplazo: <span id="k-sin-reem" style="color:var(--red)">—</span></div></div>
+        <div class="metric"><div class="metric-label">Respaldos activos</div><div class="metric-val" id="k-bk" style="color:var(--purple)">—</div><div class="metric-sub">Backups + <span id="k-tc">—</span> terceros</div></div>
       </div>
-    </div>
+      <div id="reg-disp-list" class="card"><div class="loading"><div class="spinner"></div></div></div>
 
-    <div class="metric">
-      <div class="metric-label">Respaldos activos</div>
-      <div class="metric-val" id="k-bk" style="color:var(--purple)">—</div>
-      <div class="metric-sub">
-        Backups + <span id="k-tc">—</span> terceros
-      </div>
-    </div>
-  </div>
-
-  <!-- DISPONIBILIDAD POR REGIONAL -->
-  <div id="reg-disp-list" class="card">
-    <div class="loading">
-      <div class="spinner"></div>
-    </div>
-  </div>
-
-  <!-- FUERA DE SERVICIO -->
-  <div class="card">
-    <div class="card-hdr">
-      <span class="card-title">Fuera de servicio</span>
-
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-sm" onclick="abrirMasivo()">⬆ Masivo</button>
-        <button class="btn btn-sm btn-primary" onclick="ir('entrada')">
-          + Registrar
-        </button>
-      </div>
-    </div>
-
-    <div class="tbl-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Placa</th>
-            <th>Regional</th>
-            <th>Taller</th>
-            <th>Ingresó</th>
-            <th style="text-align:center">Días</th>
-            <th>Horas</th>
-            <th>Placa reemplazo</th>
-          </tr>
-        </thead>
-
-        <tbody id="fuera-dash">
-          <tr>
-            <td colspan="6" class="loading">
-              <div class="spinner"></div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- CHECKLISTS Y ALERTAS -->
-  <div class="two-col">
-
-    <div class="card">
-      <div class="card-hdr">
-        <span class="card-title">Checklists hoy</span>
-        <span class="badge b-gray" id="badge-cl">—</span>
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-title">Vehículos fuera de servicio</span>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm" onclick="abrirMasivo()">⬆ Masivo</button>
+            <button class="btn btn-sm btn-primary" onclick="ir('entrada')">+ Registrar</button>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table><thead><tr>
+            <th>Placa</th><th>Figura</th><th>Regional</th><th>Taller</th>
+            <th>Ingresó</th><th style="text-align:center">Días</th>
+            <th style="text-align:center">Horas fuera</th>
+            <th>Reemplazo asignado</th><th>Prioridad</th>
+          </tr></thead>
+          <tbody id="fuera-dash"><tr><td colspan="9" class="loading"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
       </div>
 
-      <div id="cl-dash">
-        <div class="loading">
-          <div class="spinner"></div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Checklists hoy</span><span class="badge b-gray" id="badge-cl">—</span></div>
+          <div id="cl-dash"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Alertas activas</span><span class="badge b-red" id="badge-al">0</span></div>
+          <div id="al-dash"><div class="loading"><div class="spinner"></div></div></div>
         </div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-hdr">
-        <span class="card-title">Alertas activas</span>
-        <span class="badge b-red" id="badge-al">0</span>
-      </div>
-
-      <div id="al-dash">
-        <div class="loading">
-          <div class="spinner"></div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-</div>
     <!-- DISPONIBILIDAD DETALLE -->
     <div id="page-disponibilidad" class="page">
       <div id="disp-detalle"><div class="loading"><div class="spinner"></div></div></div>
@@ -1097,7 +1028,7 @@ async function cargarFueraDash(){
   const tb=document.getElementById('fuera-dash');
   try{
     let q=db.from('eventos_mantenimiento')
-      .select('id,fecha_entrada,horas,prioridad,descripcion_trabajo,regional_id,vehiculos(id,placa,tipo,figura),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
+      .select('id,fecha_entrada,prioridad,descripcion_trabajo,regional_id,vehiculos(id,placa,tipo,figura),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
       .eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     const{data:ev,error}=await q;if(error)throw error;
@@ -1124,20 +1055,11 @@ async function cargarFueraDash(){
         <td style="font-weight:600">${e.vehiculos?.placa||'—'}</td>
         <td>${rNombre(e.regional_id)}</td>
         <td>${e.talleres?.nombre||'—'}</td>
-<td>${fmtF(e.fecha_entrada)}</td>
-
-<td style="text-align:center">
-  <span class="${clrDias(d)}">${d}d</span>
-</td>
-
-<td>
-  ${e.horas || '-'}
-</td>
-
-<td>
-  ${reem?`<span class="badge b-purple">${reem}</span>`:''}
-  <button class="btn btn-sm" style="margin-left:4px" onclick="asignarReemplazo('${e.id}','${e.vehiculos?.id||''}','${e.vehiculos?.placa||''}')">${reem?'Cambiar':'+ Asignar'}</button>
-</td>
+        <td>${fmtF(e.fecha_entrada)}</td>
+        <td style="text-align:center">
+          <span class="${clrDias(d)}">${d}d</span>
+        </td>
+        <td>
           ${reem?`<span class="badge b-purple">${reem}</span>`:''}
           <button class="btn btn-sm" style="margin-left:4px" onclick="asignarReemplazo('${e.id}','${e.vehiculos?.id||''}','${e.vehiculos?.placa||''}')">${reem?'Cambiar':'+ Asignar'}</button>
         </td>
