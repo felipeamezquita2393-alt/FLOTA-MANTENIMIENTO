@@ -294,6 +294,10 @@ tr:hover td{background:var(--bg2)}
   <div style="display:flex;align-items:center;gap:10px">
     <span style="font-size:12px;color:var(--text2)" id="nav-fecha"></span>
     <span style="font-size:11px;color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="nav-user"></span>
+    <button onclick="actualizarDashboard()" id="btn-refresh" title="Actualizar datos"
+      style="font-size:12px;padding:5px 10px;border:0.5px solid var(--border);border-radius:var(--r);background:transparent;cursor:pointer;color:var(--text2)">
+      ↻ <span id="refresh-cd">5:00</span>
+    </button>
     <button onclick="cerrarSesion()" style="font-size:12px;padding:5px 10px;border:0.5px solid var(--border);border-radius:var(--r);background:transparent;cursor:pointer;color:var(--text2)">Salir</button>
   </div>
 </nav>
@@ -339,11 +343,10 @@ tr:hover td{background:var(--bg2)}
         <div class="tbl-wrap">
           <table><thead><tr>
             <th>Placa</th><th>Figura</th><th>Regional</th><th>Taller</th>
-            <th>Ingresó</th><th style="text-align:center">Días</th>
-            <th style="text-align:center">Horas fuera</th>
+            <th>Ingresó</th><th style="text-align:center">Tiempo fuera</th>
             <th>Reemplazo asignado</th><th>Prioridad</th>
           </tr></thead>
-          <tbody id="fuera-dash"><tr><td colspan="9" class="loading"><div class="spinner"></div></td></tr></tbody>
+          <tbody id="fuera-dash"><tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr></tbody>
           </table>
         </div>
       </div>
@@ -1028,44 +1031,55 @@ async function cargarFueraDash(){
   const tb=document.getElementById('fuera-dash');
   try{
     let q=db.from('eventos_mantenimiento')
-      .select('id,fecha_entrada,prioridad,descripcion_trabajo,regional_id,vehiculos(id,placa,tipo,figura),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
+      .select('id,fecha_entrada,hora_entrada,prioridad,descripcion_trabajo,regional_id,vehiculos(id,placa,tipo,figura),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
       .eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     const{data:ev,error}=await q;if(error)throw error;
 
     // Reemplazos activos
-    let qr=db.from('reemplazos_activos').select('titular_id,reemplazo_id,vehiculos_terceros(placa)').eq('activo',true);
+    let qr=db.from('reemplazos_activos').select('titular_id,reemplazo_id').eq('activo',true);
     const{data:reemps}=await qr;
-    // Buscar placas de reemplazos
     const reempIds=(reemps||[]).map(r=>r.reemplazo_id).filter(Boolean);
     let placaMap={};
     if(reempIds.length){
       const{data:pvhs}=await db.from('vehiculos').select('id,placa').in('id',reempIds);
       (pvhs||[]).forEach(v=>placaMap[v.id]=v.placa);
     }
-    const rMap=new Map((reemps||[]).map(r=>[r.titular_id,placaMap[r.reemplazo_id]||'—']));
+    const rMap=new Map((reemps||[]).map(r=>[r.titular_id,{placa:placaMap[r.reemplazo_id]||'—',id:r.reemplazo_id}]));
 
     const bf=document.getElementById('badge-fuera');
     if((ev||[]).length){bf.textContent=(ev||[]).length;bf.style.display='';}else bf.style.display='none';
-    if(!(ev||[]).length){tb.innerHTML='<tr><td colspan="6" class="empty">Sin vehículos fuera ✓</td></tr>';return;}
+    if(!(ev||[]).length){tb.innerHTML='<tr><td colspan="8" class="empty">Sin vehículos fuera ✓</td></tr>';return;}
+
     tb.innerHTML=(ev||[]).map(e=>{
       const d=diasFuera(e.fecha_entrada);
       const reem=rMap.get(e.vehiculos?.id);
+      // Calcular tiempo fuera
+      const ini=e.hora_entrada
+        ? new Date(e.fecha_entrada+'T'+e.hora_entrada)
+        : new Date(e.fecha_entrada+'T00:00:00');
+      const totalH=Math.floor((new Date()-ini)/3600000);
+      const diasH=Math.floor(totalH/24);
+      const restoH=totalH%24;
+      const tiempoStr=e.hora_entrada
+        ? (diasH>0?`${diasH}d ${restoH}h`:`${totalH}h`)
+        : `${d}d`;
+      const tColor=d>=7?'var(--red)':d>=3?'var(--amber)':'var(--green)';
       return`<tr>
         <td style="font-weight:600">${e.vehiculos?.placa||'—'}</td>
-        <td>${rNombre(e.regional_id)}</td>
-        <td>${e.talleres?.nombre||'—'}</td>
-        <td>${fmtF(e.fecha_entrada)}</td>
-        <td style="text-align:center">
-          <span class="${clrDias(d)}">${d}d</span>
-        </td>
-        <td>
-          ${reem?`<span class="badge b-purple">${reem}</span>`:''}
-          <button class="btn btn-sm" style="margin-left:4px" onclick="asignarReemplazo('${e.id}','${e.vehiculos?.id||''}','${e.vehiculos?.placa||''}')">${reem?'Cambiar':'+ Asignar'}</button>
-        </td>
+        <td>${bFig(e.vehiculos?.figura||'titular')}</td>
+        <td style="font-size:12px">${rNombre(e.regional_id)}</td>
+        <td style="font-size:12px">${e.talleres?.nombre||'—'}</td>
+        <td style="font-size:12px">${fmtF(e.fecha_entrada)}${e.hora_entrada?'<br><span style="color:var(--text3);font-size:11px">'+e.hora_entrada+'</span>':''}</td>
+        <td style="text-align:center;font-weight:700;color:${tColor}">${tiempoStr}</td>
+        <td>${reem
+          ?`<span class="badge b-purple">🔄 ${reem.placa}</span> <button class="btn btn-sm" style="margin-left:4px" onclick="asignarReemplazo('${e.id}','${e.vehiculos?.id||''}','${e.vehiculos?.placa||''}')">Cambiar</button>`
+          :`<button class="btn btn-sm btn-amber" onclick="asignarReemplazo('${e.id}','${e.vehiculos?.id||''}','${e.vehiculos?.placa||''}')">+ Asignar</button>`
+        }</td>
+        <td>${bPrior(e.prioridad)}</td>
       </tr>`;
     }).join('');
-  }catch(e){tb.innerHTML=`<tr><td colspan="6" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
+  }catch(e){tb.innerHTML=`<tr><td colspan="8" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
 }
 
 // ── Disponibilidad detalle ──
@@ -2105,6 +2119,7 @@ async function guardarFicha(){
     numero_chasis:document.getElementById('fv-chasis').value||null,
     color:document.getElementById('fv-color').value||null,
     estado:document.getElementById('fv-estado').value,
+    camion_asociado_id:document.getElementById('fv-camion')?.value||null,
     observaciones:document.getElementById('fv-obs').value||null,
     activo:true,
     updated_at:new Date().toISOString(),
@@ -2257,6 +2272,35 @@ async function cargarDocumentos(){
       </tr>`;
     }).join('');
   }catch(e){tb.innerHTML=`<tr><td colspan="8" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
+}
+
+// ── Auto-refresh cada 5 minutos ────────────────────────────
+let _refreshTimer=null, _refreshSecs=300;
+
+function _startRefresh(){
+  clearInterval(_refreshTimer);
+  _refreshSecs=300; _updateCd();
+  _refreshTimer=setInterval(()=>{
+    _refreshSecs--;_updateCd();
+    if(_refreshSecs<=0){_refreshSecs=300;actualizarDashboard();}
+  },1000);
+}
+
+function _updateCd(){
+  const el=document.getElementById('refresh-cd');
+  if(!el)return;
+  const m=Math.floor(_refreshSecs/60), s=_refreshSecs%60;
+  el.textContent=`${m}:${s.toString().padStart(2,'0')}`;
+}
+
+async function actualizarDashboard(){
+  const btn=document.getElementById('btn-refresh');
+  if(btn){btn.disabled=true;btn.style.opacity='0.5';}
+  await cargarDashboard();
+  // Si estamos en fuera de servicio también actualizar
+  if(document.getElementById('page-fuera')?.classList.contains('active'))cargarFuera();
+  _refreshSecs=300;_updateCd();
+  if(btn){btn.disabled=false;btn.style.opacity='1';}
 }
 
 init();
