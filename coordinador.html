@@ -123,7 +123,13 @@ tr:hover td{background:var(--bg2)}
       <div class="form2">
         <div class="field"><label>Placa *</label><input type="text" id="fv-placa"></div>
         <div class="field"><label>Tipo</label>
-          <select id="fv-tipo"><option value="camion">Camión</option><option value="remolque">Remolque</option><option value="furgon">Furgón</option><option value="camioneta">Camioneta</option></select></div>
+          <select id="fv-tipo" onchange="onTipoVh()">
+  <option value="camion">Camión</option>
+  <option value="bitrain">Bitrain</option>
+  <option value="remolque">Remolque</option>
+  <option value="furgon">Furgón</option>
+  <option value="camioneta">Camioneta</option>
+</select></div>
         <div class="field"><label>Regional</label><select id="fv-reg"></select></div>
         <div class="field"><label>Figura base</label>
           <select id="fv-figura"><option value="titular">Titular</option><option value="backup">Backup/Respaldo</option></select></div>
@@ -587,7 +593,12 @@ tr:hover td{background:var(--bg2)}
           <span class="card-title">Flota completa</span>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <select id="fl-reg" onchange="cargarFlota()" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--r)"><option value="">Todas las regionales</option></select>
-            <select id="fl-tipo" onchange="cargarFlota()" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--r)"><option value="">Todos los tipos</option><option value="camion">Camión</option><option value="remolque">Remolque</option></select>
+            <select id="fl-tipo" onchange="cargarFlota()" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--r)">
+  <option value="">Todos los tipos</option>
+  <option value="camion">Camión</option>
+  <option value="bitrain">Bitrain</option>
+  <option value="remolque">Remolque</option>
+</select>
             <select id="fl-fig" onchange="cargarFlota()" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--r)"><option value="">Titular y backup</option><option value="titular">Titulares</option><option value="backup">Backups</option></select>
             <select id="fl-act" onchange="cargarFlota()" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--r)"><option value="true">Activos</option><option value="false">Retirados</option><option value="">Todos</option></select>
             <span id="fl-count" style="font-size:12px;color:var(--text2)"></span>
@@ -754,6 +765,7 @@ function fmtM(v){return v?'$'+Number(v).toLocaleString('es-CO'):'—';}
 function lTaller(t){return{taller_propio:'Taller propio',concesionario:'Concesionario',patios:'Patios',siniestro:'Siniestro'}[t]||t;}
 function bPrior(p){if(p==='urgente')return'<span class="badge b-red">Urgente</span>';if(p==='programado')return'<span class="badge b-blue">Programado</span>';return'<span class="badge b-gray">Normal</span>';}
 function bFig(f){if(f==='backup')return'<span class="badge b-purple">Respaldo</span>';if(f==='tercero')return'<span class="badge b-blue">Tercero</span>';return'<span class="badge b-green">Titular</span>';}
+function bTipo(t){const m={camion:'Camión',bitrain:'Bitrain',remolque:'Remolque',furgon:'Furgón',camioneta:'Camioneta'};return m[t]||t||'—';}
 function bEst(e){const m={disponible:'<span class="badge b-green">Disponible</span>',taller_propio:'<span class="badge b-amber">Taller propio</span>',concesionario:'<span class="badge b-blue">Concesionario</span>',en_patios:'<span class="badge b-amber">En patios</span>',siniestro:'<span class="badge b-red">Siniestro</span>',inactivo:'<span class="badge b-gray">Inactivo</span>'};return m[e]||`<span class="badge b-gray">${e}</span>`;}
 function bPuntaje(p){if(p===3)return'<span class="badge b-red" style="font-size:10px">3-Inmediata</span>';if(p===2)return'<span class="badge b-amber" style="font-size:10px">2-Semana</span>';return'<span class="badge b-green" style="font-size:10px">1-OK</span>';}
 function bCrit(c){if(c==='ALTA')return'<span class="badge b-red" style="font-weight:700">⚠ ALTA</span>';if(c==='MEDIA ALTA')return'<span class="badge b-amber">MEDIA ALTA</span>';if(c==='MEDIA BAJA')return'<span class="badge b-blue">MEDIA BAJA</span>';return'<span class="badge b-green">BAJA</span>';}
@@ -1381,7 +1393,7 @@ async function cargarFlota(){
     if(!data?.length){tb.innerHTML='<tr><td colspan="7" class="empty">Sin vehículos</td></tr>';return;}
     tb.innerHTML=data.map(v=>`<tr>
       <td style="font-weight:600">${v.placa}</td>
-      <td>${v.tipo||'—'}</td>
+      <td>${bTipo(v.tipo)}</td>
       <td>${rNombre(v.regional_id)}</td>
       <td>${bFig(v.figura)}</td>
       <td>${bEst(v.estado)}</td>
@@ -1412,18 +1424,33 @@ function abrirNuevoVh(){
   document.getElementById('modal-vh').classList.add('open');
 }
 
+function onTipoVh(){
+  const tipo=document.getElementById('fv-tipo').value;
+  const wrapCamion=document.getElementById('wrap-camion-asoc');
+  const wrapRemolque=document.getElementById('wrap-remolque-asoc');
+  if(wrapCamion) wrapCamion.style.display=tipo==='remolque'?'block':'none';
+  if(wrapRemolque) wrapRemolque.style.display=tipo==='bitrain'?'block':'none';
+}
+
 async function cargarCamionesModal(){
-  // Poblar selector de camion en modal-ficha (fv-camion)
-  const sel=document.getElementById('fv-camion');
-  if(!sel)return;
-  sel.innerHTML='<option value="">Ninguno</option>';
-  let q=db.from('vehiculos').select('id,placa,regional_id').eq('tipo','camion').eq('activo',true).order('placa');
-  if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
-  const{data}=await q;
-  (data||[]).forEach(v=>{
-    const o=new Option(`${v.placa}`,v.id);
-    sel.add(o);
-  });
+  // Selector camion para remolques
+  const selC=document.getElementById('fv-camion');
+  if(selC){
+    selC.innerHTML='<option value="">Ninguno</option>';
+    let q=db.from('vehiculos').select('id,placa').eq('activo',true).in('tipo',['camion','bitrain']).order('placa');
+    if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
+    const{data}=await q;
+    (data||[]).forEach(v=>selC.add(new Option(v.placa,v.id)));
+  }
+  // Selector remolque para bitrain
+  const selR=document.getElementById('fv-remolque');
+  if(selR){
+    selR.innerHTML='<option value="">Ninguno</option>';
+    let q=db.from('vehiculos').select('id,placa').eq('activo',true).eq('tipo','remolque').order('placa');
+    if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
+    const{data}=await q;
+    (data||[]).forEach(v=>selR.add(new Option(v.placa,v.id)));
+  }
 }
 
 function editarVh(v){
@@ -2050,6 +2077,7 @@ async function abrirFicha(vhId){
   document.getElementById('fv-id').value          = v.id;
   document.getElementById('fv-placa').value        = v.placa||'';
   document.getElementById('fv-tipo').value         = v.tipo||'camion';
+  onTipoVh();
   document.getElementById('fv-figura').value       = v.figura||'titular';
   document.getElementById('fv-marca').value        = v.marca||'';
   document.getElementById('fv-modelo').value       = v.modelo_anio||'';
