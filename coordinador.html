@@ -857,10 +857,11 @@ tr:hover td{background:var(--bg2)}
           <div class="tbl-wrap">
             <table><thead><tr>
               <th>Fecha</th><th>Día</th><th>Placa</th><th>Regional</th>
-              <th style="text-align:center">Horas base</th>
               <th style="text-align:center">Horas fuera</th>
+              <th style="text-align:center">Reemplazo activo</th>
+              <th style="text-align:center">Horas afectan</th>
               <th style="text-align:center">% Disp.</th>
-              <th>Motivo (taller)</th>
+              <th>Motivo</th>
             </tr></thead>
             <tbody id="dop-diario-body">
               <tr><td colspan="8" class="empty">Consulta primero un periodo</td></tr>
@@ -2587,24 +2588,43 @@ async function cargarDispOperativa(){
   const hasta=document.getElementById('dop-hasta').value;
   if(!desde||!hasta){toast('Selecciona un rango de fechas',true);return;}
 
-  // Mostrar loading
   document.getElementById('dop-cons-body').innerHTML='<tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr>';
   document.getElementById('dop-kpis').style.display='grid';
 
   try{
-    // 1. Traer vehículos titulares activos
-    let qv=db.from('vehiculos').select('id,placa,regional_id,figura,tipo').eq('activo',true).eq('figura','titular').neq('tipo','remolque');
+    // 1. Titulares activos
+    let qv=db.from('vehiculos').select('id,placa,regional_id').eq('activo',true).eq('figura','titular').neq('tipo','remolque');
     if(REGIONAL_ID)qv=qv.eq('regional_id',REGIONAL_ID);
-    const{data:vhs,error:evErr}=await qv;
-    if(evErr)throw evErr;
+    const{data:vhs,error:vErr}=await qv;
+    if(vErr)throw vErr;
 
-    // 2. Traer eventos de mantenimiento en el periodo (con margen)
+    // 2. Eventos de mantenimiento en el periodo
     let qe=db.from('eventos_mantenimiento')
-      .select('id,vehiculo_id,fecha_entrada,hora_entrada,fecha_salida,hora_salida,estado,regional_id,tipos_mantenimiento(nombre)')
+      .select('id,vehiculo_id,fecha_entrada,hora_entrada,fecha_salida,hora_salida,regional_id,tipos_mantenimiento(nombre)')
       .lte('fecha_entrada',hasta)
       .or(`fecha_salida.gte.${desde},fecha_salida.is.null`);
     if(REGIONAL_ID)qe=qe.eq('regional_id',REGIONAL_ID);
     const{data:eventos}=await qe;
+
+    // 3. Reemplazos: cuándo estuvo activo un backup para cada titular
+    const evIds=(eventos||[]).map(e=>e.id).filter(Boolean);
+    let reemplazos=[];
+    if(evIds.length){
+      const{data:rr}=await db.from('reemplazos_activos')
+        .select('evento_id,titular_id,fecha_inicio,fecha_fin,activo')
+        .in('evento_id',evIds);
+      reemplazos=rr||[];
+    }
+
+    // Mapa: titular_id → lista de periodos con reemplazo activo
+    const reempPorTitular={};
+    reemplazos.forEach(r=>{
+      if(!reempPorTitular[r.titular_id])reempPorTitular[r.titular_id]=[];
+      reempPorTitular[r.titular_id].push({
+        ini:r.fecha_inicio,
+        fin:r.fecha_fin||hasta, // si sigue activo, fin = hasta
+      });
+    });
 
     // Agrupar eventos por vehiculo_id
     const evPorVh={};
@@ -2613,28 +2633,52 @@ async function cargarDispOperativa(){
       evPorVh[e.vehiculo_id].push(e);
     });
 
-    // 3. Calcular por vehículo
+    // 4. Calcular por vehículo considerando reemplazos
     const diasHabiles=diasHabilesEntre(desde,hasta);
     const resultado=[];
-    let totalBase=0,totalFuera=0,totalDisp=0;
+    let totalBase=0,totalFueraReal=0,totalDisp=0;
 
     for(const vh of (vhs||[])){
       const evs=evPorVh[vh.id]||[];
-      let vhBase=0,vhFuera=0,vhDias=0;
-      const detalles=[];
+      const periRemp=reempPorTitular[vh.id]||[];
+      let vhBase=0,vhFueraReal=0,vhDias=0;
+      const detallesDias=[];
 
       for(const dia of diasHabiles){
-        const hfuera=calcHorasFueraEnDia(evs,dia);
         const hbase=22;
-        const hdisp=Math.max(0,hbase-hfuera);
         vhBase+=hbase;
-        vhFuera+=hfuera;
         vhDias++;
-        if(hfuera>0){
-          detalles.push({fecha:dia,hbase,hfuera,hdisp,pct:Math.round(hdisp/hbase*1000)/10});
+
+        // Horas que el titular estuvo fuera ese día
+        const hFueraBruta=calcHorasFueraEnDia(evs,dia);
+
+        if(hFueraBruta===0){
+          // Disponible todo el día
+          detallesDias.push({fecha:dia,hbase,hfuera:0,hfueraReal:0,conReemplazo:false,motivo:'—'});
+          continue;
         }
+
+        // Verificar si tenía reemplazo activo ese día
+        const tieneReem=periRemp.some(r=>r.ini<=dia&&r.fin>=dia);
+
+        // Si tiene reemplazo, las horas fuera NO afectan la disponibilidad
+        const hFueraReal=tieneReem?0:hFueraBruta;
+        vhFueraReal+=hFueraReal;
+
+        // Motivo del evento ese día
+        const ev=evs.find(e=>e.fecha_entrada<=dia&&(!e.fecha_salida||e.fecha_salida>=dia));
+        const motivo=ev?.tipos_mantenimiento?.nombre||'En taller';
+
+        detallesDias.push({
+          fecha:dia,hbase,
+          hfuera:hFueraBruta,
+          hfueraReal:hFueraReal,
+          conReemplazo:tieneReem,
+          motivo
+        });
       }
-      const vhDisp=vhBase-vhFuera;
+
+      const vhDisp=vhBase-vhFueraReal;
       const pct=vhBase>0?Math.round(vhDisp/vhBase*1000)/10:100;
       resultado.push({
         placa:vh.placa,
@@ -2642,13 +2686,17 @@ async function cargarDispOperativa(){
         regional:rNombre(vh.regional_id),
         dias:vhDias,
         hbase:Math.round(vhBase*10)/10,
-        hfuera:Math.round(vhFuera*10)/10,
+        hfueraBruta:Math.round(evs.reduce((s,e)=>{
+          // suma bruta aproximada
+          return s;
+        },0)*10)/10,
+        hfuera:Math.round(vhFueraReal*10)/10,
         hdisp:Math.round(vhDisp*10)/10,
         pct,
-        detalles
+        detallesDias
       });
       totalBase+=vhBase;
-      totalFuera+=vhFuera;
+      totalFueraReal+=vhFueraReal;
       totalDisp+=vhDisp;
     }
 
@@ -2656,20 +2704,21 @@ async function cargarDispOperativa(){
     window._dopResultado=resultado;
     window._dopDiasHabiles=diasHabiles;
     window._dopEvPorVh=evPorVh;
+    window._dopReempPorTitular=reempPorTitular;
 
     // KPIs
     const pctGlobal=totalBase>0?Math.round(totalDisp/totalBase*1000)/10:0;
     document.getElementById('dop-pct').textContent=pctGlobal+'%';
     document.getElementById('dop-pct').style.color=pctGlobal>=90?'var(--green)':pctGlobal>=80?'var(--amber)':'var(--red)';
     document.getElementById('dop-hbase').textContent=Math.round(totalBase)+'h';
-    document.getElementById('dop-hfuera').textContent=Math.round(totalFuera*10)/10+'h';
+    document.getElementById('dop-hfuera').textContent=Math.round(totalFueraReal*10)/10+'h';
     document.getElementById('dop-dias').textContent=diasHabiles.length;
     document.getElementById('dop-periodo-label').textContent=fmtF(desde)+' → '+fmtF(hasta);
 
     // Tabla consolidado
     const tb=document.getElementById('dop-cons-body');
     document.getElementById('dop-cons-count').textContent=`${resultado.length} vehículos`;
-    if(!resultado.length){tb.innerHTML='<tr><td colspan="7" class="empty">Sin vehículos titulares registrados</td></tr>';return;}
+    if(!resultado.length){tb.innerHTML='<tr><td colspan="7" class="empty">Sin vehículos titulares</td></tr>';return;}
 
     tb.innerHTML=resultado.map(v=>{
       const color=v.pct>=90?'var(--green)':v.pct>=80?'var(--amber)':'var(--red)';
@@ -2678,14 +2727,14 @@ async function cargarDispOperativa(){
         <td style="font-size:12px">${v.regional}</td>
         <td style="text-align:center">${v.dias}</td>
         <td style="text-align:center">${v.hbase}h</td>
-        <td style="text-align:center;color:var(--red)">${v.hfuera}h</td>
+        <td style="text-align:center;color:${v.hfuera>0?'var(--red)':'var(--text3)'}">${v.hfuera}h</td>
         <td style="text-align:center;color:var(--green)">${v.hdisp}h</td>
         <td>
           <div style="display:flex;align-items:center;gap:8px">
             <div style="flex:1;height:8px;background:var(--bg2);border-radius:4px;overflow:hidden">
-              <div style="width:${v.pct}%;height:100%;background:${color};border-radius:4px"></div>
+              <div style="width:${v.pct}%;height:100%;background:${color};border-radius:4px;transition:width .5s"></div>
             </div>
-            <span style="font-weight:700;color:${color};width:48px;text-align:right">${v.pct}%</span>
+            <span style="font-weight:700;color:${color};width:50px;text-align:right">${v.pct}%</span>
           </div>
         </td>
       </tr>`;
@@ -2700,7 +2749,7 @@ async function cargarDetalleDiario(){
   const resultado=window._dopResultado||[];
   const vhFiltro=document.getElementById('dop-vh-filtro')?.value;
   const tb=document.getElementById('dop-diario-body');
-  if(!resultado.length){tb.innerHTML='<tr><td colspan="8" class="empty">Consulta primero un periodo</td></tr>';return;}
+  if(!resultado.length){tb.innerHTML='<tr><td colspan="9" class="empty">Consulta primero un periodo</td></tr>';return;}
 
   // Poblar selector vehículos
   const selFiltro=document.getElementById('dop-vh-filtro');
@@ -2709,41 +2758,37 @@ async function cargarDetalleDiario(){
   }
 
   const dias=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  const diasHabiles=window._dopDiasHabiles||[];
-  const evPorVh=window._dopEvPorVh||{};
-
-  // Generar filas solo días con novedad o muestra de todo
   const filas=[];
   const vhsMostrar=vhFiltro?resultado.filter(v=>v.vehiculo_id===vhFiltro):resultado;
 
   for(const v of vhsMostrar){
-    const evs=evPorVh[v.vehiculo_id]||[];
-    for(const dia of diasHabiles){
-      const hfuera=calcHorasFueraEnDia(evs,dia);
-      if(hfuera>0||vhFiltro){ // Si filtra por vh mostrar todos los días, si no solo con novedades
-        const hbase=22;
-        const hdisp=Math.max(0,hbase-hfuera);
-        const pct=Math.round(hdisp/hbase*1000)/10;
-        const d=new Date(dia+'T00:00:00');
-        const color=pct>=90?'var(--green)':pct>=80?'var(--amber)':'var(--red)';
-        // Buscar evento activo ese día
-        const ev=evs.find(e=>e.fecha_entrada<=dia&&(!e.fecha_salida||e.fecha_salida>=dia));
-        filas.push(`<tr>
-          <td>${fmtF(dia)}</td>
-          <td><span class="badge b-blue" style="font-size:10px">${dias[d.getDay()]}</span></td>
-          <td style="font-weight:600">${v.placa}</td>
-          <td style="font-size:12px">${v.regional}</td>
-          <td style="text-align:center">${hbase}h</td>
-          <td style="text-align:center;color:var(--red);font-weight:600">${hfuera}h</td>
-          <td style="text-align:center;font-weight:700;color:${color}">${pct}%</td>
-          <td style="font-size:12px;color:var(--text2)">${ev?ev.tipos_mantenimiento?.nombre||'En taller':'—'}</td>
-        </tr>`);
-      }
+    // Usar detallesDias pre-calculados (ya consideran reemplazos)
+    const diasConNovedad=(v.detallesDias||[]).filter(d=>d.hfuera>0);
+    const diasMostrar=vhFiltro?v.detallesDias||[]:diasConNovedad;
+
+    for(const d of diasMostrar){
+      const fecha=new Date(d.fecha+'T00:00:00');
+      const hdisp=Math.max(0,22-d.hfueraReal);
+      const pct=Math.round(hdisp/22*1000)/10;
+      const color=pct>=90?'var(--green)':pct>=80?'var(--amber)':'var(--red)';
+      filas.push(`<tr>
+        <td>${fmtF(d.fecha)}</td>
+        <td><span class="badge b-blue" style="font-size:10px">${dias[fecha.getDay()]}</span></td>
+        <td style="font-weight:600">${v.placa}</td>
+        <td style="font-size:12px">${v.regional}</td>
+        <td style="text-align:center;color:var(--amber);font-weight:600">${d.hfuera}h</td>
+        <td style="text-align:center">${d.conReemplazo
+          ?'<span class="badge b-green">✓ Cubierto</span>'
+          :'<span class="badge b-red">Sin cobertura</span>'}</td>
+        <td style="text-align:center;color:${d.hfueraReal>0?'var(--red)':'var(--green)'};font-weight:600">${d.hfueraReal}h</td>
+        <td style="text-align:center;font-weight:700;color:${color}">${pct}%</td>
+        <td style="font-size:12px;color:var(--text2)">${d.motivo}</td>
+      </tr>`);
     }
   }
 
   if(!filas.length){
-    tb.innerHTML='<tr><td colspan="8" class="empty">Sin novedades en el periodo — todos los vehículos con 100% disponibilidad</td></tr>';
+    tb.innerHTML='<tr><td colspan="9" class="empty">Sin novedades en el periodo ✓</td></tr>';
   }else{
     tb.innerHTML=filas.join('');
   }
