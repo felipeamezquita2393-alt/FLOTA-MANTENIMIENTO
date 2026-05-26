@@ -231,6 +231,41 @@ tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
+<!-- Modal editar evento de mantenimiento -->
+<div class="modal-overlay" id="modal-evento">
+  <div class="modal">
+    <div class="modal-title">Editar registro de taller</div>
+    <input type="hidden" id="ev-id">
+    <div class="form2">
+      <div class="field"><label>Vehículo</label><input type="text" id="ev-placa" disabled style="opacity:0.6"></div>
+      <div class="field"><label>Taller</label><select id="ev-taller"></select></div>
+      <div class="field"><label>Tipo mantenimiento</label><select id="ev-tipomant"></select></div>
+      <div class="field"><label>Categoría</label>
+        <select id="ev-tipo">
+          <option value="preventivo">Preventivo</option>
+          <option value="correctivo">Correctivo</option>
+          <option value="siniestro">Siniestro</option>
+        </select></div>
+      <div class="field"><label>Fecha entrada *</label><input type="date" id="ev-fecha-ent"></div>
+      <div class="field"><label>Hora entrada</label><input type="time" id="ev-hora-ent"></div>
+      <div class="field"><label>Fecha salida</label><input type="date" id="ev-fecha-sal"></div>
+      <div class="field"><label>Hora salida</label><input type="time" id="ev-hora-sal"></div>
+      <div class="field"><label>Prioridad</label>
+        <select id="ev-prior">
+          <option value="normal">Normal</option>
+          <option value="urgente">Urgente</option>
+          <option value="programado">Programado</option>
+        </select></div>
+      <div class="field"><label>Costo (COP)</label><input type="number" id="ev-costo" placeholder="0"></div>
+      <div class="field full"><label>Descripción</label><textarea id="ev-desc" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-evento')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarEvento()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal retirar -->
 <div class="modal-overlay" id="modal-ret">
   <div class="modal">
@@ -2794,6 +2829,78 @@ async function cargarDetalleDiario(){
   }
 }
 
+
+
+// ── EDITAR EVENTO DE MANTENIMIENTO ─────────────────────────
+async function editarEvento(eventoId){
+  try{
+    const{data:ev,error}=await db.from('eventos_mantenimiento')
+      .select('*,vehiculos(placa),talleres(id,nombre),tipos_mantenimiento(id,nombre)')
+      .eq('id',eventoId).single();
+    if(error||!ev){toast('Error cargando evento',true);return;}
+
+    document.getElementById('ev-id').value=ev.id;
+    document.getElementById('ev-placa').value=ev.vehiculos?.placa||'—';
+    document.getElementById('ev-tipo').value=ev.tipo||'correctivo';
+    document.getElementById('ev-prior').value=ev.prioridad||'normal';
+    document.getElementById('ev-fecha-ent').value=ev.fecha_entrada||'';
+    document.getElementById('ev-hora-ent').value=ev.hora_entrada||'';
+    document.getElementById('ev-fecha-sal').value=ev.fecha_salida||'';
+    document.getElementById('ev-hora-sal').value=ev.hora_salida||'';
+    document.getElementById('ev-costo').value=ev.costo||'';
+    document.getElementById('ev-desc').value=ev.descripcion_trabajo||'';
+
+    // Poblar talleres
+    const{data:tal}=await db.from('talleres').select('id,nombre,tipo').eq('activo',true).order('nombre');
+    const selT=document.getElementById('ev-taller');
+    selT.innerHTML=(tal||[]).map(t=>`<option value="${t.id}" ${t.id===ev.taller_id?'selected':''}>${t.nombre}</option>`).join('');
+
+    // Poblar tipos mantenimiento
+    const{data:tms}=await db.from('tipos_mantenimiento').select('id,nombre').eq('activo',true).order('nombre');
+    const selTM=document.getElementById('ev-tipomant');
+    selTM.innerHTML=(tms||[]).map(m=>`<option value="${m.id}" ${m.id===ev.tipo_mantenimiento_id?'selected':''}>${m.nombre}</option>`).join('');
+
+    document.getElementById('modal-evento').classList.add('open');
+  }catch(e){toast('Error: '+e.message,true);}
+}
+
+async function guardarEvento(){
+  const id=document.getElementById('ev-id').value;
+  const fechaEnt=document.getElementById('ev-fecha-ent').value;
+  const fechaSal=document.getElementById('ev-fecha-sal').value;
+  if(!fechaEnt){toast('La fecha de entrada es obligatoria',true);return;}
+
+  // Calcular días en taller si tiene fecha salida
+  let diasEnTaller=null;
+  if(fechaSal&&fechaEnt){
+    diasEnTaller=Math.max(0,Math.ceil((new Date(fechaSal)-new Date(fechaEnt))/86400000));
+  }
+
+  try{
+    const{error}=await db.from('eventos_mantenimiento').update({
+      taller_id:document.getElementById('ev-taller').value,
+      tipo_mantenimiento_id:document.getElementById('ev-tipomant').value,
+      tipo:document.getElementById('ev-tipo').value,
+      prioridad:document.getElementById('ev-prior').value,
+      fecha_entrada:fechaEnt,
+      hora_entrada:document.getElementById('ev-hora-ent').value||null,
+      fecha_salida:fechaSal||null,
+      hora_salida:document.getElementById('ev-hora-sal').value||null,
+      costo:parseFloat(document.getElementById('ev-costo').value)||null,
+      descripcion_trabajo:document.getElementById('ev-desc').value||null,
+      dias_en_taller:diasEnTaller,
+      updated_at:new Date().toISOString(),
+    }).eq('id',id);
+    if(error)throw error;
+    toast('Evento actualizado ✓');
+    cerrarModal('modal-evento');
+    // Refrescar la vista activa
+    const pageActiva=document.querySelector('.page.active')?.id;
+    if(pageActiva==='page-historial')cargarHistorial();
+    if(pageActiva==='page-fuera')cargarFuera();
+    cargarFueraDash();
+  }catch(e){toast('Error: '+e.message,true);}
+}
 
 init();
 </script>
