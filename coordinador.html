@@ -1428,7 +1428,7 @@ async function cargarFuera(){
         <td style="display:flex;gap:4px;flex-wrap:wrap">
           <button class="btn btn-sm" onclick="irRet('${e.id}')">Retorno</button>
           <button class="btn btn-sm btn-amber" onclick="asignarReemplazo('${e.id}','${e.vehiculos?.id||''}','${e.vehiculos?.placa||''}')">Reemplazo</button>
-          <button class="btn btn-sm" onclick="editarEvento('${e.id}')">✏️</button>
+          <button class="btn btn-sm" onclick="editarEv(event)" data-id="${e.id}">✏️</button>
         </td>
       </tr>`;
     }).join('');
@@ -1494,10 +1494,7 @@ async function cargarHistorial(){
         <td style="text-align:center">${e.dias_en_taller!=null?`<strong>${e.dias_en_taller}d</strong>`:'<span style="color:var(--amber)">Hoy</span>'}</td>
         <td style="text-align:center">${horas}</td>
         <td style="text-align:right">${fmtM(e.costo)}</td>
-        <td style="display:flex;gap:4px;padding:6px 10px">
-          <button class="btn btn-sm" onclick="verTL('${e.vehiculos?.id||\'\'\}','${e.vehiculos?.placa||\'\'\}')">Ver</button>
-          <button class="btn btn-sm" onclick="editarEvento('${e.id}')">✏️</button>
-        </td>
+        <td><button class="btn btn-sm" style="margin-right:4px" onclick="verHistTL(event)" data-vid="${e.vehiculos?.id||''}" data-placa="${e.vehiculos?.placa||''}">Ver</button> <button class="btn btn-sm" onclick="editarEv(event)" data-id="${e.id}">✏️</button></td>
       </tr>`;
     }).join('');
   }catch(e){tb.innerHTML=`<tr><td colspan="9" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
@@ -2836,6 +2833,15 @@ async function cargarDetalleDiario(){
 
 
 // ── EDITAR EVENTO DE MANTENIMIENTO ─────────────────────────
+// Wrappers para manejar clicks desde template literals
+function verHistTL(ev){
+  const btn=ev.currentTarget;
+  verTL(btn.dataset.vid, btn.dataset.placa);
+}
+function editarEv(ev){
+  editarEvento(ev.currentTarget.dataset.id);
+}
+
 async function editarEvento(eventoId){
   try{
     const{data:ev,error}=await db.from('eventos_mantenimiento')
