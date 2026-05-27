@@ -2898,7 +2898,6 @@ async function guardarEvento(){
       hora_salida:document.getElementById('ev-hora-sal').value||null,
       costo:parseFloat(document.getElementById('ev-costo').value)||null,
       descripcion_trabajo:document.getElementById('ev-desc').value||null,
-      dias_en_taller:diasEnTaller,
       updated_at:new Date().toISOString(),
     }).eq('id',id);
     if(error)throw error;
