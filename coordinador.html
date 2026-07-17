@@ -241,7 +241,7 @@ tr:hover td{background:var(--bg2)}
       <div class="field"><label>Taller</label><select id="ev-taller"></select></div>
       <div class="field"><label>Tipo mantenimiento</label><select id="ev-tipomant"></select></div>
       <div class="field"><label>Categoría</label>
-        <select id="ev-tipo">
+        <select id="ev-tipo" onchange="document.getElementById('ev-perdida-wrap').style.display=this.value==='siniestro'?'block':'none'">
           <option value="preventivo">Preventivo</option>
           <option value="correctivo">Correctivo</option>
           <option value="siniestro">Siniestro</option>
@@ -258,6 +258,12 @@ tr:hover td{background:var(--bg2)}
         </select></div>
       <div class="field"><label>Costo (COP)</label><input type="number" id="ev-costo" placeholder="0"></div>
       <div class="field full"><label>Descripción</label><textarea id="ev-desc" rows="2"></textarea></div>
+      <div id="ev-perdida-wrap" style="display:none">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 0">
+          <input type="checkbox" id="ev-perdida" style="width:16px;height:16px;accent-color:var(--red)">
+          <span style="font-size:13px;font-weight:500;color:var(--red-dark)">⚠ Pérdida total</span>
+        </label>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="cerrarModal('modal-evento')">Cancelar</button>
@@ -675,12 +681,22 @@ tr:hover td{background:var(--bg2)}
             <div class="field"><label>Taller *</label><select id="e-taller" required><option value="">Seleccionar...</option></select></div>
             <div class="field"><label>Tipo mantenimiento *</label><select id="e-tipomant" required><option value="">Seleccionar...</option></select></div>
             <div class="field"><label>Categoría *</label>
-              <select id="e-tipo" required><option value="preventivo">Preventivo</option><option value="correctivo">Correctivo</option><option value="siniestro">Siniestro</option></select></div>
+              <select id="e-tipo" required onchange="document.getElementById('e-perdida-wrap').style.display=this.value==='siniestro'?'block':'none'">
+                <option value="preventivo">Preventivo</option>
+                <option value="correctivo">Correctivo</option>
+                <option value="siniestro">Siniestro</option>
+              </select></div>
             <div class="field"><label>Fecha entrada *</label><input type="date" id="e-fecha" required></div>
             <div class="field"><label>Hora entrada</label><input type="time" id="e-hora"></div>
             <div class="field"><label>Prioridad</label>
               <select id="e-prior"><option value="normal">Normal</option><option value="urgente">Urgente</option><option value="programado">Programado</option></select></div>
             <div class="field full"><label>Descripción</label><textarea id="e-desc" placeholder="Motivo de la entrada..."></textarea></div>
+            <div class="field full" id="e-perdida-wrap" style="display:none">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                <input type="checkbox" id="e-perdida" style="width:16px;height:16px;accent-color:var(--red)">
+                <span style="font-size:13px;font-weight:500;color:var(--red-dark)">⚠ Pérdida total — el vehículo no regresa a operación</span>
+              </label>
+            </div>
           </div>
           <!-- Sección reemplazo -->
           <div style="background:var(--bg2);border-radius:var(--r);padding:14px;margin-bottom:14px">
@@ -1226,7 +1242,7 @@ async function cargarFueraDash(){
   const tb=document.getElementById('fuera-dash');
   try{
     let q=db.from('eventos_mantenimiento')
-      .select('id,fecha_entrada,hora_entrada,prioridad,descripcion_trabajo,regional_id,vehiculos(id,placa,tipo,figura),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
+      .select('id,fecha_entrada,hora_entrada,prioridad,descripcion_trabajo,tipo,perdida_total,regional_id,vehiculos(id,placa,tipo,figura),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
       .eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     const{data:ev,error}=await q;if(error)throw error;
@@ -1260,8 +1276,8 @@ async function cargarFueraDash(){
         ? (diasH>0?`${diasH}d ${restoH}h`:`${totalH}h`)
         : `${d}d`;
       const tColor=d>=7?'var(--red)':d>=3?'var(--amber)':'var(--green)';
-      return`<tr>
-        <td style="font-weight:600">${e.vehiculos?.placa||'—'}</td>
+      return`<tr style="${e.perdida_total?'background:rgba(198,40,40,0.06);border-left:3px solid var(--red)':''}">
+        <td style="font-weight:600;color:${e.perdida_total?'var(--red)':'inherit'}">${e.vehiculos?.placa||'—'}${e.perdida_total?' <span class="badge b-red" style="font-size:10px">PÉRDIDA TOTAL</span>':''}</td>
         <td>${bFig(e.vehiculos?.figura||'titular')}</td>
         <td style="font-size:12px">${rNombre(e.regional_id)}</td>
         <td style="font-size:12px">${e.talleres?.nombre||'—'}</td>
@@ -1564,9 +1580,15 @@ async function cargarFlota(){
     if(fF)q=q.eq('figura',fF);
     if(aF!=='')q=q.eq('activo',aF==='true');
     const{data,error}=await q;if(error)throw error;
-    document.getElementById('fl-count').textContent=`${(data||[]).length} vehículos`;
-    if(!data?.length){tb.innerHTML='<tr><td colspan="7" class="empty">Sin vehículos</td></tr>';return;}
-    tb.innerHTML=data.map(v=>`<tr>
+    // Cargar también terceros activos
+    let qt=db.from('vehiculos_terceros').select('id,placa,empresa,tipo,regional_id,activo,fecha_inicio,fecha_fin').eq('activo',true);
+    const rFt=document.getElementById('fl-reg').value||REGIONAL_ID;
+    if(rFt)qt=qt.eq('regional_id',rFt);
+    const{data:terc}=await qt;
+    const totalVhs=(data||[]).length+(terc||[]).length;
+    document.getElementById('fl-count').textContent=`${totalVhs} vehículos`;
+    if(!(data?.length)&&!(terc?.length)){tb.innerHTML='<tr><td colspan="7" class="empty">Sin vehículos</td></tr>';return;}
+    const filasPropios=(data||[]).map(v=>`<tr>
       <td style="font-weight:600">${v.placa}</td>
       <td>${bTipo(v.tipo)}</td>
       <td>${rNombre(v.regional_id)}</td>
@@ -1578,7 +1600,19 @@ async function cargarFlota(){
         <button class="btn btn-sm" onclick="verTL('${v.id}','${v.placa}');ir('historial')">Hist.</button>
         ${v.activo?`<button class="btn btn-sm btn-red" onclick="abrirRetiro('${v.id}','${v.placa}')">Retirar</button>`:`<button class="btn btn-sm btn-green" onclick="reactivar('${v.id}','${v.placa}')">Reactivar</button>`}
       </td>
-    </tr>`).join('');
+    </tr>`);
+
+    const filasTerceros=(terc||[]).map(t=>`<tr style="background:rgba(21,101,192,0.04)">
+      <td style="font-weight:600">${t.placa} <span class="badge b-blue" style="font-size:10px">Tercero</span></td>
+      <td>${t.tipo||'—'}</td>
+      <td>${rNombre(t.regional_id)}</td>
+      <td><span class="badge b-blue">Tercero</span></td>
+      <td><span class="badge b-green">Activo</span></td>
+      <td style="font-size:12px;color:var(--text2)">${t.empresa||'—'}</td>
+      <td><button class="btn btn-sm btn-red" onclick="desactivarTercero('${t.id}','${t.placa}')">Desactivar</button></td>
+    </tr>`);
+
+    tb.innerHTML=[...filasPropios,...filasTerceros].join('');
   }catch(e){tb.innerHTML=`<tr><td colspan="7" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
 }
 
@@ -1748,6 +1782,7 @@ async function submitEntrada(e){
       hora_entrada:document.getElementById('e-hora').value||null,
       descripcion_trabajo:document.getElementById('e-desc').value,
       estado:'en_proceso',
+      perdida_total:document.getElementById('e-perdida')?.checked||false,
     }).select().single();
     if(error)throw error;
 
@@ -2858,6 +2893,9 @@ async function editarEvento(eventoId){
     document.getElementById('ev-id').value=ev.id;
     document.getElementById('ev-placa').value=ev.vehiculos?.placa||'—';
     document.getElementById('ev-tipo').value=ev.tipo||'correctivo';
+    const esPerdida=ev.tipo==='siniestro';
+    document.getElementById('ev-perdida-wrap').style.display=esPerdida?'block':'none';
+    if(document.getElementById('ev-perdida'))document.getElementById('ev-perdida').checked=ev.perdida_total||false;
     document.getElementById('ev-prior').value=ev.prioridad||'normal';
     document.getElementById('ev-fecha-ent').value=ev.fecha_entrada||'';
     document.getElementById('ev-hora-ent').value=ev.hora_entrada||'';
@@ -2904,6 +2942,7 @@ async function guardarEvento(){
       hora_salida:document.getElementById('ev-hora-sal').value||null,
       costo:parseFloat(document.getElementById('ev-costo').value)||null,
       descripcion_trabajo:document.getElementById('ev-desc').value||null,
+      perdida_total:document.getElementById('ev-perdida')?.checked||false,
       updated_at:new Date().toISOString(),
     }).eq('id',id);
     if(error)throw error;
