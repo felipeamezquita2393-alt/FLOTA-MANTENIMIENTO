@@ -287,6 +287,43 @@ tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
+<!-- Modal editar tercero -->
+<div class="modal-overlay" id="modal-edit-tc">
+  <div class="modal">
+    <div class="modal-title" id="edit-tc-title">Editar vehículo tercero</div>
+    <input type="hidden" id="etc-id">
+    <div class="form2">
+      <div class="field"><label>Placa *</label><input type="text" id="etc-placa"></div>
+      <div class="field"><label>Empresa</label><input type="text" id="etc-empresa"></div>
+      <div class="field"><label>Tipo</label>
+        <select id="etc-tipo">
+          <option value="camion">Camión</option>
+          <option value="tractomula">Tractomula</option>
+          <option value="minimula">Minimula</option>
+          <option value="furgon">Furgón</option>
+          <option value="camioneta">Camioneta</option>
+        </select></div>
+      <div class="field"><label>Regional</label><select id="etc-reg"></select></div>
+      <div class="field"><label>Figura *</label>
+        <select id="etc-figura" onchange="document.getElementById('etc-titular-wrap').style.display=this.value==='backup'?'block':'none'">
+          <option value="titular">Titular — cuenta en disponibilidad</option>
+          <option value="backup">Respaldo — reemplaza a un titular</option>
+        </select></div>
+      <div class="field" id="etc-titular-wrap" style="display:none">
+        <label>Titular que reemplaza</label>
+        <select id="etc-titular-vh"><option value="">Seleccionar titular...</option></select>
+      </div>
+      <div class="field"><label>Fecha inicio</label><input type="date" id="etc-inicio"></div>
+      <div class="field"><label>Fecha fin estimada</label><input type="date" id="etc-fin"></div>
+      <div class="field full"><label>Observaciones</label><textarea id="etc-obs"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-edit-tc')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarTerceroEdit()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal tercero -->
 <div class="modal-overlay" id="modal-tercero">
   <div class="modal">
@@ -1618,7 +1655,10 @@ async function cargarFlota(){
       <td>${t.figura==='backup'?'<span class="badge b-amber">Respaldo</span>':'<span class="badge b-green">Titular</span>'}</td>
       <td><span class="badge b-green">Activo</span></td>
       <td style="font-size:12px;color:var(--text2)">${t.empresa||'—'}</td>
-      <td><button class="btn btn-sm btn-red" onclick="desactivarTercero('${t.id}','${t.placa}')">Desactivar</button></td>
+      <td style="display:flex;gap:4px;padding:6px 10px">
+        <button class="btn btn-sm" onclick="editarTercero('${t.id}')">Editar</button>
+        <button class="btn btn-sm btn-red" onclick="desactivarTercero('${t.id}','${t.placa}')">Desactivar</button>
+      </td>
     </tr>`);
 
     tb.innerHTML=[...filasPropios,...filasTerceros].join('');
@@ -1932,7 +1972,10 @@ async function cargarTerceros(){
       <td>${fmtF(t.fecha_inicio)}</td>
       <td>${fmtF(t.fecha_fin)}</td>
       <td style="font-size:12px;color:var(--text2)">${t.observaciones||'—'}</td>
-      <td><button class="btn btn-sm btn-red" onclick="desactivarTercero('${t.id}','${t.placa}')">Desactivar</button></td>
+      <td style="display:flex;gap:4px">
+        <button class="btn btn-sm" onclick="editarTercero('${t.id}')">Editar</button>
+        <button class="btn btn-sm btn-red" onclick="desactivarTercero('${t.id}','${t.placa}')">Desactivar</button>
+      </td>
     </tr>`).join('');
   }catch(e){tb.innerHTML=`<tr><td colspan="8" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
 }
@@ -2974,6 +3017,62 @@ async function guardarEvento(){
     if(pageActiva==='page-historial')cargarHistorial();
     if(pageActiva==='page-fuera')cargarFuera();
     cargarFueraDash();
+  }catch(e){toast('Error: '+e.message,true);}
+}
+
+
+// ── EDITAR TERCERO ──────────────────────────────────────────
+async function editarTercero(tcId){
+  const{data:t,error}=await db.from('vehiculos_terceros').select('*').eq('id',tcId).single();
+  if(error||!t){toast('Error cargando tercero',true);return;}
+
+  document.getElementById('etc-id').value=t.id;
+  document.getElementById('etc-placa').value=t.placa||'';
+  document.getElementById('etc-empresa').value=t.empresa||'';
+  document.getElementById('etc-tipo').value=t.tipo||'camion';
+  document.getElementById('etc-figura').value=t.figura||'titular';
+  document.getElementById('etc-inicio').value=t.fecha_inicio||'';
+  document.getElementById('etc-fin').value=t.fecha_fin||'';
+  document.getElementById('etc-obs').value=t.observaciones||'';
+  document.getElementById('edit-tc-title').textContent=`Editar tercero — ${t.placa}`;
+  document.getElementById('etc-titular-wrap').style.display=t.figura==='backup'?'block':'none';
+
+  // Regional
+  const selR=document.getElementById('etc-reg');
+  while(selR.options.length)selR.remove(0);
+  regionales.forEach(r=>{const o=new Option(r.nombre,r.id);if(r.id===t.regional_id)o.selected=true;selR.add(o);});
+
+  // Titulares para reemplazo
+  let qt=db.from('vehiculos').select('id,placa,regional_id').eq('activo',true).eq('figura','titular').neq('tipo','remolque').order('placa');
+  if(REGIONAL_ID)qt=qt.eq('regional_id',REGIONAL_ID);
+  const{data:tits}=await qt;
+  const selTit=document.getElementById('etc-titular-vh');
+  selTit.innerHTML='<option value="">Seleccionar titular...</option>'+(tits||[]).map(v=>`<option value="${v.id}" ${v.id===t.titular_reemplazado_id?'selected':''}>${v.placa} [${rNombre(v.regional_id)}]</option>`).join('');
+
+  document.getElementById('modal-edit-tc').classList.add('open');
+}
+
+async function guardarTerceroEdit(){
+  const id=document.getElementById('etc-id').value;
+  const figura=document.getElementById('etc-figura').value;
+  const titularId=document.getElementById('etc-titular-vh').value||null;
+  try{
+    const{error}=await db.from('vehiculos_terceros').update({
+      placa:document.getElementById('etc-placa').value.trim().toUpperCase(),
+      empresa:document.getElementById('etc-empresa').value||null,
+      tipo:document.getElementById('etc-tipo').value,
+      regional_id:document.getElementById('etc-reg').value,
+      figura,
+      titular_reemplazado_id:figura==='backup'?titularId:null,
+      fecha_inicio:document.getElementById('etc-inicio').value||null,
+      fecha_fin:document.getElementById('etc-fin').value||null,
+      observaciones:document.getElementById('etc-obs').value||null,
+    }).eq('id',id);
+    if(error)throw error;
+    toast('Tercero actualizado ✓');
+    cerrarModal('modal-edit-tc');
+    cargarTerceros();
+    cargarKPIs();
   }catch(e){toast('Error: '+e.message,true);}
 }
 
