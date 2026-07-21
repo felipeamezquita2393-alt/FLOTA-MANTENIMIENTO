@@ -1627,7 +1627,7 @@ async function cargarFlota(){
     if(aF!=='')q=q.eq('activo',aF==='true');
     const{data,error}=await q;if(error)throw error;
     // Cargar también terceros activos
-    let qt=db.from('vehiculos_terceros').select('id,placa,empresa,tipo,regional_id,activo,fecha_inicio,fecha_fin').eq('activo',true);
+    let qt=db.from('vehiculos_terceros').select('id,placa,empresa,tipo,regional_id,activo,fecha_inicio,fecha_fin,figura,titular_reemplazado_id').eq('activo',true);
     const rFt=document.getElementById('fl-reg').value||REGIONAL_ID;
     if(rFt)qt=qt.eq('regional_id',rFt);
     const{data:terc}=await qt;
@@ -1952,7 +1952,7 @@ async function guardarTercero(){
 async function cargarTerceros(){
   const tb=document.getElementById('terceros-body');
   try{
-    let q=db.from('vehiculos_terceros').select('*').eq('activo',true).order('fecha_inicio',{ascending:false});
+    let q=db.from('vehiculos_terceros').select('id,placa,empresa,tipo,regional_id,activo,fecha_inicio,fecha_fin,figura,titular_reemplazado_id,observaciones').eq('activo',true).order('fecha_inicio',{ascending:false});
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     const{data,error}=await q;if(error)throw error;
     if(!data?.length){tb.innerHTML='<tr><td colspan="8" class="empty">Sin vehículos terceros activos</td></tr>';return;}
