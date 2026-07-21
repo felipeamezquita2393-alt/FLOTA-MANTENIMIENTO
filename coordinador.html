@@ -296,7 +296,7 @@ tr:hover td{background:var(--bg2)}
       <div class="field"><label>Placa *</label><input type="text" id="tc-placa" placeholder="Ej: ABC123"></div>
       <div class="field"><label>Empresa</label><input type="text" id="tc-empresa" placeholder="Nombre empresa"></div>
       <div class="field"><label>Tipo</label>
-        <select id="tc-tipo">
+        <select id="tc-tipo" onchange="">
           <option value="camion">Camión</option>
           <option value="tractomula">Tractomula</option>
           <option value="minimula">Minimula</option>
@@ -306,6 +306,15 @@ tr:hover td{background:var(--bg2)}
       <div class="field"><label>Regional</label><select id="tc-reg"></select></div>
       <div class="field"><label>Fecha inicio</label><input type="date" id="tc-inicio"></div>
       <div class="field"><label>Fecha fin estimada</label><input type="date" id="tc-fin"></div>
+      <div class="field"><label>Figura *</label>
+        <select id="tc-figura">
+          <option value="titular">Titular — cuenta en disponibilidad</option>
+          <option value="backup">Respaldo — reemplaza a un titular</option>
+        </select></div>
+      <div class="field" id="tc-titular-wrap" style="display:none">
+        <label>Titular que reemplaza</label>
+        <select id="tc-titular-vh"><option value="">Seleccionar titular...</option></select>
+      </div>
       <div class="field full"><label>Observaciones</label><textarea id="tc-obs" placeholder="Motivo de activación..."></textarea></div>
     </div>
     <div class="modal-footer">
@@ -759,7 +768,7 @@ tr:hover td{background:var(--bg2)}
         <div class="tbl-wrap">
           <table><thead><tr>
             <th>Placa</th><th>Empresa</th><th>Regional</th><th>Tipo</th>
-            <th>Inicio</th><th>Fin estimado</th><th>Observaciones</th><th></th>
+            <th>Figura</th><th>Inicio</th><th>Fin estimado</th><th>Observaciones</th><th></th>
           </tr></thead>
           <tbody id="terceros-body"><tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr></tbody>
           </table>
@@ -1606,7 +1615,7 @@ async function cargarFlota(){
       <td style="font-weight:600">${t.placa} <span class="badge b-blue" style="font-size:10px">Tercero</span></td>
       <td>${t.tipo||'—'}</td>
       <td>${rNombre(t.regional_id)}</td>
-      <td><span class="badge b-blue">Tercero</span></td>
+      <td>${t.figura==='backup'?'<span class="badge b-amber">Respaldo</span>':'<span class="badge b-green">Titular</span>'}</td>
       <td><span class="badge b-green">Activo</span></td>
       <td style="font-size:12px;color:var(--text2)">${t.empresa||'—'}</td>
       <td><button class="btn btn-sm btn-red" onclick="desactivarTercero('${t.id}','${t.placa}')">Desactivar</button></td>
@@ -1881,10 +1890,14 @@ async function guardarTercero(){
   const placa=document.getElementById('tc-placa').value.trim().toUpperCase();
   if(!placa){toast('Ingresa la placa',true);return;}
   try{
+    const figura=document.getElementById('tc-figura').value;
+    const titularId=document.getElementById('tc-titular-vh').value||null;
     const{error}=await db.from('vehiculos_terceros').insert({
       placa,empresa:document.getElementById('tc-empresa').value,
       tipo:document.getElementById('tc-tipo').value,
       regional_id:document.getElementById('tc-reg').value,
+      figura,
+      titular_reemplazado_id:figura==='backup'?titularId:null,
       activo:true,
       fecha_inicio:document.getElementById('tc-inicio').value,
       fecha_fin:document.getElementById('tc-fin').value||null,
@@ -1903,11 +1916,19 @@ async function cargarTerceros(){
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     const{data,error}=await q;if(error)throw error;
     if(!data?.length){tb.innerHTML='<tr><td colspan="8" class="empty">Sin vehículos terceros activos</td></tr>';return;}
+    // Enriquecer con placa del titular reemplazado
+    const titIds=data.filter(t=>t.titular_reemplazado_id).map(t=>t.titular_reemplazado_id);
+    let titMap={};
+    if(titIds.length){
+      const{data:tvhs}=await db.from('vehiculos').select('id,placa').in('id',titIds);
+      (tvhs||[]).forEach(v=>titMap[v.id]=v.placa);
+    }
     tb.innerHTML=data.map(t=>`<tr>
       <td style="font-weight:600">${t.placa}</td>
       <td>${t.empresa||'—'}</td>
       <td>${rNombre(t.regional_id)}</td>
       <td>${t.tipo||'—'}</td>
+      <td>${t.figura==='backup'?`<span class="badge b-amber">Respaldo${t.titular_reemplazado_id?' → '+titMap[t.titular_reemplazado_id]:''}` +'</span>':'<span class="badge b-green">Titular</span>'}</td>
       <td>${fmtF(t.fecha_inicio)}</td>
       <td>${fmtF(t.fecha_fin)}</td>
       <td style="font-size:12px;color:var(--text2)">${t.observaciones||'—'}</td>
