@@ -167,7 +167,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="check-group-title">📍 KM y combustible</div>
         <div class="field" style="margin-bottom:10px">
           <label>Kilometraje actual *</label>
-          <input type="number" id="cl-km" placeholder="Ej: 82300" oninput="actualizarProgreso()">
+          <input type="number" id="cl-km" placeholder="Ej: 82300 (opcional para terceros)" oninput="actualizarProgreso()">
         </div>
         <div class="field" style="margin-bottom:0">
           <label>Nivel de combustible</label>
@@ -269,12 +269,28 @@ async function cargarVehiculos(){
   search.style.display='block';
   search.value='';
 
+  // Vehículos propios
   const{data:vhs}=await db.from('vehiculos')
     .select('id,placa,tipo,figura,estado,km_actuales,regional_id')
     .eq('regional_id',regId).eq('activo',true).neq('tipo','remolque')
     .order('placa');
 
-  todosVhs=vhs||[];
+  // Vehículos terceros activos
+  const{data:terc}=await db.from('vehiculos_terceros')
+    .select('id,placa,tipo,figura,regional_id')
+    .eq('regional_id',regId).eq('activo',true)
+    .order('placa');
+
+  // Unificar — marcar terceros con flag
+  const vhsPropios=(vhs||[]).map(v=>({...v,esTercero:false}));
+  const vhsTerceros=(terc||[]).map(t=>({
+    id:t.id, placa:t.placa, tipo:t.tipo||'camion',
+    figura:t.figura||'titular', estado:'disponible',
+    km_actuales:null, regional_id:t.regional_id,
+    esTercero:true
+  }));
+
+  todosVhs=[...vhsPropios,...vhsTerceros].sort((a,b)=>a.placa.localeCompare(b.placa));
 
   // Verificar cuáles ya tienen checklist hoy
   const{data:cls}=await db.from('checklists').select('vehiculo_id').eq('fecha',hoy());
@@ -291,7 +307,7 @@ function renderVehiculos(vhs,yaEnviaron){
     const enTaller=v.estado!=='disponible';
     return`<div class="placa-item" onclick="seleccionarVh('${v.id}')">
       <div>
-        <div class="placa-num">${v.placa}</div>
+        <div class="placa-num">${v.placa}${v.esTercero?' <span style="font-size:11px;background:#E3F2FD;color:#1565C0;padding:2px 6px;border-radius:99px;font-weight:500">Tercero</span>':''}</div>
         <div class="placa-info">${v.tipo||'Camión'} • ${v.figura==='backup'?'Respaldo':'Titular'}${enTaller?' • En taller':''}</div>
       </div>
       <div class="placa-badge">
@@ -321,8 +337,8 @@ async function seleccionarVh(vid){
   estado={};
 
   // Reset UI
-  document.getElementById('cl-placa').textContent=vh.placa;
-  document.getElementById('cl-info').textContent=`${vh.tipo||'Camión'} • ${vh.figura==='backup'?'Respaldo':'Titular'} • KM actual: ${vh.km_actuales?vh.km_actuales.toLocaleString('es-CO'):'-'}`;
+  document.getElementById('cl-placa').textContent=vh.placa+(vh.esTercero?' (Tercero)':'');
+  document.getElementById('cl-info').textContent=`${vh.tipo||'Camión'} • ${vh.figura==='backup'?'Respaldo':'Titular'}${!vh.esTercero&&vh.km_actuales?' • KM: '+vh.km_actuales.toLocaleString('es-CO'):''}`;
   document.getElementById('cl-km').value='';
   document.getElementById('cl-combustible').value='';
   document.getElementById('cl-obs').value='';
@@ -370,7 +386,7 @@ async function enviarChecklist(){
   const km=document.getElementById('cl-km').value;
 
   if(!conductor){alert('Por favor ingresa tu nombre.');return;}
-  if(!km){alert('Por favor ingresa el kilometraje.');return;}
+  if(!km&&!vehiculoActual.esTercero){alert('Por favor ingresa el kilometraje.');return;}
 
   // Verificar que todos los ítems estén marcados
   const sinMarcar=ITEMS.filter(k=>estado[k]===undefined);
@@ -416,8 +432,10 @@ async function enviarChecklist(){
     const{error}=await db.from('checklists').insert(registro);
     if(error)throw error;
 
-    // Actualizar KM del vehículo
-    await db.from('vehiculos').update({km_actuales:parseInt(km),updated_at:new Date().toISOString()}).eq('id',vehiculoActual.id);
+    // Actualizar KM del vehículo (solo si no es tercero)
+    if(!vehiculoActual.esTercero && km){
+      await db.from('vehiculos').update({km_actuales:parseInt(km),updated_at:new Date().toISOString()}).eq('id',vehiculoActual.id);
+    }
 
     // Calcular y guardar criticidad desde el frontend
     try{
