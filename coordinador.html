@@ -455,10 +455,11 @@ tr:hover td{background:var(--bg2)}
         <div class="tbl-wrap">
           <table><thead><tr>
             <th>Placa</th><th>Figura</th><th>Regional</th><th>Taller</th>
+            <th>Tipo mantenimiento</th>
             <th>Ingresó</th><th style="text-align:center">Tiempo fuera</th>
             <th>Reemplazo asignado</th><th>Prioridad</th>
           </tr></thead>
-          <tbody id="fuera-dash"><tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr></tbody>
+          <tbody id="fuera-dash"><tr><td colspan="9" class="loading"><div class="spinner"></div></td></tr></tbody>
           </table>
         </div>
       </div>
@@ -1078,7 +1079,7 @@ async function init(){
 
 async function cargarDashboard(){
   // Mostrar loading rápido
-  document.getElementById('fuera-dash').innerHTML='<tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr>';
+  document.getElementById('fuera-dash').innerHTML='<tr><td colspan="9" class="loading"><div class="spinner"></div></td></tr>';
   document.getElementById('cl-dash').innerHTML='<div class="loading"><div class="spinner"></div></div>';
   document.getElementById('al-dash').innerHTML='<div class="loading"><div class="spinner"></div></div>';
   // Cargar todo en paralelo
@@ -1248,7 +1249,7 @@ async function cargarChecklists(){
 }
 
 function verChecklist(c){
-  const LABELS={soat:'SOAT',tecnomecanica:'Tecnicomecánica',luces:'Luces',llantas:'Llantas',nivel_aceite:'Nivel aceite',nivel_agua:'Nivel agua',sin_fugas:'Sin fugas',frenos:'Frenos',extintor:'Extintor',botiquin:'Botiquín',cinturon:'Cinturón',plataforma:'Plataforma',termo_refrigeracion:'Termo refrigeración',furgon_interno:'Furgón interno'};
+  const LABELS={soat:'SOAT',tecnomecanica:'Tecnicomecánica',luces:'Luces',llantas:'Llantas',nivel_aceite:'Nivel aceite',nivel_agua:'Nivel agua',sin_fugas:'Sin fugas',frenos:'Frenos',pito_reversa:'Pito de reversa',extintor:'Extintor',botiquin:'Botiquín',cinturon:'Cinturón',plataforma:'Plataforma',termo_refrigeracion:'Termo refrigeración',furgon_interno:'Furgón interno'};
   document.getElementById('modal-cl-title').textContent=`Checklist — ${c.vehiculos?.placa||'—'} · ${fmtF(c.fecha)}`;
   const items=Object.entries(LABELS).map(([k,label])=>{
     const val=c[k];
@@ -1327,6 +1328,7 @@ async function cargarFueraDash(){
         <td>${bFig(e.vehiculos?.figura||'titular')}</td>
         <td style="font-size:12px">${rNombre(e.regional_id)}</td>
         <td style="font-size:12px">${e.talleres?.nombre||'—'}</td>
+        <td style="font-size:12px">${e.tipos_mantenimiento?.nombre||'—'}</td>
         <td style="font-size:12px">${fmtF(e.fecha_entrada)}${e.hora_entrada?'<br><span style="color:var(--text3);font-size:11px">'+e.hora_entrada+'</span>':''}</td>
         <td style="text-align:center;font-weight:700;color:${tColor}">${tiempoStr}</td>
         <td>${reem
