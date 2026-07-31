@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FlotaOps — Coordinador</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -430,6 +431,7 @@ tr:hover td{background:var(--bg2)}
     <div class="snav-item" data-page="terceros" onclick="ir('terceros')"><span>Vehículos terceros</span></div>
     <div class="snav-item" data-page="documentos" onclick="ir('documentos')"><span>Documentos</span><span class="badge b-red" id="badge-docs" style="display:none"></span></div>
     <div class="snav-item" data-page="disp-operativa" onclick="ir('disp-operativa')"><span>Disponibilidad op.</span></div>
+    <div class="snav-item" data-page="reportes" onclick="ir('reportes')"><span>Reportes</span></div>
   </nav>
 
   <main class="main">
@@ -977,6 +979,59 @@ tr:hover td{background:var(--bg2)}
 
     </div>
 
+  <!-- REPORTES -->
+    <div id="page-reportes" class="page">
+      <div class="card">
+        <div class="card-hdr"><span class="card-title">Reporte de checklists</span></div>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px">
+          Genera un informe Excel con todos los checklists realizados en el rango de fechas seleccionado.
+        </p>
+        <div class="form2">
+          <div class="field"><label>Desde *</label><input type="date" id="rep-desde"></div>
+          <div class="field"><label>Hasta *</label><input type="date" id="rep-hasta"></div>
+          <div class="field"><label>Regional</label>
+            <select id="rep-regional">
+              <option value="">Todas las regionales</option>
+            </select>
+          </div>
+          <div class="field"><label>Estado</label>
+            <select id="rep-estado">
+              <option value="">Todos</option>
+              <option value="fallas">Con fallas</option>
+              <option value="ok">Sin fallas</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <button class="btn btn-primary" onclick="generarReporteChecklist()" id="btn-rep-cl">
+            ⬇ Descargar Excel — Checklists
+          </button>
+          <button class="btn" onclick="previsualizarChecklist()">
+            👁 Previsualizar
+          </button>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div class="card" id="rep-preview-card" style="display:none">
+        <div class="card-hdr">
+          <span class="card-title">Previsualización</span>
+          <span id="rep-count" style="font-size:12px;color:var(--text2)"></span>
+        </div>
+        <div class="tbl-wrap">
+          <table><thead><tr>
+            <th>Fecha</th><th>Placa</th><th>Regional</th><th>Conductor</th>
+            <th>KM</th><th>Combustible</th><th>Fallas</th><th>Ítems con falla</th>
+          </tr></thead>
+          <tbody id="rep-body"><tr><td colspan="8" class="empty">Sin datos</td></tr></tbody>
+          </table>
+        </div>
+        <div style="margin-top:14px">
+          <button class="btn btn-primary" onclick="generarReporteChecklist()">⬇ Descargar Excel</button>
+        </div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -1048,6 +1103,7 @@ function ir(page){
   if(page==='terceros')cargarTerceros();
   if(page==='documentos')cargarDocumentos();
   if(page==='disp-operativa')initDispOperativa();
+  if(page==='reportes')initReportes();
 }
 function onFiltro(){REGIONAL_ID=USER_ROL==='gerente'?(document.getElementById('filtro-regional').value||null):REGIONAL_ID;cargarDashboard();}
 
@@ -3076,6 +3132,147 @@ async function guardarTerceroEdit(){
     cargarTerceros();
     cargarKPIs();
   }catch(e){toast('Error: '+e.message,true);}
+}
+
+
+// ── REPORTES ─────────────────────────────────────────────────
+const LABELS_CL = {
+  soat:'SOAT', tecnomecanica:'Tecnicomecánica', luces:'Luces',
+  llantas:'Llantas', nivel_aceite:'Nivel aceite', nivel_agua:'Nivel agua',
+  sin_fugas:'Sin fugas', frenos:'Frenos', pito_reversa:'Pito reversa',
+  extintor:'Extintor', botiquin:'Botiquín', cinturon:'Cinturón',
+  plataforma:'Plataforma', termo_refrigeracion:'Termo refrigeración',
+  furgon_interno:'Furgón interno'
+};
+
+function initReportes(){
+  document.getElementById('rep-desde').value=hace30();
+  document.getElementById('rep-hasta').value=hoy();
+  // Poblar regional
+  const sel=document.getElementById('rep-regional');
+  while(sel.options.length>1)sel.remove(1);
+  regionales.forEach(r=>sel.add(new Option(r.nombre,r.id)));
+  if(REGIONAL_ID)sel.value=REGIONAL_ID;
+  document.getElementById('rep-preview-card').style.display='none';
+}
+
+async function fetchChecklists(){
+  const desde=document.getElementById('rep-desde').value;
+  const hasta=document.getElementById('rep-hasta').value;
+  const regF=document.getElementById('rep-regional').value;
+  const estF=document.getElementById('rep-estado').value;
+  if(!desde||!hasta){toast('Selecciona un rango de fechas',true);return null;}
+
+  let q=db.from('checklists')
+    .select('*,vehiculos(placa,tipo,figura)')
+    .gte('fecha',desde).lte('fecha',hasta)
+    .order('fecha',{ascending:false});
+  if(regF)q=q.eq('regional_id',regF);
+  else if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
+  if(estF==='fallas')q=q.eq('tiene_fallas',true);
+  if(estF==='ok')q=q.eq('tiene_fallas',false);
+
+  const{data,error}=await q;
+  if(error){toast('Error: '+error.message,true);return null;}
+  return data||[];
+}
+
+async function previsualizarChecklist(){
+  const data=await fetchChecklists();
+  if(!data)return;
+  const card=document.getElementById('rep-preview-card');
+  card.style.display='block';
+  document.getElementById('rep-count').textContent=`${data.length} registros`;
+  const tb=document.getElementById('rep-body');
+  if(!data.length){tb.innerHTML='<tr><td colspan="8" class="empty">Sin registros en este rango</td></tr>';return;}
+  tb.innerHTML=data.map(c=>{
+    const fallas=Object.entries(LABELS_CL).filter(([k])=>c[k]===false).map(([,v])=>v);
+    return`<tr>
+      <td>${fmtF(c.fecha)}</td>
+      <td style="font-weight:600">${c.vehiculos?.placa||'—'}</td>
+      <td style="font-size:12px">${rNombre(c.regional_id)}</td>
+      <td>${c.conductor_nombre||'—'}</td>
+      <td>${c.km_inicio?c.km_inicio.toLocaleString('es-CO')+' km':'—'}</td>
+      <td>${c.combustible||'—'}</td>
+      <td>${fallas.length>0?`<span class="badge b-red">${fallas.length} falla(s)</span>`:'<span class="badge b-green">OK</span>'}</td>
+      <td style="font-size:12px;color:var(--text2)">${fallas.join(', ')||'—'}</td>
+    </tr>`;
+  }).join('');
+  card.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+async function generarReporteChecklist(){
+  const btn=document.getElementById('btn-rep-cl');
+  btn.disabled=true;btn.textContent='Generando...';
+  try{
+    const data=await fetchChecklists();
+    if(!data||!data.length){toast('Sin datos para exportar',true);btn.disabled=false;btn.textContent='⬇ Descargar Excel — Checklists';return;}
+
+    const desde=document.getElementById('rep-desde').value;
+    const hasta=document.getElementById('rep-hasta').value;
+
+    // Hoja 1: Detalle de checklists
+    const filas=data.map(c=>{
+      const row={
+        'Fecha':c.fecha,
+        'Placa':c.vehiculos?.placa||'—',
+        'Tipo vehículo':c.vehiculos?.tipo||'—',
+        'Figura':c.vehiculos?.figura||'—',
+        'Regional':rNombre(c.regional_id),
+        'Conductor':c.conductor_nombre||'—',
+        'KM inicio':c.km_inicio||'',
+        'Combustible':c.combustible||'',
+        'Con fallas':c.tiene_fallas?'SÍ':'NO',
+        'Hora registro':c.created_at?new Date(c.created_at).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}):'—',
+      };
+      // Agregar cada ítem
+      Object.entries(LABELS_CL).forEach(([k,label])=>{
+        row[label]=c[k]===true?'BIEN':c[k]===false?'FALLA':'N/A';
+      });
+      row['Observaciones']=c.observacion||'';
+      return row;
+    });
+
+    // Hoja 2: Resumen de fallas
+    const fallasPorItem={};
+    Object.entries(LABELS_CL).forEach(([k,label])=>{
+      fallasPorItem[label]={item:label,fallas:0,total:0,pct:0};
+    });
+    data.forEach(c=>{
+      Object.entries(LABELS_CL).forEach(([k,label])=>{
+        if(c[k]!==null&&c[k]!==undefined){
+          fallasPorItem[label].total++;
+          if(c[k]===false)fallasPorItem[label].fallas++;
+        }
+      });
+    });
+    const resumen=Object.values(fallasPorItem).map(r=>({
+      'Ítem':r.item,
+      'Total revisiones':r.total,
+      'Fallas':r.fallas,
+      '% Fallas':r.total>0?Math.round(r.fallas/r.total*1000)/10+'%':'0%',
+    })).sort((a,b)=>b['Fallas']-a['Fallas']);
+
+    // Crear workbook
+    const wb=XLSX.utils.book_new();
+
+    // Hoja detalle
+    const ws1=XLSX.utils.json_to_sheet(filas);
+    // Ancho de columnas
+    ws1['!cols']=[{wch:12},{wch:10},{wch:12},{wch:10},{wch:16},{wch:22},{wch:10},{wch:12},{wch:10},{wch:10},...Object.keys(LABELS_CL).map(()=>({wch:12})),{wch:30}];
+    XLSX.utils.book_append_sheet(wb,ws1,'Checklists');
+
+    // Hoja resumen
+    const ws2=XLSX.utils.json_to_sheet(resumen);
+    ws2['!cols']=[{wch:25},{wch:18},{wch:10},{wch:12}];
+    XLSX.utils.book_append_sheet(wb,ws2,'Resumen fallas');
+
+    // Descargar
+    const fname=`Checklists_${desde}_${hasta}.xlsx`;
+    XLSX.writeFile(wb,fname);
+    toast('Reporte descargado ✓');
+  }catch(e){toast('Error: '+e.message,true);}
+  finally{btn.disabled=false;btn.textContent='⬇ Descargar Excel — Checklists';}
 }
 
 init();
