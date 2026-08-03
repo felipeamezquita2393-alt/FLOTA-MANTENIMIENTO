@@ -329,7 +329,10 @@ async function seleccionarVh(vid){
   if(!vh)return;
 
   // Verificar si ya tiene checklist hoy
-  const{data:ya}=await db.from('checklists').select('id').eq('vehiculo_id',vid).eq('fecha',hoy()).single();
+  const yaQ = vehiculoActual?.esTercero
+    ? db.from('checklists').select('id').eq('vehiculo_tercero_id',vid).eq('fecha',hoy())
+    : db.from('checklists').select('id').eq('vehiculo_id',vid).eq('fecha',hoy());
+  const{data:ya}=await yaQ.single();
   if(ya){
     if(!confirm(`${vh.placa} ya tiene un checklist enviado hoy. ¿Deseas enviar otro?`))return;
   }
