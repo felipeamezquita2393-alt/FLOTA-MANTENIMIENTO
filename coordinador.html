@@ -981,20 +981,17 @@ tr:hover td{background:var(--bg2)}
 
   <!-- REPORTES -->
     <div id="page-reportes" class="page">
+
+      <!-- Filtros globales -->
       <div class="card">
-        <div class="card-hdr"><span class="card-title">Reporte de checklists</span></div>
-        <p style="font-size:13px;color:var(--text2);margin-bottom:16px">
-          Genera un informe Excel con todos los checklists realizados en el rango de fechas seleccionado.
-        </p>
+        <div class="card-hdr"><span class="card-title">Filtros globales de reportes</span></div>
         <div class="form2">
           <div class="field"><label>Desde *</label><input type="date" id="rep-desde"></div>
           <div class="field"><label>Hasta *</label><input type="date" id="rep-hasta"></div>
           <div class="field"><label>Regional</label>
-            <select id="rep-regional">
-              <option value="">Todas las regionales</option>
-            </select>
+            <select id="rep-regional"><option value="">Todas las regionales</option></select>
           </div>
-          <div class="field"><label>Estado</label>
+          <div class="field"><label>Estado checklist</label>
             <select id="rep-estado">
               <option value="">Todos</option>
               <option value="fallas">Con fallas</option>
@@ -1002,20 +999,78 @@ tr:hover td{background:var(--bg2)}
             </select>
           </div>
         </div>
-        <div style="display:flex;gap:10px;margin-top:8px">
-          <button class="btn btn-primary" onclick="generarReporteChecklist()" id="btn-rep-cl">
-            ⬇ Descargar Excel — Checklists
-          </button>
-          <button class="btn" onclick="previsualizarChecklist()">
-            👁 Previsualizar
-          </button>
-        </div>
       </div>
 
-      <!-- Preview -->
+      <!-- Tarjetas de reportes -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+
+        <!-- Checklists -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:8px">📋 Checklists</div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:14px">Detalle de todos los checklists del periodo con ítems y fallas. Incluye resumen de fallas por ítem.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-primary btn-sm" onclick="generarReporteChecklist()" id="btn-rep-cl">⬇ Descargar Excel</button>
+            <button class="btn btn-sm" onclick="previsualizarChecklist()">👁 Previsualizar</button>
+          </div>
+        </div>
+
+        <!-- Historial mantenimiento -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:8px">🔧 Historial de mantenimiento</div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:14px">Todas las salidas a taller con fechas, horas fuera, taller, tipo, costo y reemplazo asignado.</p>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="generarReporteMantenimiento()" id="btn-rep-mant">⬇ Descargar Excel</button>
+          </div>
+        </div>
+
+        <!-- Documentos por vencer -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:8px">📄 Documentos por vencer</div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:14px">SOAT, tecnicomecánica, acta sanitaria y fumigación — vencidos y próximos a vencer.</p>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="rep-docs-dias" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:var(--r)">
+              <option value="30">Próximos 30 días</option>
+              <option value="60">Próximos 60 días</option>
+              <option value="90">Próximos 90 días</option>
+              <option value="0">Solo vencidos</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="generarReporteDocumentos()" id="btn-rep-docs">⬇ Descargar Excel</button>
+          </div>
+        </div>
+
+        <!-- Disponibilidad operativa -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:8px">📊 Disponibilidad operativa</div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:14px">Consolidado de disponibilidad por vehículo titular con horas base, horas fuera y % por periodo.</p>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="generarReporteDisponibilidad()" id="btn-rep-disp">⬇ Descargar Excel</button>
+          </div>
+        </div>
+
+        <!-- Criticidad -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:8px">⚠ Criticidad de flota</div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:14px">Estado actual de criticidad por vehículo con puntaje por componente (chasis, furgón, plataforma, refrigeración).</p>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="generarReporteCriticidad()" id="btn-rep-crit">⬇ Descargar Excel</button>
+          </div>
+        </div>
+
+        <!-- Vehículos con más fallas -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:8px">🚨 Vehículos con más fallas</div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:14px">Ranking de vehículos por número de fallas reportadas en checklist. Útil para priorizar mantenimientos.</p>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="generarReporteFallas()" id="btn-rep-fallas">⬇ Descargar Excel</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Preview checklists -->
       <div class="card" id="rep-preview-card" style="display:none">
         <div class="card-hdr">
-          <span class="card-title">Previsualización</span>
+          <span class="card-title">Previsualización — Checklists</span>
           <span id="rep-count" style="font-size:12px;color:var(--text2)"></span>
         </div>
         <div class="tbl-wrap">
@@ -1026,10 +1081,9 @@ tr:hover td{background:var(--bg2)}
           <tbody id="rep-body"><tr><td colspan="8" class="empty">Sin datos</td></tr></tbody>
           </table>
         </div>
-        <div style="margin-top:14px">
-          <button class="btn btn-primary" onclick="generarReporteChecklist()">⬇ Descargar Excel</button>
-        </div>
+        <button class="btn btn-primary btn-sm" style="margin-top:14px" onclick="generarReporteChecklist()">⬇ Descargar Excel</button>
       </div>
+
     </div>
 
   </main>
@@ -3273,6 +3327,323 @@ async function generarReporteChecklist(){
     toast('Reporte descargado ✓');
   }catch(e){toast('Error: '+e.message,true);}
   finally{btn.disabled=false;btn.textContent='⬇ Descargar Excel — Checklists';}
+}
+
+
+// ── REPORTE MANTENIMIENTO ───────────────────────────────────
+async function generarReporteMantenimiento(){
+  const btn=document.getElementById('btn-rep-mant');
+  btn.disabled=true;btn.textContent='Generando...';
+  try{
+    const desde=document.getElementById('rep-desde').value;
+    const hasta=document.getElementById('rep-hasta').value;
+    const regF=document.getElementById('rep-regional').value||REGIONAL_ID;
+    if(!desde||!hasta){toast('Selecciona un rango de fechas',true);return;}
+
+    let q=db.from('eventos_mantenimiento')
+      .select('id,fecha_entrada,hora_entrada,fecha_salida,hora_salida,dias_en_taller,tipo,prioridad,perdida_total,descripcion_trabajo,costo,regional_id,vehiculos(placa,tipo,figura),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
+      .gte('fecha_entrada',desde).lte('fecha_entrada',hasta)
+      .order('fecha_entrada',{ascending:false});
+    if(regF)q=q.eq('regional_id',regF);
+    const{data,error}=await q;
+    if(error)throw error;
+
+    // Enriquecer con reemplazos
+    const evIds=(data||[]).map(e=>e.id);
+    let reempMap={};
+    if(evIds.length){
+      const{data:rr}=await db.from('reemplazos_activos')
+        .select('evento_id,reemplazo_id').in('evento_id',evIds);
+      const reempIds=(rr||[]).map(r=>r.reemplazo_id).filter(Boolean);
+      let placaReempMap={};
+      if(reempIds.length){
+        const{data:pvhs}=await db.from('vehiculos').select('id,placa').in('id',reempIds);
+        (pvhs||[]).forEach(v=>placaReempMap[v.id]=v.placa);
+      }
+      (rr||[]).forEach(r=>reempMap[r.evento_id]=placaReempMap[r.reemplazo_id]||'—');
+    }
+
+    const filas=(data||[]).map(e=>{
+      // Calcular horas
+      let horas='';
+      if(e.fecha_salida&&e.hora_entrada&&e.hora_salida){
+        const ini=new Date(e.fecha_entrada+'T'+e.hora_entrada);
+        const fin=new Date(e.fecha_salida+'T'+e.hora_salida);
+        horas=Math.round((fin-ini)/36000)/100;
+      }else if(e.dias_en_taller!==null){
+        horas=e.dias_en_taller*24;
+      }
+      return{
+        'Regional':rNombre(e.regional_id),
+        'Placa':e.vehiculos?.placa||'—',
+        'Tipo vehículo':e.vehiculos?.tipo||'—',
+        'Figura':e.vehiculos?.figura||'—',
+        'Taller':e.talleres?.nombre||'—',
+        'Tipo taller':e.talleres?.tipo?lTaller(e.talleres.tipo):'—',
+        'Tipo mantenimiento':e.tipos_mantenimiento?.nombre||'—',
+        'Categoría':e.tipo||'—',
+        'Prioridad':e.prioridad||'—',
+        'Fecha entrada':e.fecha_entrada||'',
+        'Hora entrada':e.hora_entrada||'',
+        'Fecha salida':e.fecha_salida||'',
+        'Hora salida':e.hora_salida||'',
+        'Días en taller':e.dias_en_taller!=null?e.dias_en_taller:'En curso',
+        'Horas aprox.':horas||'',
+        'Reemplazo asignado':reempMap[e.id]||'Sin reemplazo',
+        'Pérdida total':e.perdida_total?'SÍ':'NO',
+        'Descripción':e.descripcion_trabajo||'',
+        'Costo':e.costo||0,
+      };
+    });
+
+    // Hoja 2: Resumen por vehículo
+    const porVh={};
+    (data||[]).forEach(e=>{
+      const placa=e.vehiculos?.placa||'—';
+      if(!porVh[placa])porVh[placa]={placa,regional:rNombre(e.regional_id),salidas:0,diasTotal:0,costoTotal:0};
+      porVh[placa].salidas++;
+      porVh[placa].diasTotal+=(e.dias_en_taller||0);
+      porVh[placa].costoTotal+=(e.costo||0);
+    });
+    const resumen=Object.values(porVh).map(v=>({
+      'Placa':v.placa,'Regional':v.regional,
+      'N° salidas a taller':v.salidas,
+      'Días totales fuera':v.diasTotal,
+      'Promedio días por salida':v.salidas?Math.round(v.diasTotal/v.salidas*10)/10:0,
+      'Costo total':v.costoTotal,
+    })).sort((a,b)=>b['N° salidas a taller']-a['N° salidas a taller']);
+
+    const wb=XLSX.utils.book_new();
+    const ws1=XLSX.utils.json_to_sheet(filas);
+    ws1['!cols']=[{wch:16},{wch:10},{wch:12},{wch:10},{wch:20},{wch:14},{wch:22},{wch:12},{wch:12},{wch:14},{wch:12},{wch:14},{wch:12},{wch:12},{wch:12},{wch:18},{wch:12},{wch:30},{wch:12}];
+    XLSX.utils.book_append_sheet(wb,ws1,'Mantenimientos');
+    const ws2=XLSX.utils.json_to_sheet(resumen);
+    ws2['!cols']=[{wch:10},{wch:16},{wch:16},{wch:14},{wch:20},{wch:14}];
+    XLSX.utils.book_append_sheet(wb,ws2,'Resumen por vehículo');
+    XLSX.writeFile(wb,`Mantenimiento_${desde}_${hasta}.xlsx`);
+    toast('Reporte descargado ✓');
+  }catch(e){toast('Error: '+e.message,true);}
+  finally{btn.disabled=false;btn.textContent='⬇ Descargar Excel';}
+}
+
+// ── REPORTE DOCUMENTOS ──────────────────────────────────────
+async function generarReporteDocumentos(){
+  const btn=document.getElementById('btn-rep-docs');
+  btn.disabled=true;btn.textContent='Generando...';
+  try{
+    const dias=parseInt(document.getElementById('rep-docs-dias').value);
+    const regF=document.getElementById('rep-regional').value||REGIONAL_ID;
+    const hasta=new Date();hasta.setDate(hasta.getDate()+dias);
+    const hastaStr=hasta.toISOString().split('T')[0];
+
+    let q=db.from('documentos_vehiculo')
+      .select('*,vehiculos(placa,tipo,figura,marca,poseedor)')
+      .lte('fecha_vencimiento',hastaStr)
+      .order('fecha_vencimiento',{ascending:true});
+    if(regF)q=q.eq('regional_id',regF);
+    const{data,error}=await q;
+    if(error)throw error;
+
+    const hoy2=hoy();
+    const filas=(data||[]).map(d=>{
+      const diasR=Math.ceil((new Date(d.fecha_vencimiento)-new Date())/86400000);
+      return{
+        'Regional':rNombre(d.regional_id),
+        'Placa':d.vehiculos?.placa||'—',
+        'Tipo':d.vehiculos?.tipo||'—',
+        'Figura':d.vehiculos?.figura||'—',
+        'Marca':d.vehiculos?.marca||'—',
+        'Poseedor':d.vehiculos?.poseedor||'—',
+        'Documento':{soat:'SOAT',tecnomecanica:'Tecnicomecánica',acta_sanitaria:'Acta sanitaria',fumigacion:'Fumigación'}[d.tipo]||d.tipo,
+        'No. documento':d.numero_documento||'—',
+        'Fecha expedición':d.fecha_expedicion||'—',
+        'Fecha vencimiento':d.fecha_vencimiento||'—',
+        'Días restantes':diasR,
+        'Estado':diasR<0?'VENCIDO':diasR<=30?'PRÓXIMO':'VIGENTE',
+      };
+    });
+
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.json_to_sheet(filas);
+    ws['!cols']=[{wch:16},{wch:10},{wch:10},{wch:10},{wch:14},{wch:20},{wch:18},{wch:16},{wch:16},{wch:16},{wch:14},{wch:12}];
+    XLSX.utils.book_append_sheet(wb,ws,'Documentos');
+    XLSX.writeFile(wb,`Documentos_${hoy()}.xlsx`);
+    toast('Reporte descargado ✓');
+  }catch(e){toast('Error: '+e.message,true);}
+  finally{btn.disabled=false;btn.textContent='⬇ Descargar Excel';}
+}
+
+// ── REPORTE DISPONIBILIDAD ──────────────────────────────────
+async function generarReporteDisponibilidad(){
+  const btn=document.getElementById('btn-rep-disp');
+  btn.disabled=true;btn.textContent='Generando...';
+  try{
+    const desde=document.getElementById('rep-desde').value;
+    const hasta=document.getElementById('rep-hasta').value;
+    const regF=document.getElementById('rep-regional').value||REGIONAL_ID;
+    if(!desde||!hasta){toast('Selecciona un rango de fechas',true);return;}
+
+    let qv=db.from('vehiculos').select('id,placa,regional_id').eq('activo',true).eq('figura','titular').neq('tipo','remolque');
+    if(regF)qv=qv.eq('regional_id',regF);
+    const{data:vhs}=await qv;
+
+    let qe=db.from('eventos_mantenimiento')
+      .select('id,vehiculo_id,fecha_entrada,hora_entrada,fecha_salida,hora_salida,regional_id')
+      .lte('fecha_entrada',hasta).or(`fecha_salida.gte.${desde},fecha_salida.is.null`);
+    if(regF)qe=qe.eq('regional_id',regF);
+    const{data:eventos}=await qe;
+
+    let qr=db.from('reemplazos_activos').select('evento_id,titular_id,fecha_inicio,fecha_fin').eq('activo',true);
+    const{data:reemps}=await qr;
+    const reempPorTit={};
+    (reemps||[]).forEach(r=>{
+      if(!reempPorTit[r.titular_id])reempPorTit[r.titular_id]=[];
+      reempPorTit[r.titular_id].push({ini:r.fecha_inicio,fin:r.fecha_fin||hasta});
+    });
+
+    const evPorVh={};
+    (eventos||[]).forEach(e=>{if(!evPorVh[e.vehiculo_id])evPorVh[e.vehiculo_id]=[];evPorVh[e.vehiculo_id].push(e);});
+
+    const diasHabiles=diasHabilesEntre(desde,hasta);
+    const filas=[];
+
+    for(const vh of (vhs||[])){
+      const evs=evPorVh[vh.id]||[];
+      const periRemp=reempPorTit[vh.id]||[];
+      let hbase=0,hfuera=0;
+
+      for(const dia of diasHabiles){
+        const hf=calcHorasFueraEnDia(evs,dia);
+        const tieneReem=periRemp.some(r=>r.ini<=dia&&r.fin>=dia);
+        hbase+=22;
+        hfuera+=tieneReem?0:hf;
+      }
+      const hdisp=hbase-hfuera;
+      const pct=hbase>0?Math.round(hdisp/hbase*1000)/10:100;
+      filas.push({
+        'Regional':rNombre(vh.regional_id),
+        'Placa':vh.placa,
+        'Días hábiles':diasHabiles.length,
+        'Horas base':hbase,
+        'Horas fuera':Math.round(hfuera*10)/10,
+        'Horas disponibles':Math.round(hdisp*10)/10,
+        '% Disponibilidad':pct+'%',
+      });
+    }
+    filas.sort((a,b)=>parseFloat(a['% Disponibilidad'])-parseFloat(b['% Disponibilidad']));
+
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.json_to_sheet(filas);
+    ws['!cols']=[{wch:16},{wch:10},{wch:14},{wch:12},{wch:12},{wch:18},{wch:16}];
+    XLSX.utils.book_append_sheet(wb,ws,'Disponibilidad');
+    XLSX.writeFile(wb,`Disponibilidad_${desde}_${hasta}.xlsx`);
+    toast('Reporte descargado ✓');
+  }catch(e){toast('Error: '+e.message,true);}
+  finally{btn.disabled=false;btn.textContent='⬇ Descargar Excel';}
+}
+
+// ── REPORTE CRITICIDAD ──────────────────────────────────────
+async function generarReporteCriticidad(){
+  const btn=document.getElementById('btn-rep-crit');
+  btn.disabled=true;btn.textContent='Generando...';
+  try{
+    const regF=document.getElementById('rep-regional').value||REGIONAL_ID;
+    let q=db.from('criticidad_vehiculo')
+      .select('fecha,puntaje_chasis,puntaje_furgon,puntaje_plataforma,puntaje_refrigeracion,criticidad,fuente,observaciones,regional_id,vehiculos(placa,tipo,figura)')
+      .order('fecha',{ascending:false});
+    if(regF)q=q.eq('regional_id',regF);
+    const{data,error}=await q;if(error)throw error;
+
+    // Solo último registro por vehículo
+    const seen=new Set();
+    const ultimos=(data||[]).filter(r=>{if(seen.has(r.vehiculo_id))return false;seen.add(r.vehiculo_id);return true;});
+
+    const filas=ultimos.map(r=>({
+      'Regional':rNombre(r.regional_id),
+      'Placa':r.vehiculos?.placa||'—',
+      'Tipo':r.vehiculos?.tipo||'—',
+      'Figura':r.vehiculos?.figura||'—',
+      'Criticidad':r.criticidad||'—',
+      'Puntaje chasis':r.puntaje_chasis,
+      'Puntaje furgón':r.puntaje_furgon,
+      'Puntaje plataforma':r.puntaje_plataforma,
+      'Puntaje refrigeración':r.puntaje_refrigeracion,
+      'Última actualización':r.fecha||'—',
+      'Fuente':r.fuente||'—',
+      'Observaciones':r.observaciones||'',
+    }));
+
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.json_to_sheet(filas);
+    ws['!cols']=[{wch:16},{wch:10},{wch:10},{wch:10},{wch:14},{wch:14},{wch:14},{wch:16},{wch:18},{wch:20},{wch:12},{wch:30}];
+    XLSX.utils.book_append_sheet(wb,ws,'Criticidad');
+    XLSX.writeFile(wb,`Criticidad_${hoy()}.xlsx`);
+    toast('Reporte descargado ✓');
+  }catch(e){toast('Error: '+e.message,true);}
+  finally{btn.disabled=false;btn.textContent='⬇ Descargar Excel';}
+}
+
+// ── REPORTE FALLAS ──────────────────────────────────────────
+async function generarReporteFallas(){
+  const btn=document.getElementById('btn-rep-fallas');
+  btn.disabled=true;btn.textContent='Generando...';
+  try{
+    const desde=document.getElementById('rep-desde').value;
+    const hasta=document.getElementById('rep-hasta').value;
+    const regF=document.getElementById('rep-regional').value||REGIONAL_ID;
+    if(!desde||!hasta){toast('Selecciona un rango de fechas',true);return;}
+
+    let q=db.from('checklists')
+      .select('vehiculo_id,regional_id,soat,tecnomecanica,luces,llantas,nivel_aceite,nivel_agua,sin_fugas,frenos,pito_reversa,extintor,botiquin,cinturon,plataforma,termo_refrigeracion,furgon_interno,vehiculos(placa,tipo)')
+      .gte('fecha',desde).lte('fecha',hasta);
+    if(regF)q=q.eq('regional_id',regF);
+    const{data,error}=await q;if(error)throw error;
+
+    const ITEMS_CL=['soat','tecnomecanica','luces','llantas','nivel_aceite','nivel_agua','sin_fugas','frenos','pito_reversa','extintor','botiquin','cinturon','plataforma','termo_refrigeracion','furgon_interno'];
+    const LABELS_CL2={soat:'SOAT',tecnomecanica:'Tecnicomecánica',luces:'Luces',llantas:'Llantas',nivel_aceite:'Nivel aceite',nivel_agua:'Nivel agua',sin_fugas:'Sin fugas',frenos:'Frenos',pito_reversa:'Pito reversa',extintor:'Extintor',botiquin:'Botiquín',cinturon:'Cinturón',plataforma:'Plataforma',termo_refrigeracion:'Termo refrigeración',furgon_interno:'Furgón interno'};
+
+    // Agrupar por vehículo
+    const porVh={};
+    (data||[]).forEach(c=>{
+      const placa=c.vehiculos?.placa||'—';
+      if(!porVh[placa])porVh[placa]={placa,regional:rNombre(c.regional_id),checklists:0,fallasPorItem:{}};
+      porVh[placa].checklists++;
+      ITEMS_CL.forEach(k=>{
+        if(!porVh[placa].fallasPorItem[k])porVh[placa].fallasPorItem[k]=0;
+        if(c[k]===false)porVh[placa].fallasPorItem[k]++;
+      });
+    });
+
+    const filas=Object.values(porVh).map(v=>{
+      const totalFallas=Object.values(v.fallasPorItem).reduce((s,n)=>s+n,0);
+      const row={'Regional':v.regional,'Placa':v.placa,'Checklists realizados':v.checklists,'Total fallas':totalFallas};
+      ITEMS_CL.forEach(k=>row[LABELS_CL2[k]]=v.fallasPorItem[k]||0);
+      return row;
+    }).sort((a,b)=>b['Total fallas']-a['Total fallas']);
+
+    // Resumen por ítem
+    const porItem={};
+    ITEMS_CL.forEach(k=>porItem[k]={item:LABELS_CL2[k],fallas:0,revisiones:0});
+    (data||[]).forEach(c=>{
+      ITEMS_CL.forEach(k=>{
+        if(c[k]!==null&&c[k]!==undefined){porItem[k].revisiones++;if(c[k]===false)porItem[k].fallas++;}
+      });
+    });
+    const resumenItems=Object.values(porItem).map(r=>({
+      'Ítem':r.item,'Revisiones':r.revisiones,'Fallas':r.fallas,
+      '% Fallas':r.revisiones>0?Math.round(r.fallas/r.revisiones*1000)/10+'%':'0%'
+    })).sort((a,b)=>b['Fallas']-a['Fallas']);
+
+    const wb=XLSX.utils.book_new();
+    const ws1=XLSX.utils.json_to_sheet(filas);
+    XLSX.utils.book_append_sheet(wb,ws1,'Fallas por vehículo');
+    const ws2=XLSX.utils.json_to_sheet(resumenItems);
+    ws2['!cols']=[{wch:22},{wch:12},{wch:10},{wch:12}];
+    XLSX.utils.book_append_sheet(wb,ws2,'Fallas por ítem');
+    XLSX.writeFile(wb,`Fallas_${desde}_${hasta}.xlsx`);
+    toast('Reporte descargado ✓');
+  }catch(e){toast('Error: '+e.message,true);}
+  finally{btn.disabled=false;btn.textContent='⬇ Descargar Excel';}
 }
 
 init();
