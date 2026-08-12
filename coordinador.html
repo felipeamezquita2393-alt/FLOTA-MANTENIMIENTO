@@ -1109,11 +1109,7 @@ function fmtT(iso){if(!iso)return'—';return new Date(iso).toLocaleTimeString('
 function fmtM(v){return v?'$'+Number(v).toLocaleString('es-CO'):'—';}
 function lTaller(t){return{taller_propio:'Taller propio',concesionario:'Concesionario',patios:'Patios',siniestro:'Siniestro'}[t]||t;}
 function bPrior(p){if(p==='urgente')return'<span class="badge b-red">Urgente</span>';if(p==='programado')return'<span class="badge b-blue">Programado</span>';return'<span class="badge b-gray">Normal</span>';}
-function bFig(f,esTercero){
-  const tc=esTercero?'<span class="badge b-blue" style="font-size:10px;margin-left:4px">3°</span>':'';
-  if(f==='backup')return'<span class="badge b-purple">Respaldo</span>'+tc;
-  return'<span class="badge b-green">Titular</span>'+tc;
-}
+function bFig(f){if(f==='backup')return'<span class="badge b-purple">Respaldo</span>';if(f==='tercero')return'<span class="badge b-blue">Tercero</span>';return'<span class="badge b-green">Titular</span>';}
 function bTipo(t){const m={camion:'Camión',bitrain:'Bitrain',remolque:'Remolque',furgon:'Furgón',camioneta:'Camioneta'};return m[t]||t||'—';}
 function bEst(e){const m={disponible:'<span class="badge b-green">Disponible</span>',taller_propio:'<span class="badge b-amber">Taller propio</span>',concesionario:'<span class="badge b-blue">Concesionario</span>',en_patios:'<span class="badge b-amber">En patios</span>',siniestro:'<span class="badge b-red">Siniestro</span>',inactivo:'<span class="badge b-gray">Inactivo</span>'};return m[e]||`<span class="badge b-gray">${e}</span>`;}
 function bPuntaje(p){if(p===3)return'<span class="badge b-red" style="font-size:10px">3-Inmediata</span>';if(p===2)return'<span class="badge b-amber" style="font-size:10px">2-Semana</span>';return'<span class="badge b-green" style="font-size:10px">1-OK</span>';}
@@ -1221,8 +1217,8 @@ async function cargarKPIs(){
     const{data:reemps}=await qr;
     const reempSet=new Set((reemps||[]).map(r=>r.reemplazo_id));
 
-    // Terceros activos (ahora en tabla vehiculos con es_tercero=true)
-    let qt=db.from('vehiculos').select('id,regional_id').eq('activo',true).eq('es_tercero',true);
+    // Terceros activos
+    let qt=db.from('vehiculos_terceros').select('id,regional_id').eq('activo',true);
     if(REGIONAL_ID)qt=qt.eq('regional_id',REGIONAL_ID);
     const{data:terc}=await qt;
 
@@ -1403,7 +1399,7 @@ async function cargarFueraDash(){
   const tb=document.getElementById('fuera-dash');
   try{
     let q=db.from('eventos_mantenimiento')
-      .select('id,fecha_entrada,hora_entrada,prioridad,descripcion_trabajo,tipo,perdida_total,regional_id,vehiculos(id,placa,tipo,figura,es_tercero,empresa_tercero),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
+      .select('id,fecha_entrada,hora_entrada,prioridad,descripcion_trabajo,tipo,perdida_total,regional_id,vehiculos(id,placa,tipo,figura),talleres(nombre,tipo),tipos_mantenimiento(nombre)')
       .eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     const{data:ev,error}=await q;if(error)throw error;
@@ -1438,8 +1434,8 @@ async function cargarFueraDash(){
         : `${d}d`;
       const tColor=d>=7?'var(--red)':d>=3?'var(--amber)':'var(--green)';
       return`<tr style="${e.perdida_total?'background:rgba(198,40,40,0.06);border-left:3px solid var(--red)':''}">
-        <td style="font-weight:600;color:${e.perdida_total?'var(--red)':'inherit'}">${e.vehiculos?.placa||'—'}${e.perdida_total?' <span class="badge b-red" style="font-size:10px">PÉRDIDA TOTAL</span>':''}${e.vehiculos?.es_tercero?' <span class="badge b-blue" style="font-size:10px">3°</span>':''}</td>
-        <td>${bFig(e.vehiculos?.figura||'titular',e.vehiculos?.es_tercero)}</td>
+        <td style="font-weight:600;color:${e.perdida_total?'var(--red)':'inherit'}">${e.vehiculos?.placa||'—'}${e.perdida_total?' <span class="badge b-red" style="font-size:10px">PÉRDIDA TOTAL</span>':''}</td>
+        <td>${bFig(e.vehiculos?.figura||'titular')}</td>
         <td style="font-size:12px">${rNombre(e.regional_id)}</td>
         <td style="font-size:12px">${e.talleres?.nombre||'—'}</td>
         <td style="font-size:12px">${e.tipos_mantenimiento?.nombre||'—'}</td>
@@ -1470,7 +1466,7 @@ async function cargarDispDetalle(){
     const{data:reemps}=await qr;
     const reempSet=new Set((reemps||[]).map(r=>r.reemplazo_id));
     const rMapTit=new Map((reemps||[]).map(r=>[r.titular_id,r.reemplazo_id]));
-    const{data:terc}=await db.from('vehiculos').select('id,placa,tipo,figura,regional_id,empresa_tercero').eq('activo',true).eq('es_tercero',true);
+    const{data:terc}=await db.from('vehiculos_terceros').select('*').eq('activo',true);
     const regsShow=REGIONAL_ID?regionales.filter(r=>r.id===REGIONAL_ID):regionales;
 
     el.innerHTML=regsShow.map(r=>{
@@ -1509,7 +1505,7 @@ async function cargarDispDetalle(){
         return`<tr><td style="font-weight:600">${v.placa}</td><td>${bFig(v.figura)}</td><td>${bEst(v.estado)}</td><td>${situacion}</td></tr>`;
       }).join('');
 
-      const tcRows=tcR.map(t=>`<tr><td style="font-weight:600">${t.placa}</td><td>${bFig(t.figura||'titular',true)}</td><td><span class="badge b-green">Operando</span></td><td><span class="badge b-blue">Tercero ${t.empresa_tercero||''}</span></td></tr>`).join('');
+      const tcRows=tcR.map(t=>`<tr><td style="font-weight:600">${t.placa}</td><td>${bFig('tercero')}</td><td><span class="badge b-green">Operando</span></td><td><span class="badge b-blue">Tercero ${t.empresa||''}</span></td></tr>`).join('');
 
       return`<div class="card">
         <div class="card-hdr">
@@ -1736,14 +1732,20 @@ async function cargarFlota(){
     const tF=document.getElementById('fl-tipo').value;
     const fF=document.getElementById('fl-fig').value;
     const aF=document.getElementById('fl-act').value;
-    let q=db.from('vehiculos').select('id,placa,tipo,figura,estado,km_actuales,activo,regional_id,es_tercero,empresa_tercero').order('placa');
+    let q=db.from('vehiculos').select('id,placa,tipo,figura,estado,km_actuales,activo,regional_id').order('placa');
     if(rF)q=q.eq('regional_id',rF);else if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     if(tF)q=q.eq('tipo',tF);
     if(fF)q=q.eq('figura',fF);
     if(aF!=='')q=q.eq('activo',aF==='true');
     const{data,error}=await q;if(error)throw error;
-    document.getElementById('fl-count').textContent=`${(data||[]).length} vehículos`;
-    if(!data?.length){tb.innerHTML='<tr><td colspan="7" class="empty">Sin vehículos</td></tr>';return;}
+    // Cargar también terceros activos
+    let qt=db.from('vehiculos_terceros').select('id,placa,empresa,tipo,regional_id,activo,fecha_inicio,fecha_fin,figura,titular_reemplazado_id').eq('activo',true);
+    const rFt=document.getElementById('fl-reg').value||REGIONAL_ID;
+    if(rFt)qt=qt.eq('regional_id',rFt);
+    const{data:terc}=await qt;
+    const totalVhs=(data||[]).length+(terc||[]).length;
+    document.getElementById('fl-count').textContent=`${totalVhs} vehículos`;
+    if(!(data?.length)&&!(terc?.length)){tb.innerHTML='<tr><td colspan="7" class="empty">Sin vehículos</td></tr>';return;}
     const filasPropios=(data||[]).map(v=>`<tr>
       <td style="font-weight:600">${v.placa}</td>
       <td>${bTipo(v.tipo)}</td>
@@ -1878,13 +1880,13 @@ async function reactivar(vid,placa){
 // ── Entrada a taller con reemplazo ──
 async function prepEntrada(){
   try{
-    let qv=db.from('vehiculos').select('id,placa,tipo,figura,estado,regional_id,es_tercero').eq('activo',true).order('placa');
+    let qv=db.from('vehiculos').select('id,placa,tipo,figura,estado,regional_id').eq('activo',true).order('placa');
     if(REGIONAL_ID)qv=qv.eq('regional_id',REGIONAL_ID);
     const{data:vhs}=await qv;
     const{data:tal}=await db.from('talleres').select('id,nombre,tipo,regional_id').eq('activo',true).order('nombre');
     const{data:tms}=await db.from('tipos_mantenimiento').select('id,nombre').eq('activo',true).order('nombre');
 
-    document.getElementById('e-vh').innerHTML='<option value="">Seleccionar vehículo...</option>'+(vhs||[]).filter(v=>v.tipo!=='remolque').map(v=>`<option value="${v.id}" data-reg="${v.regional_id||''}" data-fig="${v.figura}">${v.placa}${v.es_tercero?' [3°]':''} [${rNombre(v.regional_id)}] — ${v.figura} — ${v.estado}</option>`).join('');
+    document.getElementById('e-vh').innerHTML='<option value="">Seleccionar vehículo...</option>'+(vhs||[]).filter(v=>v.tipo!=='remolque').map(v=>`<option value="${v.id}" data-reg="${v.regional_id||''}" data-fig="${v.figura}">${v.placa} [${rNombre(v.regional_id)}] — ${v.figura} — ${v.estado}</option>`).join('');
 
     // Talleres filtrados por regional si aplica
     const talFiltrados=REGIONAL_ID?(tal||[]).filter(t=>!t.regional_id||t.regional_id===REGIONAL_ID):(tal||[]);
@@ -2039,32 +2041,21 @@ function abrirTercero(){
 async function guardarTercero(){
   const placa=document.getElementById('tc-placa').value.trim().toUpperCase();
   if(!placa){toast('Ingresa la placa',true);return;}
-  const figura=document.getElementById('tc-figura').value;
-  const titularId=document.getElementById('tc-titular-vh').value||null;
-  const regId=document.getElementById('tc-reg').value;
-  const empresa=document.getElementById('tc-empresa').value;
-  const tipo=document.getElementById('tc-tipo').value;
-  const obs=document.getElementById('tc-obs').value;
-  const inicio=document.getElementById('tc-inicio').value;
-  const fin=document.getElementById('tc-fin').value||null;
   try{
-    // 1. Insertar en vehiculos_terceros (para trazabilidad)
-    const{error:e1}=await db.from('vehiculos_terceros').insert({
-      placa,empresa,tipo,regional_id:regId,figura,
+    const figura=document.getElementById('tc-figura').value;
+    const titularId=document.getElementById('tc-titular-vh').value||null;
+    const{error}=await db.from('vehiculos_terceros').insert({
+      placa,empresa:document.getElementById('tc-empresa').value,
+      tipo:document.getElementById('tc-tipo').value,
+      regional_id:document.getElementById('tc-reg').value,
+      figura,
       titular_reemplazado_id:figura==='backup'?titularId:null,
-      activo:true,fecha_inicio:inicio,fecha_fin:fin,observaciones:obs,
+      activo:true,
+      fecha_inicio:document.getElementById('tc-inicio').value,
+      fecha_fin:document.getElementById('tc-fin').value||null,
+      observaciones:document.getElementById('tc-obs').value,
     });
-    if(e1)throw e1;
-
-    // 2. Insertar en vehiculos para que aparezca en todos los módulos
-    const{error:e2}=await db.from('vehiculos').insert({
-      placa,tipo,figura,regional_id:regId,
-      estado:'disponible',activo:true,
-      es_tercero:true,empresa_tercero:empresa||null,
-      observaciones:obs||null,
-    });
-    if(e2&&!e2.message.includes('duplicate'))throw e2;
-
+    if(error)throw error;
     toast('Tercero activado ✓');cerrarModal('modal-tercero');
     cargarTerceros();cargarKPIs();
   }catch(e){toast('Error: '+e.message,true);}
@@ -2105,10 +2096,7 @@ async function desactivarTercero(id,placa){
   if(!confirm(`¿Desactivar el tercero ${placa}?`))return;
   try{
     await db.from('vehiculos_terceros').update({activo:false,fecha_fin:hoy()}).eq('id',id);
-    // También desactivar en vehiculos
-    await db.from('vehiculos').update({activo:false,estado:'inactivo'}).eq('placa',placa).eq('es_tercero',true);
     toast(`${placa} desactivado ✓`);cargarTerceros();cargarKPIs();
-    if(document.getElementById('page-flota')?.classList.contains('active'))cargarFlota();
   }catch(e){toast('Error: '+e.message,true);}
 }
 
