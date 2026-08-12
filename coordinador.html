@@ -1221,8 +1221,8 @@ async function cargarKPIs(){
     const{data:reemps}=await qr;
     const reempSet=new Set((reemps||[]).map(r=>r.reemplazo_id));
 
-    // Terceros activos
-    let qt=db.from('vehiculos_terceros').select('id,regional_id').eq('activo',true);
+    // Terceros activos (ahora en tabla vehiculos con es_tercero=true)
+    let qt=db.from('vehiculos').select('id,regional_id').eq('activo',true).eq('es_tercero',true);
     if(REGIONAL_ID)qt=qt.eq('regional_id',REGIONAL_ID);
     const{data:terc}=await qt;
 
@@ -1470,7 +1470,7 @@ async function cargarDispDetalle(){
     const{data:reemps}=await qr;
     const reempSet=new Set((reemps||[]).map(r=>r.reemplazo_id));
     const rMapTit=new Map((reemps||[]).map(r=>[r.titular_id,r.reemplazo_id]));
-    const{data:terc}=await db.from('vehiculos_terceros').select('*').eq('activo',true);
+    const{data:terc}=await db.from('vehiculos').select('id,placa,tipo,figura,regional_id,empresa_tercero').eq('activo',true).eq('es_tercero',true);
     const regsShow=REGIONAL_ID?regionales.filter(r=>r.id===REGIONAL_ID):regionales;
 
     el.innerHTML=regsShow.map(r=>{
@@ -1509,7 +1509,7 @@ async function cargarDispDetalle(){
         return`<tr><td style="font-weight:600">${v.placa}</td><td>${bFig(v.figura)}</td><td>${bEst(v.estado)}</td><td>${situacion}</td></tr>`;
       }).join('');
 
-      const tcRows=tcR.map(t=>`<tr><td style="font-weight:600">${t.placa}</td><td>${bFig('tercero')}</td><td><span class="badge b-green">Operando</span></td><td><span class="badge b-blue">Tercero ${t.empresa||''}</span></td></tr>`).join('');
+      const tcRows=tcR.map(t=>`<tr><td style="font-weight:600">${t.placa}</td><td>${bFig(t.figura||'titular',true)}</td><td><span class="badge b-green">Operando</span></td><td><span class="badge b-blue">Tercero ${t.empresa_tercero||''}</span></td></tr>`).join('');
 
       return`<div class="card">
         <div class="card-hdr">
@@ -1743,7 +1743,7 @@ async function cargarFlota(){
     if(aF!=='')q=q.eq('activo',aF==='true');
     const{data,error}=await q;if(error)throw error;
     document.getElementById('fl-count').textContent=`${(data||[]).length} vehículos`;
-    if(!(data?.length)&&!(terc?.length)){tb.innerHTML='<tr><td colspan="7" class="empty">Sin vehículos</td></tr>';return;}
+    if(!data?.length){tb.innerHTML='<tr><td colspan="7" class="empty">Sin vehículos</td></tr>';return;}
     const filasPropios=(data||[]).map(v=>`<tr>
       <td style="font-weight:600">${v.placa}</td>
       <td>${bTipo(v.tipo)}</td>
