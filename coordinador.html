@@ -1204,7 +1204,7 @@ async function cargarDashboard(){
 async function cargarKPIs(){
   try{
     // Traer TODOS los vehículos activos incluyendo remolques para detectar bitrains
-    let qv=db.from('vehiculos').select('id,estado,figura,regional_id,tipo,camion_asociado_id').eq('activo',true);
+    let qv=db.from('vehiculos').select('id,estado,figura,regional_id,tipo,camion_asociado_id,es_tercero').eq('activo',true);
     if(REGIONAL_ID)qv=qv.eq('regional_id',REGIONAL_ID);
     const{data:allVhs,error}=await qv;if(error)throw error;
 
@@ -1226,10 +1226,11 @@ async function cargarKPIs(){
     if(REGIONAL_ID)qt=qt.eq('regional_id',REGIONAL_ID);
     const{data:terc}=await qt;
 
-    // Contar solo TITULARES para el cupo base (backups no cuentan)
+    // Contar solo TITULARES PROPIOS para el cupo base (terceros y backups no cuentan aquí)
     let titOp=0,titFuera=0;
     noRemolques.forEach(v=>{
       if(v.figura!=='titular')return;
+      if(v.es_tercero)return; // terceros se cuentan aparte en tcAct
       const rem=remMap.get(v.id);
       const remolqueFuera=rem && rem.estado!=='disponible';
       if(v.estado!=='disponible' || remolqueFuera){titFuera++;}
@@ -1277,6 +1278,7 @@ async function cargarDispRegionales(noRemolques,remMap,reempSet,terc){
     let titOp=0,titFuera=0;
     vhsR.forEach(v=>{
       if(v.figura!=='titular')return;
+      if(v.es_tercero)return; // terceros cuentan aparte
       const rem=remMap.get(v.id);
       const remFuera=rem && rem.estado!=='disponible';
       if(v.estado!=='disponible' || remFuera){titFuera++;}
