@@ -1744,19 +1744,34 @@ async function cargarFlota(){
     const{data,error}=await q;if(error)throw error;
     document.getElementById('fl-count').textContent=`${(data||[]).length} vehículos`;
     if(!data?.length){tb.innerHTML='<tr><td colspan="7" class="empty">Sin vehículos</td></tr>';return;}
-    tb.innerHTML=(data||[]).map(v=>`<tr style="${v.es_tercero?'background:rgba(21,101,192,0.04)':''}">
-      <td style="font-weight:600">${v.placa}${v.es_tercero?`<br><span style="font-size:10px;color:var(--blue)">${v.empresa_tercero||'Tercero'}</span>`:''}      </td>
+    const filasPropios=(data||[]).map(v=>`<tr>
+      <td style="font-weight:600">${v.placa}</td>
       <td>${bTipo(v.tipo)}</td>
       <td>${rNombre(v.regional_id)}</td>
-      <td>${bFig(v.figura,v.es_tercero)}</td>
+      <td>${bFig(v.figura)}</td>
       <td>${bEst(v.estado)}</td>
       <td>${v.km_actuales?v.km_actuales.toLocaleString('es-CO')+' km':'—'}</td>
       <td style="display:flex;gap:4px;flex-wrap:wrap;padding:6px 10px">
         <button class="btn btn-sm" onclick="abrirFicha('${v.id}')">Editar</button>
-        <button class="btn btn-sm" onclick="verHistTL(event)" data-vid="${v.id}" data-placa="${v.placa}">Hist.</button>
+        <button class="btn btn-sm" onclick="verTL('${v.id}','${v.placa}');ir('historial')">Hist.</button>
         ${v.activo?`<button class="btn btn-sm btn-red" onclick="abrirRetiro('${v.id}','${v.placa}')">Retirar</button>`:`<button class="btn btn-sm btn-green" onclick="reactivar('${v.id}','${v.placa}')">Reactivar</button>`}
       </td>
-    </tr>`).join('');
+    </tr>`);
+
+    const filasTerceros=(terc||[]).map(t=>`<tr style="background:rgba(21,101,192,0.04)">
+      <td style="font-weight:600">${t.placa} <span class="badge b-blue" style="font-size:10px">Tercero</span></td>
+      <td>${t.tipo||'—'}</td>
+      <td>${rNombre(t.regional_id)}</td>
+      <td>${t.figura==='backup'?'<span class="badge b-amber">Respaldo</span>':'<span class="badge b-green">Titular</span>'}</td>
+      <td><span class="badge b-green">Activo</span></td>
+      <td style="font-size:12px;color:var(--text2)">${t.empresa||'—'}</td>
+      <td style="display:flex;gap:4px;padding:6px 10px">
+        <button class="btn btn-sm" onclick="editarTercero('${t.id}')">Editar</button>
+        <button class="btn btn-sm btn-red" onclick="desactivarTercero('${t.id}','${t.placa}')">Desactivar</button>
+      </td>
+    </tr>`);
+
+    tb.innerHTML=[...filasPropios,...filasTerceros].join('');
   }catch(e){tb.innerHTML=`<tr><td colspan="7" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
 }
 
