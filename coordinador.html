@@ -1222,9 +1222,11 @@ async function cargarKPIs(){
     const reempSet=new Set((reemps||[]).map(r=>r.reemplazo_id));
 
     // Terceros activos (ahora en tabla vehiculos con es_tercero=true)
-    let qt=db.from('vehiculos').select('id,regional_id').eq('activo',true).eq('es_tercero',true);
+    // Solo contar terceros con figura=titular (los backup ya cuentan en bkAct si están asignados)
+    let qt=db.from('vehiculos').select('id,regional_id,figura').eq('activo',true).eq('es_tercero',true);
     if(REGIONAL_ID)qt=qt.eq('regional_id',REGIONAL_ID);
     const{data:terc}=await qt;
+    const tcAct=(terc||[]).filter(t=>t.figura==='titular').length;
 
     // Contar solo TITULARES PROPIOS para el cupo base (terceros y backups no cuentan aquí)
     let titOp=0,titFuera=0;
@@ -1239,7 +1241,6 @@ async function cargarKPIs(){
 
     // Backups activos como reemplazo
     const bkAct=reempSet.size;
-    const tcAct=(terc||[]).length;
 
     // Cupo = titulares requeridos (configurable por regional)
     const cupoTotal=REGIONAL_ID
