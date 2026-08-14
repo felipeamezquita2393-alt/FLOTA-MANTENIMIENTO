@@ -1744,34 +1744,19 @@ async function cargarFlota(){
     const{data,error}=await q;if(error)throw error;
     document.getElementById('fl-count').textContent=`${(data||[]).length} vehículos`;
     if(!data?.length){tb.innerHTML='<tr><td colspan="7" class="empty">Sin vehículos</td></tr>';return;}
-    const filasPropios=(data||[]).map(v=>`<tr>
-      <td style="font-weight:600">${v.placa}</td>
+    tb.innerHTML=(data||[]).map(v=>`<tr style="${v.es_tercero?'background:rgba(21,101,192,0.04)':''}">
+      <td style="font-weight:600">${v.placa}${v.es_tercero?`<br><span style="font-size:10px;color:var(--blue)">${v.empresa_tercero||'Tercero'}</span>`:''}      </td>
       <td>${bTipo(v.tipo)}</td>
       <td>${rNombre(v.regional_id)}</td>
-      <td>${bFig(v.figura)}</td>
+      <td>${bFig(v.figura,v.es_tercero)}</td>
       <td>${bEst(v.estado)}</td>
       <td>${v.km_actuales?v.km_actuales.toLocaleString('es-CO')+' km':'—'}</td>
       <td style="display:flex;gap:4px;flex-wrap:wrap;padding:6px 10px">
         <button class="btn btn-sm" onclick="abrirFicha('${v.id}')">Editar</button>
-        <button class="btn btn-sm" onclick="verTL('${v.id}','${v.placa}');ir('historial')">Hist.</button>
+        <button class="btn btn-sm" onclick="verHistTL(event)" data-vid="${v.id}" data-placa="${v.placa}">Hist.</button>
         ${v.activo?`<button class="btn btn-sm btn-red" onclick="abrirRetiro('${v.id}','${v.placa}')">Retirar</button>`:`<button class="btn btn-sm btn-green" onclick="reactivar('${v.id}','${v.placa}')">Reactivar</button>`}
       </td>
-    </tr>`);
-
-    const filasTerceros=(terc||[]).map(t=>`<tr style="background:rgba(21,101,192,0.04)">
-      <td style="font-weight:600">${t.placa} <span class="badge b-blue" style="font-size:10px">Tercero</span></td>
-      <td>${t.tipo||'—'}</td>
-      <td>${rNombre(t.regional_id)}</td>
-      <td>${t.figura==='backup'?'<span class="badge b-amber">Respaldo</span>':'<span class="badge b-green">Titular</span>'}</td>
-      <td><span class="badge b-green">Activo</span></td>
-      <td style="font-size:12px;color:var(--text2)">${t.empresa||'—'}</td>
-      <td style="display:flex;gap:4px;padding:6px 10px">
-        <button class="btn btn-sm" onclick="editarTercero('${t.id}')">Editar</button>
-        <button class="btn btn-sm btn-red" onclick="desactivarTercero('${t.id}','${t.placa}')">Desactivar</button>
-      </td>
-    </tr>`);
-
-    tb.innerHTML=[...filasPropios,...filasTerceros].join('');
+    </tr>`).join('');
   }catch(e){tb.innerHTML=`<tr><td colspan="7" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
 }
 
@@ -2048,23 +2033,27 @@ async function guardarTercero(){
   const inicio=document.getElementById('tc-inicio').value;
   const fin=document.getElementById('tc-fin').value||null;
   try{
-    // 1. Insertar en vehiculos_terceros (para trazabilidad)
-    const{error:e1}=await db.from('vehiculos_terceros').insert({
+    // 1. Insertar en vehiculos_terceros
+    const{data:tc,error:e1}=await db.from('vehiculos_terceros').insert({
       placa,empresa,tipo,regional_id:regId,figura,
       titular_reemplazado_id:figura==='backup'?titularId:null,
       activo:true,fecha_inicio:inicio,fecha_fin:fin,observaciones:obs,
-    });
+    }).select().single();
     if(e1)throw e1;
-
-    // 2. Insertar en vehiculos para que aparezca en todos los módulos
-    const{error:e2}=await db.from('vehiculos').insert({
-      placa,tipo,figura,regional_id:regId,
-      estado:'disponible',activo:true,
-      es_tercero:true,empresa_tercero:empresa||null,
-      observaciones:obs||null,
-    });
-    if(e2&&!e2.message.includes('duplicate'))throw e2;
-
+    // 2. Insertar en vehiculos (verificar que no exista ya)
+    const{data:existe}=await db.from('vehiculos').select('id').eq('placa',placa).eq('es_tercero',true).single();
+    if(!existe){
+      const{error:e2}=await db.from('vehiculos').insert({
+        placa,tipo,figura,regional_id:regId,
+        estado:'disponible',activo:true,
+        es_tercero:true,empresa_tercero:empresa||null,
+        observaciones:obs||null,
+      });
+      if(e2)throw e2;
+    } else {
+      // Si ya existe, reactivar
+      await db.from('vehiculos').update({activo:true,estado:'disponible',figura,regional_id:regId,empresa_tercero:empresa||null}).eq('placa',placa).eq('es_tercero',true);
+    }
     toast('Tercero activado ✓');cerrarModal('modal-tercero');
     cargarTerceros();cargarKPIs();
   }catch(e){toast('Error: '+e.message,true);}
@@ -2105,9 +2094,9 @@ async function desactivarTercero(id,placa){
   if(!confirm(`¿Desactivar el tercero ${placa}?`))return;
   try{
     await db.from('vehiculos_terceros').update({activo:false,fecha_fin:hoy()}).eq('id',id);
-    // También desactivar en vehiculos
     await db.from('vehiculos').update({activo:false,estado:'inactivo'}).eq('placa',placa).eq('es_tercero',true);
-    toast(`${placa} desactivado ✓`);cargarTerceros();cargarKPIs();
+    toast(`${placa} desactivado ✓`);
+    cargarTerceros();cargarKPIs();
     if(document.getElementById('page-flota')?.classList.contains('active'))cargarFlota();
   }catch(e){toast('Error: '+e.message,true);}
 }
@@ -3180,23 +3169,31 @@ async function guardarTerceroEdit(){
   const id=document.getElementById('etc-id').value;
   const figura=document.getElementById('etc-figura').value;
   const titularId=document.getElementById('etc-titular-vh').value||null;
+  const placa=document.getElementById('etc-placa').value.trim().toUpperCase();
+  const empresa=document.getElementById('etc-empresa').value||null;
+  const tipo=document.getElementById('etc-tipo').value;
+  const regId=document.getElementById('etc-reg').value;
+  const obs=document.getElementById('etc-obs').value||null;
+  const inicio=document.getElementById('etc-inicio').value||null;
+  const fin=document.getElementById('etc-fin').value||null;
   try{
-    const{error}=await db.from('vehiculos_terceros').update({
-      placa:document.getElementById('etc-placa').value.trim().toUpperCase(),
-      empresa:document.getElementById('etc-empresa').value||null,
-      tipo:document.getElementById('etc-tipo').value,
-      regional_id:document.getElementById('etc-reg').value,
-      figura,
+    // 1. Actualizar vehiculos_terceros
+    const{data:tcOld}=await db.from('vehiculos_terceros').select('placa').eq('id',id).single();
+    const{error:e1}=await db.from('vehiculos_terceros').update({
+      placa,empresa,tipo,regional_id:regId,figura,
       titular_reemplazado_id:figura==='backup'?titularId:null,
-      fecha_inicio:document.getElementById('etc-inicio').value||null,
-      fecha_fin:document.getElementById('etc-fin').value||null,
-      observaciones:document.getElementById('etc-obs').value||null,
+      fecha_inicio:inicio,fecha_fin:fin,observaciones:obs,
     }).eq('id',id);
-    if(error)throw error;
+    if(e1)throw e1;
+    // 2. Sincronizar en vehiculos (buscar por placa anterior)
+    const placaAnterior=tcOld?.placa||placa;
+    await db.from('vehiculos').update({
+      placa,tipo,figura,regional_id:regId,
+      empresa_tercero:empresa,observaciones:obs,
+    }).eq('placa',placaAnterior).eq('es_tercero',true);
     toast('Tercero actualizado ✓');
     cerrarModal('modal-edit-tc');
-    cargarTerceros();
-    cargarKPIs();
+    cargarTerceros();cargarKPIs();
   }catch(e){toast('Error: '+e.message,true);}
 }
 
