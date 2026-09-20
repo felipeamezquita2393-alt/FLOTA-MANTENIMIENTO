@@ -232,6 +232,33 @@ tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
+<!-- Modal registro lavado -->
+<div class="modal-overlay" id="modal-lavado">
+  <div class="modal">
+    <div class="modal-title">Registrar lavado</div>
+    <div class="form2">
+      <div class="field"><label>Fecha *</label><input type="date" id="lav-fecha"></div>
+      <div class="field"><label>Tipo *</label>
+        <select id="lav-tipo">
+          <option value="enjuague">Enjuague</option>
+          <option value="general">Lavado general</option>
+        </select>
+      </div>
+      <div class="field full"><label>Vehículos lavados *</label>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:6px">Selecciona uno o varios vehículos</div>
+        <div id="lav-vh-lista" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r);padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:4px"></div>
+      </div>
+      <div class="field full"><label>Observación</label>
+        <textarea id="lav-obs" rows="2" placeholder="Ej: lavado dominical de toda la flota"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-lavado')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarLavados()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal editar evento de mantenimiento -->
 <div class="modal-overlay" id="modal-evento">
   <div class="modal">
@@ -432,6 +459,7 @@ tr:hover td{background:var(--bg2)}
     <div class="snav-item" data-page="documentos" onclick="ir('documentos')"><span>Documentos</span><span class="badge b-red" id="badge-docs" style="display:none"></span></div>
     <div class="snav-item" data-page="disp-operativa" onclick="ir('disp-operativa')"><span>Disponibilidad op.</span></div>
     <div class="snav-item" data-page="reportes" onclick="ir('reportes')"><span>Reportes</span></div>
+    <div class="snav-item" data-page="lavados" onclick="ir('lavados')"><span>Lavados</span></div>
   </nav>
 
   <main class="main">
@@ -1086,6 +1114,78 @@ tr:hover td{background:var(--bg2)}
 
     </div>
 
+  <!-- LAVADOS -->
+  <div id="page-lavados" class="page">
+
+    <!-- KPIs -->
+    <div class="metrics" id="lav-kpis">
+      <div class="metric">
+        <div class="metric-label">Ejecución del mes</div>
+        <div class="metric-val" id="lav-pct">—</div>
+        <div class="metric-sub" id="lav-pct-sub">— / — lavados</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Lavados generales</div>
+        <div class="metric-val" id="lav-generales">—</div>
+        <div class="metric-sub">Meta: 1 por vehículo</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Enjuagues</div>
+        <div class="metric-val" id="lav-enjuagues">—</div>
+        <div class="metric-sub">Meta: 3 por vehículo</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Vehículos al día</div>
+        <div class="metric-val" id="lav-al-dia">—</div>
+        <div class="metric-sub" id="lav-al-dia-sub">con 4 lavados</div>
+      </div>
+    </div>
+
+    <!-- Filtros y acciones -->
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-title">Cronograma de lavados</span>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="lav-mes" onchange="cargarLavados()" style="font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:var(--r)"></select>
+          <button class="btn btn-sm btn-primary" onclick="abrirRegistroLavado()">+ Registrar lavado</button>
+        </div>
+      </div>
+
+      <!-- Leyenda -->
+      <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+        <span style="font-size:12px;display:flex;align-items:center;gap:4px"><span style="background:#2E7D32;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">G</span> Lavado general</span>
+        <span style="font-size:12px;display:flex;align-items:center;gap:4px"><span style="background:#1565C0;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">E</span> Enjuague</span>
+        <span style="font-size:12px;display:flex;align-items:center;gap:4px"><span style="background:#B0BEC5;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">×</span> Omitido</span>
+      </div>
+
+      <!-- Grilla -->
+      <div class="tbl-wrap" id="lav-grid-wrap">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Tabla de pendientes -->
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-title">Vehículos atrasados</span>
+        <span id="lav-atrasados-count" style="font-size:12px;color:var(--text2)"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Placa</th><th>Regional</th><th>Lavados del mes</th>
+          <th style="text-align:center">Generales</th>
+          <th style="text-align:center">Enjuagues</th>
+          <th style="text-align:center">% Avance</th>
+          <th>Último lavado</th>
+          <th>Días sin lavar</th>
+        </tr></thead>
+        <tbody id="lav-atrasados-body"><tr><td colspan="8" class="empty">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
   </main>
 </div>
 
@@ -1161,6 +1261,7 @@ function ir(page){
   if(page==='terceros')cargarTerceros();
   if(page==='documentos')cargarDocumentos();
   if(page==='disp-operativa')initDispOperativa();
+  if(page==='lavados')initLavados();
   if(page==='reportes')initReportes();
 }
 function onFiltro(){REGIONAL_ID=USER_ROL==='gerente'?(document.getElementById('filtro-regional').value||null):REGIONAL_ID;cargarDashboard();}
@@ -3656,6 +3757,256 @@ async function generarReporteFallas(){
     toast('Reporte descargado ✓');
   }catch(e){toast('Error: '+e.message,true);}
   finally{btn.disabled=false;btn.textContent='⬇ Descargar Excel';}
+}
+
+
+// ── LAVADOS ──────────────────────────────────────────────────
+
+async function initLavados(){
+  // Poblar selector de meses
+  const sel=document.getElementById('lav-mes');
+  sel.innerHTML='';
+  const hoyD=new Date();
+  for(let i=0;i<6;i++){
+    const d=new Date(hoyD.getFullYear(),hoyD.getMonth()-i,1);
+    const val=d.toISOString().slice(0,7);
+    const label=d.toLocaleDateString('es-CO',{month:'long',year:'numeric'});
+    sel.add(new Option(label.charAt(0).toUpperCase()+label.slice(1),val));
+  }
+  await cargarLavados();
+}
+
+function getMesRango(){
+  const mes=document.getElementById('lav-mes').value;
+  const[y,m]=mes.split('-').map(Number);
+  const desde=`${y}-${String(m).padStart(2,'0')}-01`;
+  const lastDay=new Date(y,m,0).getDate();
+  const hasta=`${y}-${String(m).padStart(2,'0')}-${lastDay}`;
+  return{desde,hasta,y,m,lastDay};
+}
+
+async function cargarLavados(){
+  const{desde,hasta,y,m,lastDay}=getMesRango();
+  document.getElementById('lav-grid-wrap').innerHTML='<div class="loading"><div class="spinner"></div></div>';
+
+  try{
+    // Vehículos activos (titulares, backups y terceros que operaron)
+    let qv=db.from('vehiculos').select('id,placa,figura,regional_id,es_tercero').eq('activo',true).neq('tipo','remolque').order('placa');
+    if(REGIONAL_ID)qv=qv.eq('regional_id',REGIONAL_ID);
+    const{data:vhs}=await qv;
+
+    // Lavados del mes
+    let ql=db.from('lavados').select('*').gte('fecha',desde).lte('fecha',hasta);
+    if(REGIONAL_ID)ql=ql.eq('regional_id',REGIONAL_ID);
+    const{data:lavs}=await ql;
+
+    // Indexar lavados por vehiculo_id+fecha
+    const lavMap={};
+    (lavs||[]).forEach(l=>{
+      const k=l.vehiculo_id+'_'+l.fecha;
+      lavMap[k]=l;
+    });
+
+    // KPIs
+    const meta=(vhs||[]).length*4;
+    const ejecutados=(lavs||[]).filter(l=>l.estado==='ejecutado').length;
+    const generales=(lavs||[]).filter(l=>l.estado==='ejecutado'&&l.tipo==='general').length;
+    const enjuagues=(lavs||[]).filter(l=>l.estado==='ejecutado'&&l.tipo==='enjuague').length;
+    const pct=meta>0?Math.round(ejecutados/meta*100):0;
+
+    // Vehículos al día (4+ lavados)
+    const lavPorVh={};
+    (lavs||[]).filter(l=>l.estado==='ejecutado').forEach(l=>{
+      lavPorVh[l.vehiculo_id]=(lavPorVh[l.vehiculo_id]||0)+1;
+    });
+    const alDia=Object.values(lavPorVh).filter(n=>n>=4).length;
+
+    // Ritmo esperado al día de hoy
+    const diasMes=lastDay;
+    const diaHoy=Math.min(new Date().getDate(), m===new Date().getMonth()+1&&y===new Date().getFullYear()?new Date().getDate():lastDay);
+    const ritmoEsperado=Math.round(meta*(diaHoy/diasMes));
+    const pctColor=ejecutados>=ritmoEsperado?'var(--green)':ejecutados>=ritmoEsperado*0.7?'var(--amber)':'var(--red)';
+
+    document.getElementById('lav-pct').textContent=pct+'%';
+    document.getElementById('lav-pct').style.color=pctColor;
+    document.getElementById('lav-pct-sub').textContent=`${ejecutados} / ${meta} lavados`;
+    document.getElementById('lav-generales').textContent=generales;
+    document.getElementById('lav-enjuagues').textContent=enjuagues;
+    document.getElementById('lav-al-dia').textContent=alDia;
+    document.getElementById('lav-al-dia-sub').textContent=`de ${(vhs||[]).length} vehículos`;
+
+    // Construir grilla
+    const dias=Array.from({length:lastDay},(_,i)=>i+1);
+    const diasSem=['D','L','M','M','J','V','S'];
+
+    let html=`<table style="border-collapse:collapse;font-size:11px;min-width:100%">
+      <thead>
+        <tr>
+          <th style="position:sticky;left:0;background:#fff;z-index:2;padding:4px 8px;border:1px solid var(--border);text-align:left;min-width:80px">Placa</th>
+          <th style="position:sticky;left:80px;background:#fff;z-index:2;padding:4px 6px;border:1px solid var(--border);min-width:32px">%</th>
+          ${dias.map(d=>{
+            const dow=new Date(y,m-1,d).getDay();
+            const esDom=dow===0;
+            return`<th style="padding:3px;border:1px solid var(--border);text-align:center;min-width:28px;background:${esDom?'#FFF3E0':'#F8F9FA'};color:${esDom?'var(--amber)':'var(--text2)'}">
+              <div>${diasSem[dow]}</div>
+              <div style="font-weight:700;color:var(--text)">${d}</div>
+            </th>`;
+          }).join('')}
+          <th style="padding:4px 8px;border:1px solid var(--border);text-align:center;background:#F8F9FA">Total</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+    const atrasados=[];
+    let ultimoLavMap={};
+    (lavs||[]).filter(l=>l.estado==='ejecutado').forEach(l=>{
+      if(!ultimoLavMap[l.vehiculo_id]||l.fecha>ultimoLavMap[l.vehiculo_id])
+        ultimoLavMap[l.vehiculo_id]=l.fecha;
+    });
+
+    (vhs||[]).forEach(vh=>{
+      const cnt=lavPorVh[vh.id]||0;
+      const gen=(lavs||[]).filter(l=>l.vehiculo_id===vh.id&&l.tipo==='general'&&l.estado==='ejecutado').length;
+      const enj=(lavs||[]).filter(l=>l.vehiculo_id===vh.id&&l.tipo==='enjuague'&&l.estado==='ejecutado').length;
+      const pctVh=Math.round(cnt/4*100);
+      const pctCol=pctVh>=100?'var(--green)':pctVh>=50?'var(--amber)':'var(--red)';
+
+      html+=`<tr>
+        <td style="position:sticky;left:0;background:#fff;z-index:1;padding:3px 8px;border:1px solid var(--border);font-weight:600;white-space:nowrap">
+          ${vh.placa}${vh.es_tercero?'<span style="font-size:9px;color:var(--blue);margin-left:3px">3°</span>':''}
+        </td>
+        <td style="position:sticky;left:80px;background:#fff;z-index:1;padding:3px 6px;border:1px solid var(--border);text-align:center;font-weight:700;color:${pctCol}">${pctVh}%</td>
+        ${dias.map(d=>{
+          const fecha=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+          const lav=lavMap[vh.id+'_'+fecha];
+          const dow=new Date(y,m-1,d).getDay();
+          const esDom=dow===0;
+          let celda='',bg=esDom?'#FFF8EE':'#fff',color='',cursor='pointer';
+          if(lav){
+            if(lav.estado==='ejecutado'){
+              if(lav.tipo==='general'){bg='#E8F5E9';celda='G';color='#2E7D32';}
+              else{bg='#E3F2FD';celda='E';color='#1565C0';}
+            } else if(lav.estado==='omitido'){bg='#ECEFF1';celda='×';color='#90A4AE';}
+          }
+          return`<td onclick="toggleLavado('${vh.id}','${fecha}','${rNombre(vh.regional_id)}')"
+            style="padding:3px;border:1px solid var(--border);text-align:center;background:${bg};cursor:${cursor};font-weight:700;color:${color};min-width:28px">
+            ${celda}
+          </td>`;
+        }).join('')}
+        <td style="padding:3px 8px;border:1px solid var(--border);text-align:center;font-weight:700;background:#F8F9FA">
+          <span style="color:${pctCol}">${cnt}</span><span style="color:var(--text3)">/4</span>
+        </td>
+      </tr>`;
+
+      // Para tabla de atrasados
+      const ultimoLav=ultimoLavMap[vh.id];
+      const diasSinLavar=ultimoLav
+        ? Math.floor((new Date()-new Date(ultimoLav))/86400000)
+        : null;
+      if(cnt<4){
+        atrasados.push({placa:vh.placa,regional:rNombre(vh.regional_id),cnt,gen,enj,pct:pctVh,ultimoLav,diasSinLavar});
+      }
+    });
+
+    html+='</tbody></table>';
+    document.getElementById('lav-grid-wrap').innerHTML=html;
+
+    // Tabla atrasados
+    atrasados.sort((a,b)=>a.pct-b.pct);
+    document.getElementById('lav-atrasados-count').textContent=`${atrasados.length} vehículos`;
+    const tb=document.getElementById('lav-atrasados-body');
+    if(!atrasados.length){
+      tb.innerHTML='<tr><td colspan="8" class="empty">✓ Todos los vehículos al día</td></tr>';
+    } else {
+      tb.innerHTML=atrasados.map(v=>{
+        const col=v.pct>=75?'var(--amber)':'var(--red)';
+        const diasCol=v.diasSinLavar>14?'var(--red)':v.diasSinLavar>7?'var(--amber)':'var(--text)';
+        return`<tr>
+          <td style="font-weight:600">${v.placa}</td>
+          <td style="font-size:12px">${v.regional}</td>
+          <td style="text-align:center;font-weight:700;color:${col}">${v.cnt} / 4</td>
+          <td style="text-align:center">${v.gen}</td>
+          <td style="text-align:center">${v.enj}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="flex:1;height:8px;background:var(--bg2);border-radius:4px;overflow:hidden">
+                <div style="width:${v.pct}%;height:100%;background:${col};border-radius:4px"></div>
+              </div>
+              <span style="font-weight:700;color:${col};width:40px">${v.pct}%</span>
+            </div>
+          </td>
+          <td style="font-size:12px">${v.ultimoLav?fmtF(v.ultimoLav):'Sin lavados'}</td>
+          <td style="font-weight:700;color:${diasCol}">${v.diasSinLavar!=null?v.diasSinLavar+'d':'—'}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    window._lavVhs=vhs;
+  }catch(e){
+    document.getElementById('lav-grid-wrap').innerHTML=`<div style="color:var(--red);padding:12px">Error: ${e.message}</div>`;
+  }
+}
+
+async function toggleLavado(vhId,fecha,regional){
+  // Buscar si ya hay registro
+  const{data:exist}=await db.from('lavados').select('*').eq('vehiculo_id',vhId).eq('fecha',fecha).single().catch(()=>({data:null}));
+  if(exist){
+    // Ciclo: ejecutado-general → ejecutado-enjuague → omitido → borrar
+    if(exist.estado==='ejecutado'&&exist.tipo==='enjuague'){
+      await db.from('lavados').update({tipo:'general',updated_at:new Date().toISOString()}).eq('id',exist.id);
+    } else if(exist.estado==='ejecutado'&&exist.tipo==='general'){
+      await db.from('lavados').update({estado:'omitido',updated_at:new Date().toISOString()}).eq('id',exist.id);
+    } else {
+      await db.from('lavados').delete().eq('id',exist.id);
+    }
+  } else {
+    // Crear como enjuague ejecutado
+    const vh=window._lavVhs?.find(v=>v.id===vhId);
+    await db.from('lavados').insert({
+      vehiculo_id:vhId,
+      regional_id:vh?.regional_id||null,
+      fecha,tipo:'enjuague',estado:'ejecutado',
+    });
+  }
+  await cargarLavados();
+}
+
+async function abrirRegistroLavado(){
+  const vhs=window._lavVhs||[];
+  const lista=document.getElementById('lav-vh-lista');
+  lista.innerHTML=vhs.map(v=>`
+    <label style="display:flex;align-items:center;gap:6px;padding:4px;cursor:pointer;border-radius:4px;font-size:12px">
+      <input type="checkbox" value="${v.id}" data-reg="${v.regional_id}" style="accent-color:var(--accent)">
+      <span style="font-weight:500">${v.placa}</span>
+      <span style="font-size:10px;color:var(--text2)">${rNombre(v.regional_id)}</span>
+    </label>
+  `).join('');
+  document.getElementById('lav-fecha').value=hoy();
+  document.getElementById('lav-obs').value='';
+  document.getElementById('modal-lavado').classList.add('open');
+}
+
+async function guardarLavados(){
+  const fecha=document.getElementById('lav-fecha').value;
+  const tipo=document.getElementById('lav-tipo').value;
+  const obs=document.getElementById('lav-obs').value||null;
+  if(!fecha){toast('Selecciona una fecha',true);return;}
+
+  const checks=document.querySelectorAll('#lav-vh-lista input:checked');
+  if(!checks.length){toast('Selecciona al menos un vehículo',true);return;}
+
+  try{
+    const rows=[...checks].map(ch=>({
+      vehiculo_id:ch.value,
+      regional_id:ch.dataset.reg||null,
+      fecha,tipo,estado:'ejecutado',observacion:obs,
+    }));
+    const{error}=await db.from('lavados').upsert(rows,{onConflict:'vehiculo_id,fecha'});
+    if(error)throw error;
+    toast(`${rows.length} lavado(s) registrado(s) ✓`);
+    cerrarModal('modal-lavado');
+    await cargarLavados();
+  }catch(e){toast('Error: '+e.message,true);}
 }
 
 init();
