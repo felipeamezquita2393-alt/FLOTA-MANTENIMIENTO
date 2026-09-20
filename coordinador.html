@@ -232,6 +232,43 @@ tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
+<!-- Modal celda lavado -->
+<div class="modal-overlay" id="modal-lav-celda">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title" id="lav-celda-titulo">Registrar lavado</div>
+    <input type="hidden" id="lav-celda-vhid">
+    <input type="hidden" id="lav-celda-fecha">
+    <input type="hidden" id="lav-celda-lavid">
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Tipo de lavado</div>
+      <div style="display:flex;gap:8px">
+        <button id="lav-btn-enj" onclick="selTipoLav('enjuague')"
+          style="flex:1;padding:12px;border:2px solid var(--border);border-radius:var(--r);cursor:pointer;background:#fff;font-size:13px;font-weight:600;transition:all .15s">
+          💧 Enjuague
+        </button>
+        <button id="lav-btn-gen" onclick="selTipoLav('general')"
+          style="flex:1;padding:12px;border:2px solid var(--border);border-radius:var(--r);cursor:pointer;background:#fff;font-size:13px;font-weight:600;transition:all .15s">
+          🚿 Lavado general
+        </button>
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:6px">¿Se omitió? <span style="font-size:11px">(opcional)</span></div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px">
+        <input type="checkbox" id="lav-omitido" onchange="onOmitidoChange()" style="accent-color:var(--red);width:16px;height:16px">
+        <span style="font-size:13px">Marcar como omitido</span>
+      </label>
+      <textarea id="lav-celda-obs" placeholder="Observación (motivo de omisión, detalle del lavado...)" rows="2"
+        style="width:100%;border:1px solid var(--border);border-radius:var(--r);padding:8px;font-size:13px;font-family:inherit;resize:none"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-sm btn-red" id="lav-btn-borrar" onclick="borrarLavCelda()" style="display:none;margin-right:auto">🗑 Borrar</button>
+      <button class="btn" onclick="cerrarModal('modal-lav-celda')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarLavCelda()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal registro lavado -->
 <div class="modal-overlay" id="modal-lavado">
   <div class="modal">
@@ -1090,6 +1127,16 @@ tr:hover td{background:var(--bg2)}
           <p style="font-size:12px;color:var(--text2);margin-bottom:14px">Ranking de vehículos por número de fallas reportadas en checklist. Útil para priorizar mantenimientos.</p>
           <div style="display:flex;gap:8px">
             <button class="btn btn-primary btn-sm" onclick="generarReporteFallas()" id="btn-rep-fallas">⬇ Descargar Excel</button>
+          </div>
+        </div>
+
+        <!-- Lavados -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:8px">🚿 Informe de lavados</div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:14px">Ejecución de lavados por vehículo en el periodo: generales, enjuagues, omitidos y % de cumplimiento vs meta de 4 lavados.</p>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="rep-lav-mes" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:var(--r)"></select>
+            <button class="btn btn-primary btn-sm" onclick="generarReporteLavados()" id="btn-rep-lav">⬇ Descargar Excel</button>
           </div>
         </div>
 
@@ -3312,9 +3359,23 @@ const LABELS_CL = {
   furgon_interno:'Furgón interno'
 };
 
+function hace30(){const d=new Date();d.setDate(d.getDate()-30);return d.toISOString().split('T')[0];}
+
 function initReportes(){
   document.getElementById('rep-desde').value=hace30();
   document.getElementById('rep-hasta').value=hoy();
+  // Poblar meses en reporte lavados
+  const selLavMes=document.getElementById('rep-lav-mes');
+  if(selLavMes){
+    selLavMes.innerHTML='';
+    const hoyD2=new Date();
+    for(let i=0;i<6;i++){
+      const d=new Date(hoyD2.getFullYear(),hoyD2.getMonth()-i,1);
+      const val=d.toISOString().slice(0,7);
+      const label=d.toLocaleDateString('es-CO',{month:'long',year:'numeric'});
+      selLavMes.add(new Option(label.charAt(0).toUpperCase()+label.slice(1),val));
+    }
+  }
   // Poblar regional
   const sel=document.getElementById('rep-regional');
   while(sel.options.length>1)sel.remove(1);
@@ -3888,7 +3949,7 @@ async function cargarLavados(){
               else{bg='#E3F2FD';celda='E';color='#1565C0';}
             } else if(lav.estado==='omitido'){bg='#ECEFF1';celda='×';color='#90A4AE';}
           }
-          return`<td onclick="toggleLavado('${vh.id}','${fecha}','${rNombre(vh.regional_id)}')"
+          return`<td onclick="toggleLavado('${vh.id}','${fecha}','${vh.placa}')"
             style="padding:3px;border:1px solid var(--border);text-align:center;background:${bg};cursor:${cursor};font-weight:700;color:${color};min-width:28px">
             ${celda}
           </td>`;
@@ -3947,27 +4008,90 @@ async function cargarLavados(){
   }
 }
 
-async function toggleLavado(vhId,fecha,regional){
-  // Buscar si ya hay registro
-  const{data:exist}=await db.from('lavados').select('*').eq('vehiculo_id',vhId).eq('fecha',fecha).single().catch(()=>({data:null}));
-  if(exist){
-    // Ciclo: ejecutado-general → ejecutado-enjuague → omitido → borrar
-    if(exist.estado==='ejecutado'&&exist.tipo==='enjuague'){
-      await db.from('lavados').update({tipo:'general',updated_at:new Date().toISOString()}).eq('id',exist.id);
-    } else if(exist.estado==='ejecutado'&&exist.tipo==='general'){
-      await db.from('lavados').update({estado:'omitido',updated_at:new Date().toISOString()}).eq('id',exist.id);
-    } else {
-      await db.from('lavados').delete().eq('id',exist.id);
-    }
+let _lavTipoSel='enjuague';
+
+function selTipoLav(tipo){
+  _lavTipoSel=tipo;
+  const btnE=document.getElementById('lav-btn-enj');
+  const btnG=document.getElementById('lav-btn-gen');
+  if(tipo==='enjuague'){
+    btnE.style.borderColor='var(--accent)';btnE.style.background='var(--accent-light)';btnE.style.color='var(--accent)';
+    btnG.style.borderColor='var(--border)';btnG.style.background='#fff';btnG.style.color='var(--text)';
   } else {
-    // Crear como enjuague ejecutado
-    const vh=window._lavVhs?.find(v=>v.id===vhId);
-    await db.from('lavados').insert({
-      vehiculo_id:vhId,
-      regional_id:vh?.regional_id||null,
-      fecha,tipo:'enjuague',estado:'ejecutado',
-    });
+    btnG.style.borderColor='var(--green)';btnG.style.background='var(--green-bg)';btnG.style.color='var(--green-dark)';
+    btnE.style.borderColor='var(--border)';btnE.style.background='#fff';btnE.style.color='var(--text)';
   }
+  // Si estaba omitido, desmarcar
+  document.getElementById('lav-omitido').checked=false;
+  onOmitidoChange();
+}
+
+function onOmitidoChange(){
+  const omitido=document.getElementById('lav-omitido').checked;
+  document.getElementById('lav-btn-enj').style.opacity=omitido?'0.4':'1';
+  document.getElementById('lav-btn-gen').style.opacity=omitido?'0.4':'1';
+  document.getElementById('lav-btn-enj').disabled=omitido;
+  document.getElementById('lav-btn-gen').disabled=omitido;
+}
+
+async function toggleLavado(vhId,fecha,placa){
+  // Buscar registro existente
+  const{data:exist}=await db.from('lavados').select('*').eq('vehiculo_id',vhId).eq('fecha',fecha).maybeSingle();
+  const vh=window._lavVhs?.find(v=>v.id===vhId);
+  const[y,m,d]=fecha.split('-');
+  const fechaLabel=`${parseInt(d)} ${new Date(fecha+'T00:00:00').toLocaleDateString('es-CO',{month:'short'})}`;
+
+  document.getElementById('lav-celda-titulo').textContent=`${placa} — ${fechaLabel}`;
+  document.getElementById('lav-celda-vhid').value=vhId;
+  document.getElementById('lav-celda-fecha').value=fecha;
+  document.getElementById('lav-celda-lavid').value=exist?.id||'';
+  document.getElementById('lav-celda-obs').value=exist?.observacion||'';
+  document.getElementById('lav-omitido').checked=exist?.estado==='omitido';
+  document.getElementById('lav-btn-borrar').style.display=exist?'inline-flex':'none';
+  onOmitidoChange();
+
+  // Preseleccionar tipo
+  selTipoLav(exist?.tipo||'enjuague');
+  if(exist?.estado==='omitido'){
+    selTipoLav('enjuague'); // reset visual
+    document.getElementById('lav-omitido').checked=true;
+    onOmitidoChange();
+  }
+
+  document.getElementById('modal-lav-celda').classList.add('open');
+}
+
+async function guardarLavCelda(){
+  const vhId=document.getElementById('lav-celda-vhid').value;
+  const fecha=document.getElementById('lav-celda-fecha').value;
+  const lavId=document.getElementById('lav-celda-lavid').value;
+  const omitido=document.getElementById('lav-omitido').checked;
+  const obs=document.getElementById('lav-celda-obs').value||null;
+  const tipo=_lavTipoSel;
+  const estado=omitido?'omitido':'ejecutado';
+  const vh=window._lavVhs?.find(v=>v.id===vhId);
+
+  try{
+    if(lavId){
+      await db.from('lavados').update({tipo,estado,observacion:obs,updated_at:new Date().toISOString()}).eq('id',lavId);
+    } else {
+      await db.from('lavados').insert({
+        vehiculo_id:vhId,regional_id:vh?.regional_id||null,
+        fecha,tipo,estado,observacion:obs,
+      });
+    }
+    toast('Guardado ✓');
+    cerrarModal('modal-lav-celda');
+    await cargarLavados();
+  }catch(e){toast('Error: '+e.message,true);}
+}
+
+async function borrarLavCelda(){
+  const lavId=document.getElementById('lav-celda-lavid').value;
+  if(!lavId||!confirm('¿Eliminar este registro?'))return;
+  await db.from('lavados').delete().eq('id',lavId);
+  toast('Registro eliminado');
+  cerrarModal('modal-lav-celda');
   await cargarLavados();
 }
 
@@ -4007,6 +4131,87 @@ async function guardarLavados(){
     cerrarModal('modal-lavado');
     await cargarLavados();
   }catch(e){toast('Error: '+e.message,true);}
+}
+
+
+// ── REPORTE LAVADOS ─────────────────────────────────────────
+async function generarReporteLavados(){
+  const btn=document.getElementById('btn-rep-lav');
+  btn.disabled=true;btn.textContent='Generando...';
+  try{
+    const mes=document.getElementById('rep-lav-mes').value;
+    const[y,m]=mes.split('-').map(Number);
+    const desde=`${y}-${String(m).padStart(2,'0')}-01`;
+    const lastDay=new Date(y,m,0).getDate();
+    const hasta=`${y}-${String(m).padStart(2,'0')}-${lastDay}`;
+    const regF=document.getElementById('rep-regional').value||REGIONAL_ID;
+
+    // Vehículos
+    let qv=db.from('vehiculos').select('id,placa,tipo,figura,regional_id,es_tercero').eq('activo',true).neq('tipo','remolque').order('placa');
+    if(regF)qv=qv.eq('regional_id',regF);
+    const{data:vhs}=await qv;
+
+    // Lavados del mes
+    let ql=db.from('lavados').select('*').gte('fecha',desde).lte('fecha',hasta);
+    if(regF)ql=ql.eq('regional_id',regF);
+    const{data:lavs}=await ql;
+
+    // Detalle por vehículo
+    const filasDetalle=(lavs||[]).map(l=>{
+      const vh=(vhs||[]).find(v=>v.id===l.vehiculo_id);
+      return{
+        'Fecha':l.fecha,
+        'Placa':vh?.placa||'—',
+        'Regional':rNombre(l.regional_id),
+        'Tipo':l.tipo==='general'?'Lavado general':'Enjuague',
+        'Estado':l.estado==='ejecutado'?'Ejecutado':l.estado==='omitido'?'Omitido':'Programado',
+        'Observación':l.observacion||'',
+      };
+    }).sort((a,b)=>a['Fecha'].localeCompare(b['Fecha']));
+
+    // Consolidado por vehículo
+    const porVh={};
+    (vhs||[]).forEach(v=>{
+      porVh[v.id]={placa:v.placa,regional:rNombre(v.regional_id),figura:v.figura,esTercero:v.es_tercero,
+        generales:0,enjuagues:0,omitidos:0,total:0};
+    });
+    (lavs||[]).forEach(l=>{
+      if(!porVh[l.vehiculo_id])return;
+      if(l.estado==='ejecutado'){
+        porVh[l.vehiculo_id].total++;
+        if(l.tipo==='general')porVh[l.vehiculo_id].generales++;
+        else porVh[l.vehiculo_id].enjuagues++;
+      } else if(l.estado==='omitido'){
+        porVh[l.vehiculo_id].omitidos++;
+      }
+    });
+    const filasConsolidado=Object.values(porVh).map(v=>({
+      'Placa':v.placa,
+      'Regional':v.regional,
+      'Figura':v.figura,
+      'Tercero':v.esTercero?'Sí':'No',
+      'Lavados generales':v.generales,
+      'Enjuagues':v.enjuagues,
+      'Total ejecutados':v.total,
+      'Omitidos':v.omitidos,
+      'Meta':4,
+      '% Cumplimiento':Math.round(v.total/4*100)+'%',
+      'Estado':v.total>=4?'✓ Al día':v.total>=2?'⚠ Parcial':'✗ Atrasado',
+    })).sort((a,b)=>parseInt(a['% Cumplimiento'])-parseInt(b['% Cumplimiento']));
+
+    const wb=XLSX.utils.book_new();
+    const ws1=XLSX.utils.json_to_sheet(filasConsolidado);
+    ws1['!cols']=[{wch:10},{wch:16},{wch:10},{wch:8},{wch:18},{wch:12},{wch:16},{wch:10},{wch:6},{wch:16},{wch:14}];
+    XLSX.utils.book_append_sheet(wb,ws1,'Consolidado');
+    const ws2=XLSX.utils.json_to_sheet(filasDetalle);
+    ws2['!cols']=[{wch:12},{wch:10},{wch:16},{wch:16},{wch:12},{wch:30}];
+    XLSX.utils.book_append_sheet(wb,ws2,'Detalle');
+
+    const mesLabel=new Date(y,m-1,1).toLocaleDateString('es-CO',{month:'long',year:'numeric'});
+    XLSX.writeFile(wb,`Lavados_${mesLabel}.xlsx`);
+    toast('Reporte descargado ✓');
+  }catch(e){toast('Error: '+e.message,true);}
+  finally{btn.disabled=false;btn.textContent='⬇ Descargar Excel';}
 }
 
 init();
