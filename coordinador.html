@@ -3359,8 +3359,6 @@ const LABELS_CL = {
   furgon_interno:'Furgón interno'
 };
 
-function hace30(){const d=new Date();d.setDate(d.getDate()-30);return d.toISOString().split('T')[0];}
-
 function initReportes(){
   document.getElementById('rep-desde').value=hace30();
   document.getElementById('rep-hasta').value=hoy();
