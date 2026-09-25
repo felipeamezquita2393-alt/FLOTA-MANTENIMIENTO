@@ -232,6 +232,47 @@ tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
+<!-- Modal subir soporte semanal -->
+<div class="modal-overlay" id="modal-soporte-lav">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-title">Subir soporte semanal de lavados</div>
+    <div class="form2">
+      <div class="field">
+        <label>Semana — Desde *</label>
+        <input type="date" id="sop-desde">
+      </div>
+      <div class="field">
+        <label>Hasta *</label>
+        <input type="date" id="sop-hasta">
+      </div>
+      <div class="field full">
+        <label>Archivo (PDF, imagen, Excel) *</label>
+        <input type="file" id="sop-archivo" accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls"
+          style="border:1px solid var(--border);border-radius:var(--r);padding:8px;font-size:13px;width:100%">
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Máx. 5MB — PDF, imagen o Excel</div>
+      </div>
+      <div class="field full">
+        <label>Subido por *</label>
+        <input type="text" id="sop-responsable" placeholder="Nombre del coordinador">
+      </div>
+      <div class="field full">
+        <label>Observación</label>
+        <textarea id="sop-obs" rows="2" placeholder="Ej: soporte semana del 5 al 10 de mayo"></textarea>
+      </div>
+    </div>
+    <div id="sop-progress" style="display:none;margin-bottom:12px">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:6px" id="sop-progress-label">Subiendo...</div>
+      <div style="height:6px;background:var(--bg2);border-radius:3px;overflow:hidden">
+        <div id="sop-progress-bar" style="height:100%;width:0%;background:var(--accent);border-radius:3px;transition:width .3s"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-soporte-lav')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-sop-guardar" onclick="subirSoporte()">Subir soporte</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal celda lavado -->
 <div class="modal-overlay" id="modal-lav-celda">
   <div class="modal" style="max-width:380px">
@@ -1211,6 +1252,22 @@ tr:hover td{background:var(--bg2)}
       </div>
     </div>
 
+    <!-- Soportes semanales -->
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-title">Soportes semanales</span>
+        <button class="btn btn-sm btn-primary" onclick="abrirSubirSoporte()">+ Subir soporte</button>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Semana</th><th>Regional</th><th>Archivo</th>
+          <th>Subido por</th><th>Fecha subida</th><th>Observación</th><th></th>
+        </tr></thead>
+        <tbody id="lav-soportes-body"><tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Tabla de pendientes -->
     <div class="card">
       <div class="card-hdr">
@@ -1308,7 +1365,7 @@ function ir(page){
   if(page==='terceros')cargarTerceros();
   if(page==='documentos')cargarDocumentos();
   if(page==='disp-operativa')initDispOperativa();
-  if(page==='lavados')initLavados();
+  if(page==='lavados'){initLavados();cargarSoportes();}
   if(page==='reportes')initReportes();
 }
 function onFiltro(){REGIONAL_ID=USER_ROL==='gerente'?(document.getElementById('filtro-regional').value||null):REGIONAL_ID;cargarDashboard();}
@@ -4210,6 +4267,160 @@ async function generarReporteLavados(){
     toast('Reporte descargado ✓');
   }catch(e){toast('Error: '+e.message,true);}
   finally{btn.disabled=false;btn.textContent='⬇ Descargar Excel';}
+}
+
+
+// ── SOPORTES SEMANALES DE LAVADOS ───────────────────────────
+const SUPABASE_URL='https://sixtqtopppbclxqdardb.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpeHRxdG9wcHBiY2x4cWRhcmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5Njk2ODAsImV4cCI6MjA5MjU0NTY4MH0.WRYBP4006NZrRCNBpoclVWSz64zQfE2sjFslVc4imDg';
+
+async function cargarSoportes(){
+  const tb=document.getElementById('lav-soportes-body');
+  try{
+    let q=db.from('soportes_lavados').select('*').order('semana_inicio',{ascending:false}).limit(20);
+    if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
+    const{data,error}=await q;if(error)throw error;
+    if(!data?.length){tb.innerHTML='<tr><td colspan="7" class="empty">Sin soportes subidos</td></tr>';return;}
+    tb.innerHTML=data.map(s=>`<tr>
+      <td style="font-size:12px">${fmtF(s.semana_inicio)} → ${fmtF(s.semana_fin)}</td>
+      <td style="font-size:12px">${rNombre(s.regional_id)}</td>
+      <td>
+        <a href="${s.archivo_url}" target="_blank"
+          style="color:var(--accent);font-size:12px;text-decoration:none;display:flex;align-items:center;gap:4px">
+          📎 ${s.archivo_nombre||'Ver archivo'}
+        </a>
+      </td>
+      <td style="font-size:12px">${s.subido_por||'—'}</td>
+      <td style="font-size:12px">${s.created_at?new Date(s.created_at).toLocaleDateString('es-CO'):'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${s.observacion||'—'}</td>
+      <td>
+        <button class="btn btn-sm btn-red" onclick="eliminarSoporte('${s.id}','${s.archivo_url}')">×</button>
+      </td>
+    </tr>`).join('');
+  }catch(e){tb.innerHTML=`<tr><td colspan="7" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
+}
+
+function abrirSubirSoporte(){
+  // Calcular semana actual (lunes a domingo)
+  const hoyD=new Date();
+  const dow=hoyD.getDay();
+  const lunes=new Date(hoyD);
+  lunes.setDate(hoyD.getDate()-(dow===0?6:dow-1));
+  const domingo=new Date(lunes);
+  domingo.setDate(lunes.getDate()+6);
+  document.getElementById('sop-desde').value=lunes.toISOString().split('T')[0];
+  document.getElementById('sop-hasta').value=domingo.toISOString().split('T')[0];
+  document.getElementById('sop-archivo').value='';
+  document.getElementById('sop-responsable').value='';
+  document.getElementById('sop-obs').value='';
+  document.getElementById('sop-progress').style.display='none';
+  document.getElementById('modal-soporte-lav').classList.add('open');
+}
+
+async function subirSoporte(){
+  const desde=document.getElementById('sop-desde').value;
+  const hasta=document.getElementById('sop-hasta').value;
+  const archivo=document.getElementById('sop-archivo').files[0];
+  const responsable=document.getElementById('sop-responsable').value.trim();
+  const obs=document.getElementById('sop-obs').value||null;
+
+  if(!desde||!hasta){toast('Selecciona el rango de la semana',true);return;}
+  if(!archivo){toast('Selecciona un archivo',true);return;}
+  if(!responsable){toast('Ingresa el nombre del responsable',true);return;}
+  if(archivo.size>5*1024*1024){toast('El archivo supera los 5MB',true);return;}
+
+  const btn=document.getElementById('btn-sop-guardar');
+  btn.disabled=true;
+  document.getElementById('sop-progress').style.display='block';
+  document.getElementById('sop-progress-label').textContent='Subiendo archivo...';
+  document.getElementById('sop-progress-bar').style.width='30%';
+
+  try{
+    // Nombre único del archivo
+    const ext=archivo.name.split('.').pop();
+    const regNombre=REGIONAL_ID?rNombre(REGIONAL_ID).replace(/\s/g,'_'):'Nacional';
+    const filename=`${regNombre}_${desde}_${hasta}_${Date.now()}.${ext}`;
+
+    // Subir a Supabase Storage
+    const formData=new FormData();
+    formData.append('',archivo,filename);
+
+    const uploadRes=await fetch(`${SUPABASE_URL}/storage/v1/object/soportes-lavados/${filename}`,{
+      method:'POST',
+      headers:{
+        'Authorization':`Bearer ${SUPABASE_KEY}`,
+        'x-upsert':'true',
+      },
+      body:archivo,
+    });
+
+    document.getElementById('sop-progress-bar').style.width='70%';
+
+    if(!uploadRes.ok){
+      const err=await uploadRes.json();
+      throw new Error(err.message||'Error al subir archivo');
+    }
+
+    // URL pública firmada (1 año)
+    const signRes=await fetch(`${SUPABASE_URL}/storage/v1/object/sign/soportes-lavados/${filename}`,{
+      method:'POST',
+      headers:{
+        'Authorization':`Bearer ${SUPABASE_KEY}`,
+        'Content-Type':'application/json',
+      },
+      body:JSON.stringify({expiresIn:31536000}),
+    });
+    const signData=await signRes.json();
+    const archivoUrl=`${SUPABASE_URL}/storage/v1${signData.signedURL}`;
+
+    document.getElementById('sop-progress-bar').style.width='90%';
+    document.getElementById('sop-progress-label').textContent='Guardando registro...';
+
+    // Guardar en tabla
+    const{error}=await db.from('soportes_lavados').insert({
+      regional_id:REGIONAL_ID||null,
+      semana_inicio:desde,
+      semana_fin:hasta,
+      archivo_url:archivoUrl,
+      archivo_nombre:archivo.name,
+      subido_por:responsable,
+      observacion:obs,
+    });
+    if(error)throw error;
+
+    document.getElementById('sop-progress-bar').style.width='100%';
+    document.getElementById('sop-progress-label').textContent='¡Listo!';
+
+    setTimeout(()=>{
+      toast('Soporte subido ✓');
+      cerrarModal('modal-soporte-lav');
+      cargarSoportes();
+    },500);
+
+  }catch(e){
+    toast('Error: '+e.message,true);
+    document.getElementById('sop-progress').style.display='none';
+  }finally{
+    btn.disabled=false;
+  }
+}
+
+async function eliminarSoporte(id,url){
+  if(!confirm('¿Eliminar este soporte?'))return;
+  try{
+    // Extraer nombre del archivo de la URL
+    const parts=url.split('/soportes-lavados/');
+    if(parts[1]){
+      const filename=parts[1].split('?')[0];
+      await fetch(`${SUPABASE_URL}/storage/v1/object/soportes-lavados/${filename}`,{
+        method:'DELETE',
+        headers:{'Authorization':`Bearer ${SUPABASE_KEY}`},
+      });
+    }
+    await db.from('soportes_lavados').delete().eq('id',id);
+    toast('Soporte eliminado');
+    cargarSoportes();
+  }catch(e){toast('Error: '+e.message,true);}
 }
 
 init();
