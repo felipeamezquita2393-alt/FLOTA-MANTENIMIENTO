@@ -188,8 +188,19 @@ tr:hover td{background:var(--bg2)}
           <div class="field"><label>Fecha expedición</label><input type="date" id="doc-expedicion"></div>
           <div class="field"><label>Fecha vencimiento *</label><input type="date" id="doc-vencimiento"></div>
           <div class="field full"><label>Observaciones</label><input type="text" id="doc-obs" placeholder="Nota opcional"></div>
+          <div class="field full">
+            <label>Archivo del documento <span style="font-size:11px;color:var(--text3)">(PDF o imagen, opcional)</span></label>
+            <input type="file" id="doc-archivo" accept=".pdf,.jpg,.jpeg,.png"
+              style="border:1px solid var(--border);border-radius:var(--r);padding:8px;font-size:12px;width:100%">
+          </div>
         </div>
-        <button class="btn btn-primary" onclick="guardarDocumento()" style="width:100%">Guardar documento</button>
+        <div id="doc-upload-progress" style="display:none;margin-bottom:10px">
+          <div style="font-size:12px;color:var(--text2);margin-bottom:4px" id="doc-upload-label">Subiendo...</div>
+          <div style="height:5px;background:var(--bg2);border-radius:3px;overflow:hidden">
+            <div id="doc-upload-bar" style="height:100%;width:0%;background:var(--accent);border-radius:3px;transition:width .3s"></div>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="guardarDocumento()" style="width:100%" id="btn-guardar-doc">Guardar documento</button>
       </div>
     </div>
     <div class="modal-footer">
