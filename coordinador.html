@@ -2880,35 +2880,88 @@ async function guardarDocumento(){
   const tipo=document.getElementById('doc-tipo').value;
   const venc=document.getElementById('doc-vencimiento').value;
   if(!venc){toast('Ingresa la fecha de vencimiento',true);return;}
-  // Obtener regional_id del vehículo
+  const archivo=document.getElementById('doc-archivo')?.files[0];
+  const btn=document.getElementById('btn-guardar-doc');
+  if(btn)btn.disabled=true;
+
   const{data:vh}=await db.from('vehiculos').select('regional_id').eq('id',vhId).single();
+  let archivoUrl=null,archivoNombre=null;
+
   try{
-    // Upsert: si ya existe ese tipo para este vehículo, actualizar
-    const{data:existing}=await db.from('documentos_vehiculo').select('id').eq('vehiculo_id',vhId).eq('tipo',tipo).single();
+    // Subir archivo si hay uno
+    if(archivo){
+      if(archivo.size>5*1024*1024){toast('El archivo supera los 5MB',true);if(btn)btn.disabled=false;return;}
+      const progEl=document.getElementById('doc-upload-progress');
+      const barEl=document.getElementById('doc-upload-bar');
+      const lblEl=document.getElementById('doc-upload-label');
+      if(progEl)progEl.style.display='block';
+      if(barEl)barEl.style.width='30%';
+      if(lblEl)lblEl.textContent='Subiendo archivo...';
+
+      const ext=archivo.name.split('.').pop();
+      const filename=`${vhId}_${tipo}_${Date.now()}.${ext}`;
+
+      const uploadRes=await fetch(`${SUPABASE_URL}/storage/v1/object/documentos-vehiculos/${filename}`,{
+        method:'POST',
+        headers:{
+          'Authorization':`Bearer ${SUPABASE_KEY}`,
+          'x-upsert':'true',
+          'Content-Type':archivo.type||'application/octet-stream',
+        },
+        body:archivo,
+      });
+      if(barEl)barEl.style.width='70%';
+      if(!uploadRes.ok){
+        const err=await uploadRes.json().catch(()=>({}));
+        throw new Error(err.message||'Error al subir archivo');
+      }
+
+      // URL firmada por 1 año
+      const signRes=await fetch(`${SUPABASE_URL}/storage/v1/object/sign/documentos-vehiculos/${filename}`,{
+        method:'POST',
+        headers:{'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+        body:JSON.stringify({expiresIn:31536000}),
+      });
+      const signData=await signRes.json();
+      archivoUrl=`${SUPABASE_URL}/storage/v1${signData.signedURL}`;
+      archivoNombre=archivo.name;
+      if(barEl)barEl.style.width='90%';
+      if(lblEl)lblEl.textContent='Guardando...';
+    }
+
+    // Datos del documento
+    const docData={
+      fecha_expedicion:document.getElementById('doc-expedicion').value||null,
+      fecha_vencimiento:venc,
+      numero_documento:document.getElementById('doc-numero').value||null,
+      observaciones:document.getElementById('doc-obs').value||null,
+      updated_at:new Date().toISOString(),
+    };
+    if(archivoUrl){docData.archivo_url=archivoUrl;docData.archivo_nombre=archivoNombre;}
+
+    // Upsert
+    const{data:existing}=await db.from('documentos_vehiculo').select('id,archivo_url').eq('vehiculo_id',vhId).eq('tipo',tipo).maybeSingle();
     if(existing){
-      await db.from('documentos_vehiculo').update({
-        fecha_expedicion:document.getElementById('doc-expedicion').value||null,
-        fecha_vencimiento:venc,
-        numero_documento:document.getElementById('doc-numero').value||null,
-        observaciones:document.getElementById('doc-obs').value||null,
-        updated_at:new Date().toISOString(),
-      }).eq('id',existing.id);
+      await db.from('documentos_vehiculo').update(docData).eq('id',existing.id);
     }else{
       await db.from('documentos_vehiculo').insert({
-        vehiculo_id:vhId,
-        regional_id:vh?.regional_id||null,
-        tipo,
-        fecha_expedicion:document.getElementById('doc-expedicion').value||null,
-        fecha_vencimiento:venc,
-        numero_documento:document.getElementById('doc-numero').value||null,
-        observaciones:document.getElementById('doc-obs').value||null,
+        vehiculo_id:vhId,regional_id:vh?.regional_id||null,tipo,...docData
       });
     }
-    toast(`${DOC_LABELS[tipo]} guardado ✓`);
-    cargarDocsFicha(vhId);
-    // Limpiar campos doc
-    ['doc-numero','doc-expedicion','doc-vencimiento','doc-obs'].forEach(id=>document.getElementById(id).value='');
+
+    const progEl=document.getElementById('doc-upload-progress');
+    const barEl=document.getElementById('doc-upload-bar');
+    if(barEl)barEl.style.width='100%';
+    setTimeout(()=>{if(progEl)progEl.style.display='none';},500);
+
+    toast(`${DOC_LABELS[tipo]||tipo} guardado ✓`);
+    if(document.getElementById('doc-archivo'))document.getElementById('doc-archivo').value='';
+    ['doc-numero','doc-expedicion','doc-vencimiento','doc-obs'].forEach(id=>{
+      const el=document.getElementById(id);if(el)el.value='';
+    });
+    renderDocsFicha(vhId);
   }catch(e){toast('Error: '+e.message,true);}
+  finally{if(btn)btn.disabled=false;}
 }
 
 async function eliminarDoc(docId,vhId){
