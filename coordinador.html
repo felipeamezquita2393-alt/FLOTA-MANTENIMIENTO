@@ -2874,49 +2874,112 @@ async function eliminarDoc(docId,vhId){
 }
 
 // ── DOCUMENTOS PANEL GENERAL ────────────────────────────────
+// Calcular estado real desde fecha (no confiar en columna estado de BD)
+function calcEstadoDoc(fechaVenc){
+  if(!fechaVenc)return{estado:'sin_fecha',dias:null};
+  // Comparar solo fechas sin hora para evitar desfase por timezone
+  const hoyStr=hoy();
+  const [hy,hm,hd]=hoyStr.split('-').map(Number);
+  const [vy,vm,vd]=fechaVenc.split('-').map(Number);
+  const hoyMs=new Date(hy,hm-1,hd).getTime();
+  const vencMs=new Date(vy,vm-1,vd).getTime();
+  const dias=Math.ceil((vencMs-hoyMs)/86400000);
+  let estado='vigente';
+  if(dias<0)estado='vencido';
+  else if(dias<=30)estado='proximo';
+  return{estado,dias};
+}
+
 async function cargarDocumentos(){
   const tb=document.getElementById('docs-body');
   tb.innerHTML='<tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr>';
   try{
     let q=db.from('documentos_vehiculo')
-      .select('*,vehiculos(placa,tipo)')
+      .select('*,vehiculos(placa,tipo),archivo_url,archivo_nombre')
       .order('fecha_vencimiento',{ascending:true});
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     const tipoF=document.getElementById('docs-filtro-tipo').value;
-    const estF=document.getElementById('docs-filtro-estado').value;
     if(tipoF)q=q.eq('tipo',tipoF);
-    if(estF)q=q.eq('estado',estF);
     const{data,error}=await q;if(error)throw error;
 
-    const vencidos=(data||[]).filter(d=>d.estado==='vencido').length;
-    const proximos=(data||[]).filter(d=>d.estado==='proximo').length;
-    const soatV=(data||[]).filter(d=>d.tipo==='soat'&&d.estado==='vencido').length;
-    const fumigV=(data||[]).filter(d=>d.tipo==='fumigacion'&&d.estado==='vencido').length;
+    // Calcular estado real en tiempo real desde la fecha
+    const docs=(data||[]).map(d=>({...d,...calcEstadoDoc(d.fecha_vencimiento)}));
 
-    document.getElementById('docs-vencidos').textContent=vencidos;
-    document.getElementById('docs-proximos').textContent=proximos;
-    document.getElementById('docs-soat').textContent=soatV;
-    document.getElementById('docs-fumig').textContent=fumigV;
-    document.getElementById('docs-count').textContent=`${(data||[]).length} documentos`;
+    // Aplicar filtro de estado en cliente (más preciso que confiar en columna BD)
+    const estF=document.getElementById('docs-filtro-estado').value;
+    const docsFiltrados=estF?docs.filter(d=>d.estado===estF):docs;
 
+    // KPIs calculados en tiempo real
+    const vencidos=docs.filter(d=>d.estado==='vencido').length;
+    const proximos=docs.filter(d=>d.estado==='proximo').length;
+    const soatV=docs.filter(d=>d.tipo==='soat'&&d.estado==='vencido').length;
+    const fumigV=docs.filter(d=>d.tipo==='fumigacion'&&d.estado==='vencido').length;
+
+    // KPIs clicables para filtrar
+    const kpiEl=document.getElementById('docs-vencidos');
+    kpiEl.textContent=vencidos;
+    kpiEl.style.cursor='pointer';
+    kpiEl.onclick=()=>{
+      document.getElementById('docs-filtro-estado').value='vencido';
+      cargarDocumentos();
+    };
+    const kpiPEl=document.getElementById('docs-proximos');
+    kpiPEl.textContent=proximos;
+    kpiPEl.style.cursor='pointer';
+    kpiPEl.onclick=()=>{
+      document.getElementById('docs-filtro-estado').value='proximo';
+      cargarDocumentos();
+    };
+    const kpiSEl=document.getElementById('docs-soat');
+    kpiSEl.textContent=soatV;
+    kpiSEl.style.cursor='pointer';
+    kpiSEl.onclick=()=>{
+      document.getElementById('docs-filtro-tipo').value='soat';
+      document.getElementById('docs-filtro-estado').value='vencido';
+      cargarDocumentos();
+    };
+    const kpiFEl=document.getElementById('docs-fumig');
+    kpiFEl.textContent=fumigV;
+    kpiFEl.style.cursor='pointer';
+    kpiFEl.onclick=()=>{
+      document.getElementById('docs-filtro-tipo').value='fumigacion';
+      document.getElementById('docs-filtro-estado').value='vencido';
+      cargarDocumentos();
+    };
+
+    // Tooltip en KPIs para indicar que son clicables
+    ['docs-vencidos','docs-proximos','docs-soat','docs-fumig'].forEach(id=>{
+      const el=document.getElementById(id);
+      el.title='Clic para filtrar';
+      el.style.textDecoration='underline dotted';
+    });
+
+    document.getElementById('docs-count').textContent=`${docsFiltrados.length} documentos`;
     const bd=document.getElementById('badge-docs');
     if(vencidos+proximos>0){bd.textContent=vencidos+proximos;bd.style.display='';}
 
-    if(!data?.length){tb.innerHTML='<tr><td colspan="8" class="empty">Sin documentos registrados</td></tr>';return;}
+    if(!docsFiltrados.length){
+      tb.innerHTML='<tr><td colspan="8" class="empty">Sin documentos en este filtro</td></tr>';
+      return;
+    }
 
-    tb.innerHTML=data.map(d=>{
-      const dias=Math.ceil((new Date(d.fecha_vencimiento)-new Date())/86400000);
+    tb.innerHTML=docsFiltrados.map(d=>{
       const badge=d.estado==='vencido'?'b-red':d.estado==='proximo'?'b-amber':'b-green';
-      const diasText=dias<0?`Vencido hace ${Math.abs(dias)} días`:dias===0?'Vence hoy':`${dias} días`;
+      const diasText=d.dias===null?'—':d.dias<0?`Vencido hace ${Math.abs(d.dias)}d`:d.dias===0?'Vence hoy':`${d.dias}d`;
+      const estadoLabel=d.estado==='vencido'?'Vencido':d.estado==='proximo'?'Próximo 30d':'Vigente';
+      // Lupa si tiene archivo
+      const lupaBtn=d.archivo_url
+        ?`<a href="${d.archivo_url}" target="_blank" title="Ver documento" style="text-decoration:none;font-size:16px;cursor:pointer">🔍</a>`
+        :'';
       return`<tr>
-        <td style="font-weight:600">${d.vehiculos?.placa||'—'}</td>
+        <td style="font-weight:600">${d.vehiculos?.placa||'—'} ${lupaBtn}</td>
         <td style="font-size:12px">${rNombre(d.regional_id)}</td>
         <td>${DOC_LABELS[d.tipo]||d.tipo}</td>
         <td>${fmtF(d.fecha_vencimiento)}</td>
         <td style="text-align:center"><span class="badge ${badge}">${diasText}</span></td>
         <td style="font-size:12px">${d.numero_documento||'—'}</td>
-        <td><span class="badge ${badge}">${d.estado==='vencido'?'Vencido':d.estado==='proximo'?'Próximo':'Vigente'}</span></td>
-        <td><button class="btn btn-sm" onclick="abrirFicha('${d.vehiculo_id}');setTimeout(()=>switchFichaTab('docs'),300)">Ver</button></td>
+        <td><span class="badge ${badge}">${estadoLabel}</span></td>
+        <td><button class="btn btn-sm" onclick="abrirFicha('${d.vehiculo_id}');setTimeout(()=>switchFichaTab('docs'),300)">Ver ficha</button></td>
       </tr>`;
     }).join('');
   }catch(e){tb.innerHTML=`<tr><td colspan="8" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
