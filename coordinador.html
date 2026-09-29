@@ -1605,15 +1605,59 @@ function verChecklist(c){
 async function cargarAlDash(){
   const el=document.getElementById('al-dash');
   try{
+    // Alertas de mantenimiento
     let q=db.from('alertas').select('id,tipo_alerta,fecha_limite,km_limite,anticipacion_dias,anticipacion_km,vehiculos(placa,km_actuales),tipos_mantenimiento(nombre)').not('estado','eq','resuelta');
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
-    const{data:als,error}=await q;if(error)throw error;
+    const{data:als}=await q;
     const urg=(als||[]).filter(a=>['venc','prox','prox_km'].includes(urgA(a)));
-    document.getElementById('badge-al').textContent=urg.length||'0';
+
+    // Documentos vencidos y próximos (calculado en tiempo real)
+    let qd=db.from('documentos_vehiculo').select('tipo,fecha_vencimiento,vehiculos(placa)').order('fecha_vencimiento',{ascending:true});
+    if(REGIONAL_ID)qd=qd.eq('regional_id',REGIONAL_ID);
+    const{data:docs}=await qd;
+    const DOC_L={soat:'SOAT',tecnomecanica:'Tecnomec.',acta_sanitaria:'Acta sanitaria',fumigacion:'Fumigación'};
+    const docsAlerta=(docs||[]).map(d=>({...d,...calcEstadoDoc(d.fecha_vencimiento)}))
+      .filter(d=>d.estado==='vencido'||d.estado==='proximo')
+      .sort((a,b)=>a.dias-b.dias);
+
+    const totalAlertas=urg.length+docsAlerta.length;
+    document.getElementById('badge-al').textContent=totalAlertas||'0';
     const bNav=document.getElementById('badge-alertas');
-    if(urg.length){bNav.textContent=urg.length;bNav.style.display='';}
-    if(!urg.length){el.innerHTML='<div class="empty">Sin alertas urgentes ✓</div>';return;}
-    el.innerHTML=urg.slice(0,5).map(a=>`<div class="row-item"><span class="plate">${a.vehiculos?.placa||'—'}</span><span style="flex:1;font-size:12px;color:var(--text2)">${a.tipos_mantenimiento?.nombre||'—'}</span>${bUrg(urgA(a))}</div>`).join('');
+    if(totalAlertas>0){bNav.textContent=totalAlertas;bNav.style.display='';}
+
+    if(!totalAlertas){el.innerHTML='<div class="empty">Sin alertas urgentes ✓</div>';return;}
+
+    // Renderizar combinadas
+    const itemsMant=urg.slice(0,3).map(a=>`
+      <div class="row-item">
+        <span class="plate">${a.vehiculos?.placa||'—'}</span>
+        <span style="flex:1;font-size:12px;color:var(--text2)">${a.tipos_mantenimiento?.nombre||'—'}</span>
+        ${bUrg(urgA(a))}
+      </div>`);
+
+    const itemsDocs=docsAlerta.slice(0,5).map(d=>`
+      <div class="row-item" style="cursor:pointer" onclick="ir('documentos')">
+        <span class="plate">${d.vehiculos?.placa||'—'}</span>
+        <span style="flex:1;font-size:12px;color:var(--text2)">${DOC_L[d.tipo]||d.tipo}</span>
+        <span class="badge ${d.estado==='vencido'?'b-red':'b-amber'}">
+          ${d.estado==='vencido'?`Vencido hace ${Math.abs(d.dias)}d`:`Vence en ${d.dias}d`}
+        </span>
+      </div>`);
+
+    // Separador si hay ambos tipos
+    let html='';
+    if(itemsMant.length){
+      html+=`<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;padding:4px 0 6px">Mantenimiento</div>`;
+      html+=itemsMant.join('');
+    }
+    if(itemsDocs.length){
+      html+=`<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;padding:8px 0 6px">Documentos</div>`;
+      html+=itemsDocs.join('');
+      if(docsAlerta.length>5){
+        html+=`<div style="font-size:12px;color:var(--accent);text-align:center;padding-top:6px;cursor:pointer" onclick="ir('documentos')">Ver ${docsAlerta.length-5} más →</div>`;
+      }
+    }
+    el.innerHTML=html;
   }catch(e){el.innerHTML='<div class="empty">Sin alertas</div>';}
 }
 
@@ -2810,7 +2854,7 @@ async function cargarDocsFicha(vhId){
   if(!vhId)return;
   const el=document.getElementById('ficha-docs-lista');
   el.innerHTML='<div class="loading"><div class="spinner"></div></div>';
-  const{data,error}=await db.from('documentos_vehiculo').select('*').eq('vehiculo_id',vhId).order('fecha_vencimiento',{ascending:true});
+  const{data,error}=await db.from('documentos_vehiculo').select('id,tipo,numero_documento,fecha_expedicion,fecha_vencimiento,observaciones,vehiculo_id,regional_id,archivo_url,archivo_nombre').eq('vehiculo_id',vhId).order('fecha_vencimiento',{ascending:true});
   if(error||!data?.length){
     el.innerHTML='<div class="empty">Sin documentos registrados. Agrega el primero abajo.</div>';
     return;
@@ -2895,7 +2939,7 @@ async function cargarDocumentos(){
   tb.innerHTML='<tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr>';
   try{
     let q=db.from('documentos_vehiculo')
-      .select('*,vehiculos(placa,tipo),archivo_url,archivo_nombre')
+      .select('id,tipo,numero_documento,fecha_expedicion,fecha_vencimiento,observaciones,vehiculo_id,regional_id,archivo_url,archivo_nombre,vehiculos(placa,tipo)')
       .order('fecha_vencimiento',{ascending:true});
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     const tipoF=document.getElementById('docs-filtro-tipo').value;
