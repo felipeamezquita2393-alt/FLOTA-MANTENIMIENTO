@@ -2992,7 +2992,7 @@ async function cargarDocumentos(){
   tb.innerHTML='<tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr>';
   try{
     let q=db.from('documentos_vehiculo')
-      .select('id,tipo,numero_documento,fecha_expedicion,fecha_vencimiento,observaciones,vehiculo_id,regional_id,archivo_url,archivo_nombre,vehiculos(placa,tipo)')
+      .select('id,tipo,numero_documento,fecha_expedicion,fecha_vencimiento,observaciones,vehiculo_id,regional_id,archivo_url,archivo_nombre,vehiculos(placa,tipo,es_tercero,empresa_tercero)')
       .order('fecha_vencimiento',{ascending:true});
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     const tipoF=document.getElementById('docs-filtro-tipo').value;
@@ -3001,6 +3001,7 @@ async function cargarDocumentos(){
 
     // Calcular estado real en tiempo real desde la fecha
     const docs=(data||[]).map(d=>({...d,...calcEstadoDoc(d.fecha_vencimiento)}));
+    window._docsData=data||[]; // guardar para vista cápsulas
 
     // Aplicar filtro de estado en cliente (más preciso que confiar en columna BD)
     const estF=document.getElementById('docs-filtro-estado').value;
@@ -3057,8 +3058,10 @@ async function cargarDocumentos(){
 
     if(!docsFiltrados.length){
       tb.innerHTML='<tr><td colspan="8" class="empty">Sin documentos en este filtro</td></tr>';
+      if(_vistaDoc==='capsulas')renderCapsulasDoc();
       return;
     }
+    if(_vistaDoc==='capsulas')renderCapsulasDoc();
 
     tb.innerHTML=docsFiltrados.map(d=>{
       const badge=d.estado==='vencido'?'b-red':d.estado==='proximo'?'b-amber':'b-green';
@@ -4592,6 +4595,106 @@ async function eliminarSoporte(id,url){
     toast('Soporte eliminado');
     cargarSoportes();
   }catch(e){toast('Error: '+e.message,true);}
+}
+
+
+// ── VISTA CÁPSULAS DOCUMENTOS ────────────────────────────────
+let _vistaDoc = 'tabla';
+
+function switchVistaDoc(vista){
+  _vistaDoc = vista;
+  const tblWrap = document.querySelector('#page-documentos .tbl-wrap');
+  const capEl = document.getElementById('docs-capsulas');
+  const btnT = document.getElementById('btn-vista-tabla');
+  const btnC = document.getElementById('btn-vista-capsulas');
+  if(vista === 'tabla'){
+    if(tblWrap) tblWrap.style.display = '';
+    if(capEl) capEl.style.display = 'none';
+    if(btnT){ btnT.style.background='var(--bg2)';btnT.style.borderColor='var(--border)';btnT.style.color='var(--text2)';btnT.style.fontWeight='400'; }
+    if(btnC){ btnC.style.background='var(--accent-light)';btnC.style.borderColor='var(--accent)';btnC.style.color='var(--accent)';btnC.style.fontWeight='500'; }
+  } else {
+    if(tblWrap) tblWrap.style.display = 'none';
+    if(capEl) capEl.style.display = '';
+    if(btnC){ btnC.style.background='var(--accent-light)';btnC.style.borderColor='var(--accent)';btnC.style.color='var(--accent)';btnC.style.fontWeight='500'; }
+    if(btnT){ btnT.style.background='var(--bg2)';btnT.style.borderColor='var(--border)';btnT.style.color='var(--text2)';btnT.style.fontWeight='400'; }
+    renderCapsulasDoc();
+  }
+}
+
+function renderCapsulasDoc(){
+  const el = document.getElementById('docs-capsulas');
+  if(!el || !window._docsData) return;
+
+  // Agrupar por vehículo
+  const porVh = {};
+  window._docsData.forEach(d => {
+    const vid = d.vehiculo_id;
+    if(!porVh[vid]) porVh[vid] = {
+      placa: d.vehiculos?.placa || '—',
+      regional: rNombre(d.regional_id),
+      esTercero: d.vehiculos?.es_tercero || false,
+      empresa: d.vehiculos?.empresa_tercero || '',
+      docs: {}
+    };
+    porVh[vid].docs[d.tipo] = d;
+  });
+
+  const TIPOS = ['soat','tecnomecanica','acta_sanitaria','fumigacion'];
+  const DOC_N = {soat:'SOAT',tecnomecanica:'Tecnicomecánica',acta_sanitaria:'Acta sanitaria',fumigacion:'Fumigación'};
+
+  const cards = Object.values(porVh).sort((a,b) => a.placa.localeCompare(b.placa)).map(vh => {
+    // Determinar si tiene algún vencido
+    const tieneVencido = TIPOS.some(t => {
+      const d = vh.docs[t];
+      if(!d) return false;
+      const {estado} = calcEstadoDoc(d.fecha_vencimiento);
+      return estado === 'vencido';
+    });
+
+    const filas = TIPOS.map(t => {
+      const d = vh.docs[t];
+      if(!d) return `<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border)">
+        <span style="font-size:12px;color:var(--text3);display:flex;align-items:center;gap:6px">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--border);display:inline-block;flex-shrink:0"></span>
+          ${DOC_N[t]}
+        </span>
+        <span style="font-size:11px;color:var(--text3)">Sin registro</span>
+      </div>`;
+
+      const {estado, dias} = calcEstadoDoc(d.fecha_vencimiento);
+      const dotColor = estado==='vencido'?'var(--red)':estado==='proximo'?'var(--amber)':'var(--green)';
+      const badgeBg = estado==='vencido'?'var(--red-bg)':estado==='proximo'?'var(--amber-bg)':'var(--green-bg)';
+      const badgeColor = estado==='vencido'?'var(--red-dark)':estado==='proximo'?'var(--amber-dark)':'var(--green-dark)';
+      const diasTxt = dias===null?'—':dias<0?`Vencido ${Math.abs(dias)}d`:dias===0?'Hoy':`${dias}d`;
+      const lupa = d.archivo_url
+        ? `<a href="${d.archivo_url}" target="_blank" title="Ver documento" style="font-size:14px;text-decoration:none;margin-left:4px">🔍</a>`
+        : `<span style="font-size:10px;color:var(--text3);margin-left:4px">Sin archivo</span>`;
+
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border)">
+        <span style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px">
+          <span style="width:8px;height:8px;border-radius:50%;background:${dotColor};display:inline-block;flex-shrink:0"></span>
+          ${DOC_N[t]}
+        </span>
+        <div style="display:flex;align-items:center;gap:4px">
+          <span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:99px;background:${badgeBg};color:${badgeColor}">${diasTxt}</span>
+          ${lupa}
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div style="background:var(--bg);border:1px solid ${tieneVencido?'var(--red)':'var(--border)'};border-radius:var(--rl);padding:14px;cursor:pointer"
+      onclick="abrirFicha('${Object.keys(porVh).find(k=>porVh[k]===vh)}');setTimeout(()=>switchFichaTab('docs'),300)">
+      <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px">
+        ${vh.placa}${vh.esTercero?`<span style="font-size:10px;background:var(--accent-light);color:var(--accent);padding:1px 6px;border-radius:99px;margin-left:6px">3°</span>`:''}
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px">${vh.esTercero&&vh.empresa?vh.empresa+' · ':''} ${vh.regional}</div>
+      ${filas}
+    </div>`;
+  });
+
+  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;padding:4px 0">
+    ${cards.join('')}
+  </div>`;
 }
 
 init();
