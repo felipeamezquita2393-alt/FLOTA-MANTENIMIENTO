@@ -4601,7 +4601,7 @@ async function eliminarSoporte(id,url){
 // ── VISTA CÁPSULAS DOCUMENTOS ────────────────────────────────
 let _vistaDoc = 'tabla';
 
-function switchVistaDoc(vista){
+async function switchVistaDoc(vista){
   _vistaDoc = vista;
   const tblWrap = document.querySelector('#page-documentos .tbl-wrap');
   const capEl = document.getElementById('docs-capsulas');
@@ -4617,6 +4617,10 @@ function switchVistaDoc(vista){
     if(capEl) capEl.style.display = '';
     if(btnC){ btnC.style.background='var(--accent-light)';btnC.style.borderColor='var(--accent)';btnC.style.color='var(--accent)';btnC.style.fontWeight='500'; }
     if(btnT){ btnT.style.background='var(--bg2)';btnT.style.borderColor='var(--border)';btnT.style.color='var(--text2)';btnT.style.fontWeight='400'; }
+    // Si no hay datos cargados, cargar primero
+    if(!window._docsData){
+      await cargarDocumentos();
+    }
     renderCapsulasDoc();
   }
 }
@@ -4642,7 +4646,7 @@ function renderCapsulasDoc(){
   const TIPOS = ['soat','tecnomecanica','acta_sanitaria','fumigacion'];
   const DOC_N = {soat:'SOAT',tecnomecanica:'Tecnicomecánica',acta_sanitaria:'Acta sanitaria',fumigacion:'Fumigación'};
 
-  const cards = Object.values(porVh).sort((a,b) => a.placa.localeCompare(b.placa)).map(vh => {
+  const cards = Object.entries(porVh).sort((a,b) => a[1].placa.localeCompare(b[1].placa)).map(([vid, vh]) => {
     // Determinar si tiene algún vencido
     const tieneVencido = TIPOS.some(t => {
       const d = vh.docs[t];
@@ -4683,7 +4687,7 @@ function renderCapsulasDoc(){
     }).join('');
 
     return `<div style="background:var(--bg);border:1px solid ${tieneVencido?'var(--red)':'var(--border)'};border-radius:var(--rl);padding:14px;cursor:pointer"
-      onclick="abrirFicha('${Object.keys(porVh).find(k=>porVh[k]===vh)}');setTimeout(()=>switchFichaTab('docs'),300)">
+      onclick="abrirFicha('${vid}');setTimeout(()=>switchFichaTab('docs'),300)">
       <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px">
         ${vh.placa}${vh.esTercero?`<span style="font-size:10px;background:var(--accent-light);color:var(--accent);padding:1px 6px;border-radius:99px;margin-left:6px">3°</span>`:''}
       </div>
