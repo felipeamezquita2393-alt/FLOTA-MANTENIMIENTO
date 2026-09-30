@@ -348,6 +348,55 @@ tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
+<!-- Modal novedad operativa -->
+<div class="modal-overlay" id="modal-novedad">
+  <div class="modal">
+    <div class="modal-title" id="nov-modal-title">Registrar novedad operativa</div>
+    <input type="hidden" id="nov-id">
+    <div class="form2">
+      <div class="field"><label>Vehículo *</label>
+        <select id="nov-vh"><option value="">Seleccionar...</option></select></div>
+      <div class="field"><label>Tipo de novedad *</label>
+        <select id="nov-tipo">
+          <option value="sin_refrigeracion">Sin unidad de refrigeración</option>
+          <option value="sin_plataforma">Sin plataforma</option>
+          <option value="sin_furgon">Sin furgón</option>
+          <option value="falla_mecanica">Falla mecánica menor</option>
+          <option value="otro">Otro</option>
+        </select></div>
+      <div class="field"><label>Autorizado por *</label>
+        <input type="text" id="nov-autorizado" placeholder="Nombre del coordinador o jefe"></div>
+      <div class="field"><label>Fecha y hora inicio</label>
+        <input type="datetime-local" id="nov-inicio"></div>
+      <div class="field full"><label>Descripción *</label>
+        <textarea id="nov-desc" rows="3" placeholder="Describe la novedad detalladamente..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-novedad')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarNovedad()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal cerrar novedad -->
+<div class="modal-overlay" id="modal-cerrar-nov">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">Cerrar novedad</div>
+    <input type="hidden" id="cnov-id">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px" id="cnov-desc"></p>
+    <div class="form2">
+      <div class="field full"><label>Fecha y hora de cierre</label>
+        <input type="datetime-local" id="cnov-cierre"></div>
+      <div class="field full"><label>Observación de cierre</label>
+        <textarea id="cnov-obs" rows="2" placeholder="Cómo se resolvió la novedad..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-cerrar-nov')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarCierreNovedad()">Confirmar cierre</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal editar evento de mantenimiento -->
 <div class="modal-overlay" id="modal-evento">
   <div class="modal">
@@ -538,6 +587,7 @@ tr:hover td{background:var(--bg2)}
     <div class="snav-item" data-page="checklists" onclick="ir('checklists')"><span>Checklists</span><span class="badge b-red" id="badge-cl-nav" style="display:none"></span></div>
     <div class="snav-item" data-page="criticidad" onclick="ir('criticidad')"><span>Criticidad</span><span class="badge b-red" id="badge-crit" style="display:none"></span></div>
     <div class="snav-item" data-page="fuera" onclick="ir('fuera')"><span>Fuera de servicio</span><span class="badge b-red" id="badge-fuera" style="display:none"></span></div>
+    <div class="snav-item" data-page="novedades" onclick="ir('novedades')"><span>Op. con novedad</span><span class="badge b-amber" id="badge-nov" style="display:none"></span></div>
     <div class="snav-item" data-page="alertas" onclick="ir('alertas')"><span>Alertas</span><span class="badge b-amber" id="badge-alertas" style="display:none"></span></div>
     <div class="snav-item" data-page="historial" onclick="ir('historial')"><span>Historial</span></div>
     <div class="snav-item" data-page="flota" onclick="ir('flota')"><span>Flota completa</span></div>
@@ -562,6 +612,15 @@ tr:hover td{background:var(--bg2)}
         <div class="metric"><div class="metric-label">Respaldos activos</div><div class="metric-val" id="k-bk" style="color:var(--purple)">—</div><div class="metric-sub">Backups + <span id="k-tc">—</span> terceros</div></div>
       </div>
       <div id="reg-disp-list" class="card"><div class="loading"><div class="spinner"></div></div></div>
+
+      <!-- Novedades activas en dashboard -->
+      <div id="nov-dash-card" style="display:none" class="card">
+        <div class="card-hdr">
+          <span class="card-title" style="color:var(--amber)">⚠ Operativos con novedad</span>
+          <button class="btn btn-sm" onclick="ir('novedades')">Ver todas →</button>
+        </div>
+        <div id="nov-dash-body"></div>
+      </div>
 
       <div class="card">
         <div class="card-hdr">
@@ -742,6 +801,15 @@ tr:hover td{background:var(--bg2)}
 
     <!-- FUERA DE SERVICIO -->
     <div id="page-fuera" class="page">
+      <!-- Novedades activas en dashboard -->
+      <div id="nov-dash-card" style="display:none" class="card">
+        <div class="card-hdr">
+          <span class="card-title" style="color:var(--amber)">⚠ Operativos con novedad</span>
+          <button class="btn btn-sm" onclick="ir('novedades')">Ver todas →</button>
+        </div>
+        <div id="nov-dash-body"></div>
+      </div>
+
       <div class="card">
         <div class="card-hdr">
           <span class="card-title">Vehículos fuera de servicio</span>
@@ -1310,6 +1378,67 @@ tr:hover td{background:var(--bg2)}
 
   </div>
 
+  <!-- NOVEDADES OPERATIVAS -->
+  <div id="page-novedades" class="page">
+
+    <!-- KPIs -->
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-label">Activas ahora</div>
+        <div class="metric-val" id="nov-activas" style="color:var(--amber)">—</div>
+        <div class="metric-sub">Vehículos con novedad</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Cerradas este mes</div>
+        <div class="metric-val" id="nov-cerradas">—</div>
+        <div class="metric-sub">Novedades resueltas</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Tiempo promedio resolución</div>
+        <div class="metric-val" id="nov-promedio">—</div>
+        <div class="metric-sub">Horas por novedad</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Más frecuente</div>
+        <div class="metric-val" id="nov-tipo-top" style="font-size:14px">—</div>
+        <div class="metric-sub">Tipo de novedad</div>
+      </div>
+    </div>
+
+    <!-- Novedades activas -->
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-title">Operativos con novedad activa</span>
+        <button class="btn btn-sm btn-primary" onclick="abrirNovedad()">+ Registrar novedad</button>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Placa</th><th>Regional</th><th>Tipo</th><th>Descripción</th>
+          <th>Autorizado por</th><th>Desde</th><th style="text-align:center">Horas activa</th><th></th>
+        </tr></thead>
+        <tbody id="nov-activas-body"><tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Historial -->
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-title">Historial de novedades cerradas</span>
+        <span id="nov-hist-count" style="font-size:12px;color:var(--text2)"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Placa</th><th>Regional</th><th>Tipo</th><th>Descripción</th>
+          <th>Inicio</th><th>Cierre</th><th style="text-align:center">Horas</th>
+        </tr></thead>
+        <tbody id="nov-hist-body"><tr><td colspan="7" class="empty">Sin novedades cerradas</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
   </main>
 </div>
 
@@ -1386,6 +1515,7 @@ function ir(page){
   if(page==='documentos')cargarDocumentos();
   if(page==='disp-operativa')initDispOperativa();
   if(page==='lavados'){initLavados();cargarSoportes();}
+  if(page==='novedades')cargarNovedades();
   if(page==='reportes')initReportes();
 }
 function onFiltro(){REGIONAL_ID=USER_ROL==='gerente'?(document.getElementById('filtro-regional').value||null):REGIONAL_ID;cargarDashboard();}
@@ -1417,6 +1547,7 @@ async function init(){
 }
 
 async function cargarDashboard(){
+  cargarNovedades(); // novedades en dashboard
   // Mostrar loading rápido
   document.getElementById('fuera-dash').innerHTML='<tr><td colspan="9" class="loading"><div class="spinner"></div></td></tr>';
   document.getElementById('cl-dash').innerHTML='<div class="loading"><div class="spinner"></div></div>';
@@ -4708,6 +4839,187 @@ function renderCapsulasDoc(){
   el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;padding:4px 0">
     ${cards.join('')}
   </div>`;
+}
+
+
+// ── NOVEDADES OPERATIVAS ─────────────────────────────────────
+const NOV_LABELS = {
+  sin_refrigeracion:'Sin refrigeración',
+  sin_plataforma:'Sin plataforma',
+  sin_furgon:'Sin furgón',
+  falla_mecanica:'Falla mecánica',
+  otro:'Otro'
+};
+
+async function cargarNovedades(){
+  try{
+    // Activas
+    let qa=db.from('novedades_operativas')
+      .select('*,vehiculos(placa,tipo,figura)')
+      .eq('estado','activa').order('fecha_inicio',{ascending:true});
+    if(REGIONAL_ID)qa=qa.eq('regional_id',REGIONAL_ID);
+    const{data:activas}=await qa;
+
+    // KPI badge
+    const nav=document.getElementById('badge-nov');
+    if((activas||[]).length){nav.textContent=(activas||[]).length;nav.style.display='';}
+    else nav.style.display='none';
+    document.getElementById('nov-activas').textContent=(activas||[]).length;
+
+    // Dashboard card
+    const dashCard=document.getElementById('nov-dash-card');
+    const dashBody=document.getElementById('nov-dash-body');
+    if((activas||[]).length&&dashCard){
+      dashCard.style.display='block';
+      dashBody.innerHTML=(activas||[]).map(n=>{
+        const h=Math.round((new Date()-new Date(n.fecha_inicio))/36000)/100;
+        return`<div class="row-item">
+          <span class="plate">${n.vehiculos?.placa||'—'}</span>
+          <span style="flex:1;font-size:12px;color:var(--text2)">${NOV_LABELS[n.tipo]||n.tipo}</span>
+          <span class="badge b-amber">${h}h</span>
+        </div>`;
+      }).join('');
+    } else if(dashCard) dashCard.style.display='none';
+
+    // Tabla activas
+    const tb=document.getElementById('nov-activas-body');
+    if(!tb)return;
+    if(!(activas||[]).length){
+      tb.innerHTML='<tr><td colspan="8" class="empty">Sin novedades activas ✓</td></tr>';
+    } else {
+      tb.innerHTML=(activas||[]).map(n=>{
+        const h=Math.round((new Date()-new Date(n.fecha_inicio))/36000)/100;
+        const hColor=h>48?'var(--red)':h>24?'var(--amber)':'var(--text)';
+        return`<tr style="background:rgba(245,124,0,0.04)">
+          <td style="font-weight:600">${n.vehiculos?.placa||'—'}</td>
+          <td style="font-size:12px">${rNombre(n.regional_id)}</td>
+          <td><span class="badge b-amber">${NOV_LABELS[n.tipo]||n.tipo}</span></td>
+          <td style="font-size:12px;color:var(--text2)">${n.descripcion||'—'}</td>
+          <td style="font-size:12px">${n.autorizado_por||'—'}</td>
+          <td style="font-size:12px">${n.fecha_inicio?new Date(n.fecha_inicio).toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—'}</td>
+          <td style="text-align:center;font-weight:700;color:${hColor}">${h}h</td>
+          <td><button class="btn btn-sm btn-green" onclick="abrirCierreNovedad('${n.id}','${(n.vehiculos?.placa||'')+" - "+(NOV_LABELS[n.tipo]||"")}')">Cerrar</button></td>
+        </tr>`;
+      }).join('');
+    }
+
+    // Historial cerradas
+    let qh=db.from('novedades_operativas')
+      .select('*,vehiculos(placa)')
+      .eq('estado','cerrada').order('fecha_cierre',{ascending:false}).limit(30);
+    if(REGIONAL_ID)qh=qh.eq('regional_id',REGIONAL_ID);
+    const{data:hist}=await qh;
+
+    // KPIs cerradas
+    const mesInicio=new Date();mesInicio.setDate(1);mesInicio.setHours(0,0,0,0);
+    const cerrMes=(hist||[]).filter(n=>new Date(n.fecha_cierre)>=mesInicio).length;
+    document.getElementById('nov-cerradas').textContent=cerrMes;
+    document.getElementById('nov-hist-count').textContent=`${(hist||[]).length} registros`;
+
+    // Promedio horas
+    const conTiempo=(hist||[]).filter(n=>n.tiempo_horas);
+    const prom=conTiempo.length?Math.round(conTiempo.reduce((s,n)=>s+n.tiempo_horas,0)/conTiempo.length*10)/10:0;
+    document.getElementById('nov-promedio').textContent=prom?prom+'h':'—';
+
+    // Tipo más frecuente
+    const cntTipo={};
+    (activas||[]).concat(hist||[]).forEach(n=>{cntTipo[n.tipo]=(cntTipo[n.tipo]||0)+1;});
+    const topTipo=Object.entries(cntTipo).sort((a,b)=>b[1]-a[1])[0];
+    document.getElementById('nov-tipo-top').textContent=topTipo?NOV_LABELS[topTipo[0]]||topTipo[0]:'—';
+
+    // Tabla historial
+    const tbH=document.getElementById('nov-hist-body');
+    if(!tbH)return;
+    if(!(hist||[]).length){
+      tbH.innerHTML='<tr><td colspan="7" class="empty">Sin novedades cerradas</td></tr>';
+    } else {
+      tbH.innerHTML=(hist||[]).map(n=>`<tr>
+        <td style="font-weight:600">${n.vehiculos?.placa||'—'}</td>
+        <td style="font-size:12px">${rNombre(n.regional_id)}</td>
+        <td><span class="badge b-gray">${NOV_LABELS[n.tipo]||n.tipo}</span></td>
+        <td style="font-size:12px;color:var(--text2)">${n.descripcion||'—'}</td>
+        <td style="font-size:12px">${n.fecha_inicio?new Date(n.fecha_inicio).toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—'}</td>
+        <td style="font-size:12px">${n.fecha_cierre?new Date(n.fecha_cierre).toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—'}</td>
+        <td style="text-align:center;font-weight:600">${n.tiempo_horas?n.tiempo_horas+'h':'—'}</td>
+      </tr>`).join('');
+    }
+  }catch(e){console.error(e);}
+}
+
+async function abrirNovedad(){
+  // Poblar vehículos
+  let qv=db.from('vehiculos').select('id,placa,regional_id').eq('activo',true).neq('tipo','remolque').order('placa');
+  if(REGIONAL_ID)qv=qv.eq('regional_id',REGIONAL_ID);
+  const{data:vhs}=await qv;
+  document.getElementById('nov-vh').innerHTML='<option value="">Seleccionar...</option>'
+    +(vhs||[]).map(v=>`<option value="${v.id}" data-reg="${v.regional_id}">${v.placa} [${rNombre(v.regional_id)}]</option>`).join('');
+  document.getElementById('nov-id').value='';
+  document.getElementById('nov-desc').value='';
+  document.getElementById('nov-autorizado').value='';
+  // Fecha actual
+  const now=new Date();
+  const local=new Date(now-now.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  document.getElementById('nov-inicio').value=local;
+  document.getElementById('modal-novedad').classList.add('open');
+}
+
+async function guardarNovedad(){
+  const vhSel=document.getElementById('nov-vh');
+  const vhId=vhSel.value;
+  const regId=vhSel.options[vhSel.selectedIndex]?.dataset.reg;
+  const tipo=document.getElementById('nov-tipo').value;
+  const desc=document.getElementById('nov-desc').value;
+  const autorizado=document.getElementById('nov-autorizado').value;
+  const inicio=document.getElementById('nov-inicio').value;
+  if(!vhId||!desc||!autorizado){toast('Completa todos los campos requeridos',true);return;}
+  try{
+    const{error}=await db.from('novedades_operativas').insert({
+      vehiculo_id:vhId,regional_id:regId||null,
+      tipo,descripcion:desc,autorizado_por:autorizado,
+      fecha_inicio:inicio?new Date(inicio).toISOString():new Date().toISOString(),
+      estado:'activa',
+    });
+    if(error)throw error;
+    toast('Novedad registrada ✓');
+    cerrarModal('modal-novedad');
+    cargarNovedades();
+  }catch(e){toast('Error: '+e.message,true);}
+}
+
+function abrirCierreNovedad(id,label){
+  document.getElementById('cnov-id').value=id;
+  document.getElementById('cnov-desc').textContent=`Cerrando: ${label}`;
+  document.getElementById('cnov-obs').value='';
+  const now=new Date();
+  const local=new Date(now-now.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  document.getElementById('cnov-cierre').value=local;
+  document.getElementById('modal-cerrar-nov').classList.add('open');
+}
+
+async function confirmarCierreNovedad(){
+  const id=document.getElementById('cnov-id').value;
+  const cierre=document.getElementById('cnov-cierre').value;
+  const obs=document.getElementById('cnov-obs').value||null;
+  if(!cierre){toast('Ingresa la fecha de cierre',true);return;}
+  try{
+    // Obtener la novedad para calcular tiempo
+    const{data:nov}=await db.from('novedades_operativas').select('fecha_inicio').eq('id',id).single();
+    const horas=nov?.fecha_inicio
+      ? Math.round((new Date(cierre)-new Date(nov.fecha_inicio))/36000)/100
+      : null;
+    const{error}=await db.from('novedades_operativas').update({
+      estado:'cerrada',
+      fecha_cierre:new Date(cierre).toISOString(),
+      tiempo_horas:horas,
+      descripcion:obs?((await db.from('novedades_operativas').select('descripcion').eq('id',id).single()).data?.descripcion||'')+' | Cierre: '+obs:undefined,
+      updated_at:new Date().toISOString(),
+    }).eq('id',id);
+    if(error)throw error;
+    toast(`Novedad cerrada — ${horas}h de duración ✓`);
+    cerrarModal('modal-cerrar-nov');
+    cargarNovedades();
+    cargarFueraDash();
+  }catch(e){toast('Error: '+e.message,true);}
 }
 
 init();
