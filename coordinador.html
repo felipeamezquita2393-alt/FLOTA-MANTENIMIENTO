@@ -959,6 +959,14 @@ tr:hover td{background:var(--bg2)}
               <option value="vigente">Vigentes</option>
             </select>
             <span id="docs-count" style="font-size:12px;color:var(--text2)"></span>
+            <button id="btn-vista-tabla" onclick="switchVistaDoc('tabla')"
+              style="font-size:11px;padding:4px 10px;border:1px solid var(--accent);border-radius:var(--r);background:var(--accent-light);cursor:pointer;color:var(--accent);font-weight:500">
+              ☰ Tabla
+            </button>
+            <button id="btn-vista-capsulas" onclick="switchVistaDoc('capsulas')"
+              style="font-size:11px;padding:4px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);cursor:pointer;color:var(--text2)">
+              ⊞ Cápsulas
+            </button>
           </div>
         </div>
         <div class="tbl-wrap">
@@ -970,6 +978,7 @@ tr:hover td{background:var(--bg2)}
           <tbody id="docs-body"><tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr></tbody>
           </table>
         </div>
+        <div id="docs-capsulas" style="display:none;padding:4px 0"></div>
       </div>
     </div>
 
