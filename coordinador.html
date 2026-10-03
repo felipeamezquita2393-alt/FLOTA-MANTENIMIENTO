@@ -1442,6 +1442,86 @@ tr:hover td{background:var(--bg2)}
 
   </div>
 
+  <!-- PANEL GERENCIAL -->
+  <div id="page-gerencial" class="page">
+
+    <!-- KPIs nacionales -->
+    <div class="metrics" id="ger-kpis">
+      <div class="metric">
+        <div class="metric-label">Disponibilidad nacional</div>
+        <div class="metric-val" id="ger-disp">—</div>
+        <div class="metric-sub" id="ger-disp-sub">flota completa</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Vehículos operativos</div>
+        <div class="metric-val" id="ger-op" style="color:var(--green)">—</div>
+        <div class="metric-sub" id="ger-op-sub">de — titulares</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Fuera de servicio</div>
+        <div class="metric-val" id="ger-fuera" style="color:var(--red)">—</div>
+        <div class="metric-sub">en este momento</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Checklists hoy</div>
+        <div class="metric-val" id="ger-cl">—</div>
+        <div class="metric-sub" id="ger-cl-sub">— pendientes</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Alertas activas</div>
+        <div class="metric-val" id="ger-alertas" style="color:var(--amber)">—</div>
+        <div class="metric-sub">sin resolver</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Novedades activas</div>
+        <div class="metric-val" id="ger-nov" style="color:var(--amber)">—</div>
+        <div class="metric-sub">operando con falla</div>
+      </div>
+    </div>
+
+    <!-- Tabla por regional -->
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-title">Estado por regional</span>
+        <button class="btn btn-sm" onclick="cargarPanelGerencial()">↻ Actualizar</button>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Regional</th>
+          <th style="text-align:center">Disponibilidad</th>
+          <th style="text-align:center">Operativos</th>
+          <th style="text-align:center">Fuera de servicio</th>
+          <th style="text-align:center">Checklists hoy</th>
+          <th style="text-align:center">Novedades</th>
+          <th style="text-align:center">Doc. vencidos</th>
+          <th style="text-align:center">Alertas</th>
+        </tr></thead>
+        <tbody id="ger-regionales-body"><tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Dos columnas: fuera de servicio + alertas críticas -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-hdr"><span class="card-title">Fuera de servicio — todas las regionales</span></div>
+        <div class="tbl-wrap">
+          <table><thead><tr>
+            <th>Placa</th><th>Regional</th><th>Taller</th>
+            <th style="text-align:center">Tiempo fuera</th><th>Reemplazo</th>
+          </tr></thead>
+          <tbody id="ger-fuera-body"><tr><td colspan="5" class="loading"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hdr"><span class="card-title">Alertas críticas — todas las regionales</span></div>
+        <div id="ger-alertas-body" style="max-height:350px;overflow-y:auto"></div>
+      </div>
+    </div>
+
+  </div>
+
   </main>
 </div>
 
@@ -1489,7 +1569,11 @@ async function checkAuth(){
   const regNom=meta.regional||null;
   const esGerente=USER_ROL==='gerente'||regNom==='Nacional'||!regNom;
   document.getElementById('nav-user').textContent=`${USER_EMAIL} · ${esGerente?'Gerente':'Coordinador'}`;
-  if(esGerente){USER_ROL='gerente';REGIONAL_ID=null;}
+  if(esGerente){
+    USER_ROL='gerente';REGIONAL_ID=null;
+    const snavGer=document.getElementById('snav-gerencial');
+    if(snavGer)snavGer.style.display='';
+  }
   else{
     USER_ROL='coordinador';
     const{data:reg}=await db.from('regionales').select('id,nombre').eq('nombre',regNom).single();
@@ -1519,6 +1603,7 @@ function ir(page){
   if(page==='disp-operativa')initDispOperativa();
   if(page==='lavados'){initLavados();cargarSoportes();}
   if(page==='novedades')cargarNovedades();
+  if(page==='gerencial')cargarPanelGerencial();
   if(page==='reportes')initReportes();
 }
 function onFiltro(){REGIONAL_ID=USER_ROL==='gerente'?(document.getElementById('filtro-regional').value||null):REGIONAL_ID;cargarDashboard();}
@@ -5121,6 +5206,131 @@ async function confirmarCierreNovedad(){
     cargarNovedades();
     cargarFueraDash();
   }catch(e){toast('Error: '+e.message,true);}
+}
+
+
+// ── PANEL GERENCIAL ──────────────────────────────────────────
+async function cargarPanelGerencial(){
+  try{
+    // Datos base en paralelo
+    const[
+      {data:vhs},
+      {data:eventos},
+      {data:cls},
+      {data:alertas},
+      {data:novedades},
+      {data:docs},
+      {data:reemps},
+    ] = await Promise.all([
+      db.from('vehiculos').select('id,placa,figura,tipo,regional_id,es_tercero').eq('activo',true).neq('tipo','remolque'),
+      db.from('eventos_mantenimiento').select('id,vehiculo_id,regional_id,fecha_entrada,hora_entrada,talleres(nombre),vehiculos(placa,figura)').eq('estado','en_proceso'),
+      db.from('checklists').select('vehiculo_id,regional_id,tiene_fallas').eq('fecha',hoy()),
+      db.from('alertas').select('id,regional_id,prioridad,origen').not('estado','eq','resuelta'),
+      db.from('novedades_operativas').select('id,regional_id').eq('estado','activa'),
+      db.from('documentos_vehiculo').select('id,regional_id,fecha_vencimiento'),
+      db.from('reemplazos_activos').select('titular_id,reemplazo_id,vehiculos(placa)').eq('activo',true),
+    ]);
+
+    // Reemplazos map
+    const reempMap=new Map((reemps||[]).map(r=>[r.titular_id,r.vehiculos?.placa||'—']));
+
+    // KPIs nacionales
+    const titulares=(vhs||[]).filter(v=>v.figura==='titular'&&!v.es_tercero);
+    const fuera=(eventos||[]).length;
+    const operativos=titulares.length-fuera+(reemps||[]).length;
+    const pctDisp=titulares.length?Math.round(operativos/titulares.length*100):0;
+    const dispColor=pctDisp>=90?'var(--green)':pctDisp>=80?'var(--amber)':'var(--red)';
+    const clHoy=(cls||[]).length;
+    const clPend=titulares.length-clHoy;
+
+    document.getElementById('ger-disp').textContent=pctDisp+'%';
+    document.getElementById('ger-disp').style.color=dispColor;
+    document.getElementById('ger-disp-sub').textContent=`${operativos} de ${titulares.length} titulares`;
+    document.getElementById('ger-op').textContent=operativos;
+    document.getElementById('ger-op-sub').textContent=`de ${titulares.length} titulares`;
+    document.getElementById('ger-fuera').textContent=fuera;
+    document.getElementById('ger-cl').textContent=clHoy;
+    document.getElementById('ger-cl-sub').textContent=`${clPend} pendientes`;
+    document.getElementById('ger-alertas').textContent=(alertas||[]).length;
+    document.getElementById('ger-nov').textContent=(novedades||[]).length;
+
+    // Por regional
+    const tb=document.getElementById('ger-regionales-body');
+    const regsActivas=regionales.filter(r=>r.activa);
+    tb.innerHTML=regsActivas.map(r=>{
+      const vhsR=(vhs||[]).filter(v=>v.regional_id===r.id&&v.figura==='titular'&&!v.es_tercero);
+      const fueraR=(eventos||[]).filter(e=>e.regional_id===r.id).length;
+      const opR=vhsR.length-fueraR;
+      const pctR=vhsR.length?Math.round(opR/vhsR.length*100):0;
+      const colR=pctR>=90?'var(--green)':pctR>=80?'var(--amber)':'var(--red)';
+      const clR=(cls||[]).filter(c=>c.regional_id===r.id).length;
+      const clTotR=vhsR.length;
+      const clColR=clR>=clTotR?'var(--green)':clR>=clTotR*0.7?'var(--amber)':'var(--red)';
+      const novR=(novedades||[]).filter(n=>n.regional_id===r.id).length;
+      const alR=(alertas||[]).filter(a=>a.regional_id===r.id).length;
+      const alAltaR=(alertas||[]).filter(a=>a.regional_id===r.id&&a.prioridad==='alta').length;
+      // Docs vencidos
+      const docsVR=(docs||[]).filter(d=>{
+        if(d.regional_id!==r.id)return false;
+        const {estado}=calcEstadoDoc(d.fecha_vencimiento);
+        return estado==='vencido';
+      }).length;
+
+      return`<tr>
+        <td style="font-weight:600">${r.nombre}</td>
+        <td style="text-align:center">
+          <span style="font-weight:700;color:${colR}">${pctR}%</span>
+          <div style="height:4px;background:var(--bg2);border-radius:2px;margin-top:3px;overflow:hidden">
+            <div style="width:${pctR}%;height:100%;background:${colR};border-radius:2px"></div>
+          </div>
+        </td>
+        <td style="text-align:center;font-weight:600;color:var(--green)">${opR}<span style="font-weight:400;color:var(--text3)">/${vhsR.length}</span></td>
+        <td style="text-align:center;font-weight:600;color:${fueraR>0?'var(--red)':'var(--text3)'}">${fueraR}</td>
+        <td style="text-align:center;font-weight:600;color:${clColR}">${clR}<span style="font-weight:400;color:var(--text3)">/${clTotR}</span></td>
+        <td style="text-align:center">${novR>0?`<span class="badge b-amber">${novR}</span>`:'<span style="color:var(--text3)">—</span>'}</td>
+        <td style="text-align:center">${docsVR>0?`<span class="badge b-red">${docsVR}</span>`:'<span style="color:var(--text3)">—</span>'}</td>
+        <td style="text-align:center">${alR>0?`<span class="badge ${alAltaR>0?'b-red':'b-amber'}">${alR}</span>`:'<span style="color:var(--text3)">—</span>'}</td>
+      </tr>`;
+    }).join('');
+
+    // Fuera de servicio todas las regionales
+    const tbF=document.getElementById('ger-fuera-body');
+    if(!(eventos||[]).length){
+      tbF.innerHTML='<tr><td colspan="5" class="empty">Sin vehículos fuera de servicio ✓</td></tr>';
+    } else {
+      tbF.innerHTML=(eventos||[]).map(e=>{
+        const ini=new Date(e.fecha_entrada+'T00:00:00');
+        const totalH=Math.floor((new Date()-ini)/3600000);
+        const dias=Math.floor(totalH/24);
+        const hResto=totalH%24;
+        const tStr=dias>0?`${dias}d ${hResto}h`:`${totalH}h`;
+        const tCol=dias>=7?'var(--red)':dias>=3?'var(--amber)':'var(--text)';
+        const reem=reempMap.get(e.vehiculo_id);
+        return`<tr>
+          <td style="font-weight:600">${e.vehiculos?.placa||'—'}</td>
+          <td style="font-size:12px">${rNombre(e.regional_id)}</td>
+          <td style="font-size:12px">${e.talleres?.nombre||'—'}</td>
+          <td style="text-align:center;font-weight:700;color:${tCol}">${tStr}</td>
+          <td>${reem?`<span class="badge b-purple">🔄 ${reem}</span>`:'<span class="badge b-red">Sin reemplazo</span>'}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    // Alertas críticas
+    const elAl=document.getElementById('ger-alertas-body');
+    const alAlta=(alertas||[]).filter(a=>a.prioridad==='alta'||a.origen==='checklist').slice(0,15);
+    if(!alAlta.length){
+      elAl.innerHTML='<div class="empty">Sin alertas críticas ✓</div>';
+    } else {
+      elAl.innerHTML=alAlta.map(a=>`
+        <div class="row-item">
+          <span style="font-size:12px;color:var(--text2);width:80px">${rNombre(a.regional_id)}</span>
+          <span style="flex:1;font-size:12px">${a.origen==='checklist'?'📋 Checklist':'🔧 Mantenimiento'}</span>
+          <span class="badge ${a.prioridad==='alta'?'b-red':'b-amber'}">${a.prioridad||'—'}</span>
+        </div>`).join('');
+    }
+
+  }catch(e){console.error('Panel gerencial error:',e);}
 }
 
 init();
