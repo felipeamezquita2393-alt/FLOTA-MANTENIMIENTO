@@ -5229,17 +5229,30 @@ async function cargarPanelGerencial(){
       db.from('alertas').select('id,regional_id,prioridad,origen').not('estado','eq','resuelta'),
       db.from('novedades_operativas').select('id,regional_id').eq('estado','activa'),
       db.from('documentos_vehiculo').select('id,regional_id,fecha_vencimiento'),
-      db.from('reemplazos_activos').select('titular_id,reemplazo_id,vehiculos(placa)').eq('activo',true),
+      db.from('reemplazos_activos').select('titular_id,reemplazo_id,vehiculos!reemplazos_activos_reemplazo_id_fkey(placa,regional_id)').eq('activo',true),
+      // cupos ya están en regionales (cargadas globalmente)
     ]);
 
     // Reemplazos map
     const reempMap=new Map((reemps||[]).map(r=>[r.titular_id,r.vehiculos?.placa||'—']));
 
     // KPIs nacionales
-    const titulares=(vhs||[]).filter(v=>v.figura==='titular'&&!v.es_tercero);
+    // Usar cupo_requerido como base (igual que dashboard)
+    const cupoTotal=regionales.filter(r=>r.activa).reduce((s,r)=>s+(r.cupo_requerido||0),0);
     const fuera=(eventos||[]).length;
-    const operativos=titulares.length-fuera+(reemps||[]).length;
-    const pctDisp=titulares.length?Math.round(operativos/titulares.length*100):0;
+    const titFuera=(eventos||[]).filter(e=>{
+      const vh=(vhs||[]).find(v=>v.id===e.vehiculo_id);
+      return vh&&vh.figura==='titular'&&!vh.es_tercero;
+    }).length;
+    const bkAct=(reemps||[]).length;
+    const tcAct=(vhs||[]).filter(v=>v.es_tercero&&v.figura==='titular').length;
+    const titulares=(vhs||[]).filter(v=>v.figura==='titular'&&!v.es_tercero&&v.tipo!=='remolque');
+    const titOp=titulares.filter(v=>{
+      const esFuera=(eventos||[]).some(e=>e.vehiculo_id===v.id);
+      return !esFuera;
+    }).length;
+    const operativos=titOp+bkAct+tcAct;
+    const pctDisp=cupoTotal?Math.min(100,Math.round(operativos/cupoTotal*100)):0;
     const dispColor=pctDisp>=90?'var(--green)':pctDisp>=80?'var(--amber)':'var(--red)';
     const clHoy=(cls||[]).length;
     const clPend=titulares.length-clHoy;
@@ -5259,9 +5272,17 @@ async function cargarPanelGerencial(){
     const tb=document.getElementById('ger-regionales-body');
     const regsActivas=regionales.filter(r=>r.activa);
     tb.innerHTML=regsActivas.map(r=>{
-      const vhsR=(vhs||[]).filter(v=>v.regional_id===r.id&&v.figura==='titular'&&!v.es_tercero);
-      const fueraR=(eventos||[]).filter(e=>e.regional_id===r.id).length;
-      const opR=vhsR.length-fueraR;
+      const vhsR=(vhs||[]).filter(v=>v.regional_id===r.id&&v.figura==='titular'&&!v.es_tercero&&v.tipo!=='remolque'&&v.tipo!=='bitrain');
+      const fueraR=(eventos||[]).filter(e=>{
+        const vh=(vhs||[]).find(v=>v.id===e.vehiculo_id);
+        return e.regional_id===r.id&&vh&&vh.figura==='titular'&&!vh.es_tercero;
+      }).length;
+      const bkActR=(reemps||[]).filter(r2=>{
+        const vh=(vhs||[]).find(v=>v.id===r2.reemplazo_id);
+        return vh&&vh.regional_id===r.id;
+      }).length;
+      const tcActR=(vhs||[]).filter(v=>v.regional_id===r.id&&v.es_tercero&&v.figura==='titular').length;
+      const opR=(vhsR.length-fueraR)+bkActR+tcActR;
       const pctR=vhsR.length?Math.round(opR/vhsR.length*100):0;
       const colR=pctR>=90?'var(--green)':pctR>=80?'var(--amber)':'var(--red)';
       const clR=(cls||[]).filter(c=>c.regional_id===r.id).length;
