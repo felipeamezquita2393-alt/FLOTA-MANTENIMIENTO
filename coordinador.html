@@ -2026,17 +2026,93 @@ async function cargarFuera(){
 }
 
 // ── Alertas ──
+const ITEM_LABEL_AL={
+  frenos:'Frenos',nivel_aceite:'Nivel de aceite',sin_fugas:'Sin fugas',
+  luces:'Luces',llantas:'Llantas',pito_reversa:'Pito de reversa',
+  soat:'SOAT',tecnomecanica:'Tecnicomecánica',extintor:'Extintor',
+  botiquin:'Botiquín',cinturon:'Cinturón',nivel_agua:'Nivel de agua',
+  plataforma:'Plataforma',termo_refrigeracion:'Termo refrigeración',
+  furgon_interno:'Furgón interno'
+};
+
 async function cargarAlertas(){
   const tb=document.getElementById('alertas-body');
   try{
-    let q=db.from('alertas').select('id,tipo_alerta,fecha_limite,km_limite,anticipacion_dias,anticipacion_km,regional_id,vehiculos(placa,tipo,km_actuales),tipos_mantenimiento(nombre)').not('estado','eq','resuelta');
+    let q=db.from('alertas')
+      .select('id,tipo_alerta,origen,item_checklist,descripcion,fecha_limite,km_limite,anticipacion_dias,anticipacion_km,prioridad,fecha_reporte,regional_id,vehiculos(placa,tipo,km_actuales),tipos_mantenimiento(nombre)')
+      .not('estado','eq','resuelta')
+      .order('fecha_reporte',{ascending:false});
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     const{data,error}=await q;if(error)throw error;
     document.getElementById('badge-al-page').textContent=(data||[]).length;
-    if(!data?.length){tb.innerHTML='<tr><td colspan="6" class="empty">Sin alertas activas</td></tr>';return;}
-    const ord=[...data].sort((a,b)=>{const o={venc:0,prox:1,prox_km:2,prog:3};return(o[urgA(a)]||3)-(o[urgA(b)]||3);});
-    tb.innerHTML=ord.map(a=>{const u=urgA(a);const v=a.tipo_alerta==='por_fecha'?fmtF(a.fecha_limite):(a.km_limite?a.km_limite.toLocaleString('es-CO')+' km':'—');return`<tr><td style="font-weight:600">${a.vehiculos?.placa||'—'}</td><td>${rNombre(a.regional_id)}</td><td>${a.tipos_mantenimiento?.nombre||'—'}</td><td>${v}</td><td>${bUrg(u)}</td><td><button class="btn btn-sm" onclick="ir('entrada')">Atender</button></td></tr>`;}).join('');
-  }catch(e){tb.innerHTML=`<tr><td colspan="6" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
+
+    // Separar por origen
+    const deCl=(data||[]).filter(a=>a.origen==='checklist'||a.tipo_alerta==='checklist');
+    const deMant=(data||[]).filter(a=>a.origen!=='checklist'&&a.tipo_alerta!=='checklist');
+
+    if(!data?.length){tb.innerHTML='<tr><td colspan="7" class="empty">Sin alertas activas ✓</td></tr>';return;}
+
+    // Ordenar mantenimiento por urgencia
+    const ordMant=[...deMant].sort((a,b)=>{const o={venc:0,prox:1,prox_km:2,prog:3};return(o[urgA(a)]||3)-(o[urgA(b)]||3);});
+
+    // Ordenar checklist por prioridad
+    const ordCl=[...deCl].sort((a,b)=>{const o={alta:0,media:1,baja:2};return(o[a.prioridad]||2)-(o[b.prioridad]||2);});
+
+    let html='';
+
+    // Sección checklist
+    if(ordCl.length){
+      html+=`<tr style="background:var(--amber-bg)"><td colspan="7" style="padding:6px 10px;font-size:11px;font-weight:700;color:var(--amber-dark);text-transform:uppercase;letter-spacing:.05em">
+        📋 Fallas reportadas en checklist (${ordCl.length})
+      </td></tr>`;
+      html+=ordCl.map(a=>{
+        const priorColor=a.prioridad==='alta'?'b-red':a.prioridad==='media'?'b-amber':'b-gray';
+        const fecha=a.fecha_reporte?new Date(a.fecha_reporte).toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
+        return`<tr>
+          <td style="font-weight:600">${a.vehiculos?.placa||'—'}</td>
+          <td style="font-size:12px">${rNombre(a.regional_id)}</td>
+          <td>${ITEM_LABEL_AL[a.item_checklist]||a.item_checklist||'—'}</td>
+          <td style="font-size:12px;color:var(--text2)">${a.descripcion||'—'}</td>
+          <td style="font-size:12px">${fecha}</td>
+          <td><span class="badge ${priorColor}">${a.prioridad||'—'}</span></td>
+          <td style="display:flex;gap:4px">
+            <button class="btn btn-sm btn-green" onclick="resolverAlerta('${a.id}')">✓ Resolver</button>
+            <button class="btn btn-sm" onclick="ir('entrada')">Taller</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    // Sección mantenimiento
+    if(ordMant.length){
+      html+=`<tr style="background:var(--blue-bg)"><td colspan="7" style="padding:6px 10px;font-size:11px;font-weight:700;color:var(--blue-dark);text-transform:uppercase;letter-spacing:.05em">
+        🔧 Alertas de mantenimiento (${ordMant.length})
+      </td></tr>`;
+      html+=ordMant.map(a=>{
+        const u=urgA(a);
+        const v=a.tipo_alerta==='por_fecha'?fmtF(a.fecha_limite):(a.km_limite?a.km_limite.toLocaleString('es-CO')+' km':'—');
+        return`<tr>
+          <td style="font-weight:600">${a.vehiculos?.placa||'—'}</td>
+          <td style="font-size:12px">${rNombre(a.regional_id)}</td>
+          <td>${a.tipos_mantenimiento?.nombre||'—'}</td>
+          <td style="font-size:12px;color:var(--text2)">${v}</td>
+          <td style="font-size:12px">—</td>
+          <td>${bUrg(u)}</td>
+          <td><button class="btn btn-sm" onclick="ir('entrada')">Atender</button></td>
+        </tr>`;
+      }).join('');
+    }
+
+    tb.innerHTML=html;
+  }catch(e){tb.innerHTML=`<tr><td colspan="7" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
+}
+
+async function resolverAlerta(id){
+  if(!confirm('¿Marcar esta alerta como resuelta?'))return;
+  await db.from('alertas').update({estado:'resuelta',updated_at:new Date().toISOString()}).eq('id',id);
+  toast('Alerta resuelta ✓');
+  cargarAlertas();
+  cargarAlDash();
 }
 
 // ── Historial ──

@@ -434,8 +434,42 @@ async function enviarChecklist(){
       furgon_interno:estado.furgon_interno??null,
     };
 
-    const{error}=await db.from('checklists').insert(registro);
+    const{data:clData,error}=await db.from('checklists').insert(registro).select().single();
     if(error)throw error;
+
+    // Crear alertas automáticas por fallas en checklist
+    const ITEM_PRIORIDAD={
+      frenos:'alta',nivel_aceite:'alta',sin_fugas:'alta',
+      luces:'media',llantas:'media',pito_reversa:'media',
+      soat:'alta',tecnomecanica:'alta',
+      extintor:'media',botiquin:'baja',cinturon:'media',
+      nivel_agua:'media',plataforma:'baja',
+      termo_refrigeracion:'media',furgon_interno:'baja'
+    };
+    const ITEM_LABEL={
+      frenos:'Frenos',nivel_aceite:'Nivel de aceite',sin_fugas:'Sin fugas',
+      luces:'Luces',llantas:'Llantas',pito_reversa:'Pito de reversa',
+      soat:'SOAT',tecnomecanica:'Tecnicomecánica',
+      extintor:'Extintor',botiquin:'Botiquín',cinturon:'Cinturón',
+      nivel_agua:'Nivel de agua',plataforma:'Plataforma',
+      termo_refrigeracion:'Termo refrigeración',furgon_interno:'Furgón interno'
+    };
+    const fallas=Object.entries(estado).filter(([k,v])=>v===false&&ITEM_LABEL[k]);
+    if(fallas.length&&clData){
+      const alertas=fallas.map(([k])=>({
+        vehiculo_id:vehiculoActual.esTercero?null:vehiculoActual.id,
+        regional_id:vehiculoActual.regional_id,
+        tipo_alerta:'checklist',
+        origen:'checklist',
+        checklist_id:clData.id,
+        item_checklist:k,
+        descripcion:`Falla reportada: ${ITEM_LABEL[k]} — conductor: ${conductor}`,
+        prioridad:ITEM_PRIORIDAD[k]||'baja',
+        estado:'pendiente',
+        fecha_reporte:new Date().toISOString(),
+      }));
+      await db.from('alertas').insert(alertas);
+    }
 
     // Actualizar KM del vehículo (solo si no es tercero)
     if(!vehiculoActual.esTercero && km){
