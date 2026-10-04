@@ -468,7 +468,11 @@ async function enviarChecklist(){
         estado:'pendiente',
         fecha_reporte:new Date().toISOString(),
       }));
-      await db.from('alertas').insert(alertas);
+      const{error:errAl}=await db.from('alertas').insert(alertas);
+      if(errAl)console.error('Error creando alertas:',errAl);
+      else console.log('Alertas creadas:',alertas.length);
+    } else {
+      console.log('Sin fallas o sin clData:',{fallas:fallasAlertas.length,clData});
     }
 
     // Actualizar KM del vehículo (solo si no es tercero)
