@@ -1273,6 +1273,24 @@ tr:hover td{background:var(--bg2)}
           </div>
         </div>
 
+        <!-- Alertas atendidas -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:8px">🔔 Alertas atendidas</div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:14px">Historial de alertas resueltas en el periodo: fallas de checklist y alertas de mantenimiento, con tiempo de resolución.</p>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="generarReporteAlertas()" id="btn-rep-alertas">⬇ Descargar Excel</button>
+          </div>
+        </div>
+
+        <!-- Novedades operativas -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:8px">⚠ Operativos con novedad</div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:14px">Registro de vehículos que operaron con fallas activas: tipo, duración, quién autorizó y tiempo de resolución.</p>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="generarReporteNovedades()" id="btn-rep-nov">⬇ Descargar Excel</button>
+          </div>
+        </div>
+
       </div>
 
       <!-- Preview checklists -->
@@ -5353,6 +5371,145 @@ async function cargarPanelGerencial(){
     }
 
   }catch(e){console.error('Panel gerencial error:',e);}
+}
+
+
+// ── REPORTE ALERTAS ATENDIDAS ───────────────────────────────
+async function generarReporteAlertas(){
+  const btn=document.getElementById('btn-rep-alertas');
+  btn.disabled=true;btn.textContent='Generando...';
+  try{
+    const desde=document.getElementById('rep-desde').value;
+    const hasta=document.getElementById('rep-hasta').value;
+    const regF=document.getElementById('rep-regional').value||REGIONAL_ID;
+    if(!desde||!hasta){toast('Selecciona un rango de fechas',true);return;}
+
+    let q=db.from('alertas')
+      .select('id,tipo_alerta,origen,item_checklist,descripcion,prioridad,estado,fecha_reporte,updated_at,regional_id,vehiculos(placa,tipo),tipos_mantenimiento(nombre)')
+      .eq('estado','resuelta')
+      .gte('updated_at',desde+'T00:00:00')
+      .lte('updated_at',hasta+'T23:59:59')
+      .order('updated_at',{ascending:false});
+    if(regF)q=q.eq('regional_id',regF);
+    const{data,error}=await q;if(error)throw error;
+
+    if(!data?.length){toast('Sin alertas resueltas en este periodo',true);return;}
+
+    const ITEM_L={frenos:'Frenos',nivel_aceite:'Nivel aceite',sin_fugas:'Sin fugas',luces:'Luces',llantas:'Llantas',pito_reversa:'Pito reversa',soat:'SOAT',tecnomecanica:'Tecnicomecánica',extintor:'Extintor',botiquin:'Botiquín',cinturon:'Cinturón',nivel_agua:'Nivel agua',plataforma:'Plataforma',termo_refrigeracion:'Termo refrigeración',furgon_interno:'Furgón interno'};
+
+    const filas=data.map(a=>{
+      const reporte=a.fecha_reporte?new Date(a.fecha_reporte):null;
+      const resolucion=a.updated_at?new Date(a.updated_at):null;
+      const horas=reporte&&resolucion?Math.round((resolucion-reporte)/36000)/100:null;
+      return{
+        'Regional':rNombre(a.regional_id),
+        'Placa':a.vehiculos?.placa||'—',
+        'Tipo vehículo':a.vehiculos?.tipo||'—',
+        'Origen':a.origen==='checklist'?'Checklist':'Mantenimiento',
+        'Ítem / Mantenimiento':a.origen==='checklist'?(ITEM_L[a.item_checklist]||a.item_checklist||'—'):(a.tipos_mantenimiento?.nombre||'—'),
+        'Descripción':a.descripcion||'—',
+        'Prioridad':a.prioridad||'—',
+        'Fecha reporte':reporte?reporte.toLocaleString('es-CO'):'—',
+        'Fecha resolución':resolucion?resolucion.toLocaleString('es-CO'):'—',
+        'Horas resolución':horas||'—',
+      };
+    });
+
+    // Resumen por tipo de alerta
+    const resumen={};
+    data.forEach(a=>{
+      const key=a.origen==='checklist'?(ITEM_L[a.item_checklist]||a.item_checklist||'Otro'):(a.tipos_mantenimiento?.nombre||'Mantenimiento');
+      if(!resumen[key])resumen[key]={tipo:key,cantidad:0,horasTotal:0,cnt:0};
+      resumen[key].cantidad++;
+      const reporte=a.fecha_reporte?new Date(a.fecha_reporte):null;
+      const resolucion=a.updated_at?new Date(a.updated_at):null;
+      if(reporte&&resolucion){
+        resumen[key].horasTotal+=Math.round((resolucion-reporte)/36000)/100;
+        resumen[key].cnt++;
+      }
+    });
+    const filasRes=Object.values(resumen).map(r=>({
+      'Tipo':r.tipo,'Cantidad':r.cantidad,
+      'Horas promedio resolución':r.cnt?Math.round(r.horasTotal/r.cnt*10)/10:'—'
+    })).sort((a,b)=>b['Cantidad']-a['Cantidad']);
+
+    const wb=XLSX.utils.book_new();
+    const ws1=XLSX.utils.json_to_sheet(filas);
+    ws1['!cols']=[{wch:16},{wch:10},{wch:12},{wch:14},{wch:20},{wch:30},{wch:10},{wch:20},{wch:20},{wch:16}];
+    XLSX.utils.book_append_sheet(wb,ws1,'Alertas resueltas');
+    const ws2=XLSX.utils.json_to_sheet(filasRes);
+    ws2['!cols']=[{wch:25},{wch:10},{wch:22}];
+    XLSX.utils.book_append_sheet(wb,ws2,'Resumen por tipo');
+    XLSX.writeFile(wb,`Alertas_${desde}_${hasta}.xlsx`);
+    toast('Reporte descargado ✓');
+  }catch(e){toast('Error: '+e.message,true);}
+  finally{btn.disabled=false;btn.textContent='⬇ Descargar Excel';}
+}
+
+// ── REPORTE NOVEDADES OPERATIVAS ────────────────────────────
+async function generarReporteNovedades(){
+  const btn=document.getElementById('btn-rep-nov');
+  btn.disabled=true;btn.textContent='Generando...';
+  try{
+    const desde=document.getElementById('rep-desde').value;
+    const hasta=document.getElementById('rep-hasta').value;
+    const regF=document.getElementById('rep-regional').value||REGIONAL_ID;
+    if(!desde||!hasta){toast('Selecciona un rango de fechas',true);return;}
+
+    let q=db.from('novedades_operativas')
+      .select('*,vehiculos(placa,tipo,figura)')
+      .gte('fecha_inicio',desde+'T00:00:00')
+      .lte('fecha_inicio',hasta+'T23:59:59')
+      .order('fecha_inicio',{ascending:false});
+    if(regF)q=q.eq('regional_id',regF);
+    const{data,error}=await q;if(error)throw error;
+
+    if(!data?.length){toast('Sin novedades en este periodo',true);return;}
+
+    const filas=data.map(n=>{
+      const ini=new Date(n.fecha_inicio);
+      const fin=n.fecha_cierre?new Date(n.fecha_cierre):null;
+      return{
+        'Regional':rNombre(n.regional_id),
+        'Placa':n.vehiculos?.placa||'—',
+        'Tipo vehículo':n.vehiculos?.tipo||'—',
+        'Figura':n.vehiculos?.figura||'—',
+        'Tipo novedad':NOV_LABELS[n.tipo]||n.tipo,
+        'Descripción':n.descripcion||'—',
+        'Autorizado por':n.autorizado_por||'—',
+        'Fecha inicio':ini.toLocaleString('es-CO'),
+        'Fecha cierre':fin?fin.toLocaleString('es-CO'):'En curso',
+        'Horas con novedad':n.tiempo_horas||'En curso',
+        'Estado':n.estado==='cerrada'?'Cerrada':'Activa',
+      };
+    });
+
+    // Resumen por tipo
+    const resTipo={};
+    data.forEach(n=>{
+      const k=NOV_LABELS[n.tipo]||n.tipo;
+      if(!resTipo[k])resTipo[k]={tipo:k,casos:0,horasTotal:0,activas:0};
+      resTipo[k].casos++;
+      if(n.tiempo_horas)resTipo[k].horasTotal+=n.tiempo_horas;
+      if(n.estado==='activa')resTipo[k].activas++;
+    });
+    const filasRes=Object.values(resTipo).map(r=>({
+      'Tipo novedad':r.tipo,'Casos':r.casos,'Activas':r.activas,
+      'Horas totales':Math.round(r.horasTotal*10)/10,
+      'Promedio horas':r.casos?Math.round(r.horasTotal/r.casos*10)/10:'—'
+    })).sort((a,b)=>b['Casos']-a['Casos']);
+
+    const wb=XLSX.utils.book_new();
+    const ws1=XLSX.utils.json_to_sheet(filas);
+    ws1['!cols']=[{wch:16},{wch:10},{wch:12},{wch:10},{wch:22},{wch:30},{wch:20},{wch:20},{wch:20},{wch:16},{wch:10}];
+    XLSX.utils.book_append_sheet(wb,ws1,'Novedades');
+    const ws2=XLSX.utils.json_to_sheet(filasRes);
+    ws2['!cols']=[{wch:22},{wch:8},{wch:8},{wch:14},{wch:16}];
+    XLSX.utils.book_append_sheet(wb,ws2,'Resumen por tipo');
+    XLSX.writeFile(wb,`Novedades_${desde}_${hasta}.xlsx`);
+    toast('Reporte descargado ✓');
+  }catch(e){toast('Error: '+e.message,true);}
+  finally{btn.disabled=false;btn.textContent='⬇ Descargar Excel';}
 }
 
 init();
