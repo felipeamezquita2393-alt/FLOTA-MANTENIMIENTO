@@ -1520,6 +1520,17 @@ tr:hover td{background:var(--bg2)}
       </div>
     </div>
 
+    <!-- Gráfica disponibilidad 7 días -->
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-title">Disponibilidad últimos 7 días por regional</span>
+        <span style="font-size:11px;color:var(--text2)">Basado en eventos de mantenimiento</span>
+      </div>
+      <div id="ger-chart-wrap" style="padding:8px 0">
+        <canvas id="ger-chart" height="180"></canvas>
+      </div>
+    </div>
+
     <!-- Dos columnas: fuera de servicio + alertas críticas -->
     <div class="two-col">
       <div class="card">
@@ -1552,7 +1563,7 @@ const db=createClient(
 );
 
 let REGIONAL_ID=null, USER_ROL=null, USER_EMAIL='';
-let regionales=[];
+var regionales=[];
 
 const hoy=()=>new Date().toISOString().split('T')[0];
 const hace30=()=>new Date(Date.now()-30*24*60*60*1000).toISOString().split('T')[0];
@@ -1634,7 +1645,7 @@ async function init(){
   document.getElementById('h-desde').value=hace30();
   document.getElementById('h-hasta').value=hoy();
   document.getElementById('cl-fecha-filtro').value=hoy();
-  const{data:regs}=await db.from('regionales').select('id,nombre,cupo_requerido').eq('activa',true).order('nombre');
+  const{data:regs}=await db.from('regionales').select('id,nombre,cupo_requerido,activa').eq('activa',true).order('nombre');
   regionales=regs||[];
   if(USER_ROL==='gerente'){
     ['filtro-regional','fl-reg'].forEach(id=>{
@@ -5370,7 +5381,112 @@ async function cargarPanelGerencial(){
         </div>`).join('');
     }
 
+    // Gráfica disponibilidad 7 días
+    await cargarGraficaDisp(vhs, regionales.filter(r=>r.activa));
+
   }catch(e){console.error('Panel gerencial error:',e);}
+}
+
+async function cargarGraficaDisp(vhs, regsActivas){
+  try{
+    // Últimos 7 días hábiles
+    const dias=[];
+    let d=new Date();
+    while(dias.length<7){
+      if(d.getDay()!==0){ // excluir domingos
+        dias.unshift(d.toISOString().split('T')[0]);
+      }
+      d.setDate(d.getDate()-1);
+    }
+
+    // Traer eventos de los últimos 7 días
+    const{data:evs}=await db.from('eventos_mantenimiento')
+      .select('vehiculo_id,regional_id,fecha_entrada,hora_entrada,fecha_salida,hora_salida')
+      .lte('fecha_entrada',dias[dias.length-1])
+      .or(`fecha_salida.gte.${dias[0]},fecha_salida.is.null`);
+
+    const canvas=document.getElementById('ger-chart');
+    if(!canvas)return;
+    const ctx=canvas.getContext('2d');
+    canvas.width=canvas.parentElement.offsetWidth||800;
+    canvas.height=180;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    const W=canvas.width,H=canvas.height;
+    const padL=50,padR=20,padT=20,padB=40;
+    const chartW=W-padL-padR,chartH=H-padT-padB;
+
+    // Calcular disponibilidad por regional por día
+    const colores=['#1565C0','#2E7D32','#F57C00','#6A1B9A','#C62828'];
+    const datasets=regsActivas.map((r,i)=>{
+      const vhsR=(vhs||[]).filter(v=>v.regional_id===r.id&&v.figura==='titular'&&!v.es_tercero&&v.tipo!=='remolque');
+      const cupo=r.cupo_requerido||vhsR.length||1;
+      const puntos=dias.map(dia=>{
+        const evsR=(evs||[]).filter(e=>e.regional_id===r.id);
+        let hFuera=0;
+        evsR.forEach(e=>{
+          const ini=e.hora_entrada?new Date(e.fecha_entrada+'T'+e.hora_entrada):new Date(e.fecha_entrada+'T00:00:00');
+          const fin=e.fecha_salida?(e.hora_salida?new Date(e.fecha_salida+'T'+e.hora_salida):new Date(e.fecha_salida+'T22:00:00')):new Date();
+          const d0=new Date(dia+'T00:00:00'),d1=new Date(dia+'T22:00:00');
+          const oIni=new Date(Math.max(ini,d0)),oFin=new Date(Math.min(fin,d1));
+          if(oFin>oIni)hFuera+=Math.min(22,(oFin-oIni)/3600000);
+        });
+        const hBase=cupo*22;
+        const hDisp=Math.max(0,hBase-hFuera);
+        return Math.round(hDisp/hBase*100);
+      });
+      return{nombre:r.nombre.replace('R','').trim(),puntos,color:colores[i%colores.length]};
+    });
+
+    // Dibujar ejes
+    ctx.strokeStyle='#E0E0E0';ctx.lineWidth=1;
+    // Líneas horizontales
+    [0,25,50,75,100].forEach(v=>{
+      const y=padT+chartH*(1-v/100);
+      ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(padL+chartW,y);ctx.stroke();
+      ctx.fillStyle='#90A4AE';ctx.font='10px sans-serif';ctx.textAlign='right';
+      ctx.fillText(v+'%',padL-4,y+3);
+    });
+
+    // Etiquetas X
+    const stepX=chartW/(dias.length-1);
+    dias.forEach((dia,i)=>{
+      const x=padL+i*stepX;
+      const d=new Date(dia+'T00:00:00');
+      const label=d.getDate()+' '+(d.toLocaleString('es-CO',{month:'short'}));
+      ctx.fillStyle='#90A4AE';ctx.font='10px sans-serif';ctx.textAlign='center';
+      ctx.fillText(label,x,H-padB+14);
+    });
+
+    // Dibujar líneas por regional
+    datasets.forEach(ds=>{
+      ctx.strokeStyle=ds.color;ctx.lineWidth=2;
+      ctx.beginPath();
+      ds.puntos.forEach((v,i)=>{
+        const x=padL+i*stepX;
+        const y=padT+chartH*(1-v/100);
+        i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      });
+      ctx.stroke();
+      // Puntos
+      ds.puntos.forEach((v,i)=>{
+        const x=padL+i*stepX,y=padT+chartH*(1-v/100);
+        ctx.fillStyle=ds.color;
+        ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fill();
+      });
+    });
+
+    // Leyenda
+    let lx=padL;
+    datasets.forEach(ds=>{
+      ctx.fillStyle=ds.color;
+      ctx.fillRect(lx,H-padB+24,10,8);
+      ctx.fillStyle='#455A64';ctx.font='10px sans-serif';ctx.textAlign='left';
+      ctx.fillText(ds.nombre,lx+13,H-padB+32);
+      lx+=ctx.measureText(ds.nombre).width+30;
+    });
+
+  }catch(e){console.error('Error gráfica:',e);}
 }
 
 
