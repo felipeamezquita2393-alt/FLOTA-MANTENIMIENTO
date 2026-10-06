@@ -5253,7 +5253,7 @@ async function cargarPanelGerencial(){
       {data:docs},
       {data:reemps},
     ] = await Promise.all([
-      db.from('vehiculos').select('id,placa,figura,tipo,regional_id,es_tercero').eq('activo',true).neq('tipo','remolque'),
+      db.from('vehiculos').select('id,placa,figura,tipo,regional_id,es_tercero,estado,camion_asociado_id').eq('activo',true),
       db.from('eventos_mantenimiento').select('id,vehiculo_id,regional_id,fecha_entrada,hora_entrada,talleres(nombre),vehiculos(placa,figura)').eq('estado','en_proceso'),
       db.from('checklists').select('vehiculo_id,regional_id,tiene_fallas').eq('fecha',hoy()),
       db.from('alertas').select('id,regional_id,prioridad,origen').not('estado','eq','resuelta'),
@@ -5267,21 +5267,29 @@ async function cargarPanelGerencial(){
     const reempMap=new Map((reemps||[]).map(r=>[r.titular_id,r.vehiculos?.placa||'—']));
 
     // KPIs nacionales
-    // Usar cupo_requerido como base (igual que dashboard)
-    const cupoTotal=regionales.filter(r=>r.activa).reduce((s,r)=>s+(r.cupo_requerido||0),0);
-    const fuera=(eventos||[]).length;
-    const titFuera=(eventos||[]).filter(e=>{
-      const vh=(vhs||[]).find(v=>v.id===e.vehiculo_id);
-      return vh&&vh.figura==='titular'&&!vh.es_tercero;
-    }).length;
-    const bkAct=(reemps||[]).length;
+    // ── Misma lógica que cargarKPIs del dashboard ──────────
+    const remolques=(vhs||[]).filter(v=>v.tipo==='remolque');
+    const noRemolques=(vhs||[]).filter(v=>v.tipo!=='remolque');
+    const remMap=new Map();
+    remolques.forEach(r=>{if(r.camion_asociado_id)remMap.set(r.camion_asociado_id,r);});
+
+    const reempSet=new Set((reemps||[]).map(r=>r.reemplazo_id));
     const tcAct=(vhs||[]).filter(v=>v.es_tercero&&v.figura==='titular').length;
-    const titulares=(vhs||[]).filter(v=>v.figura==='titular'&&!v.es_tercero&&v.tipo!=='remolque');
-    const titOp=titulares.filter(v=>{
-      const esFuera=(eventos||[]).some(e=>e.vehiculo_id===v.id);
-      return !esFuera;
-    }).length;
+    const bkAct=reempSet.size;
+
+    let titOp=0,titFuera=0;
+    noRemolques.forEach(v=>{
+      if(v.figura!=='titular')return;
+      if(v.es_tercero)return;
+      const rem=remMap.get(v.id);
+      const remFuera=rem&&rem.estado!=='disponible';
+      if(v.estado!=='disponible'||remFuera){titFuera++;}
+      else{titOp++;}
+    });
+
+    const cupoTotal=regionales.reduce((s,r)=>s+(r.cupo_requerido||0),0);
     const operativos=titOp+bkAct+tcAct;
+    const fuera=titFuera;
     const pctDisp=cupoTotal?Math.min(100,Math.round(operativos/cupoTotal*100)):0;
     const dispColor=pctDisp>=90?'var(--green)':pctDisp>=80?'var(--amber)':'var(--red)';
     const clHoy=(cls||[]).length;
@@ -5302,18 +5310,21 @@ async function cargarPanelGerencial(){
     const tb=document.getElementById('ger-regionales-body');
     const regsActivas=regionales.filter(r=>r.activa);
     tb.innerHTML=regsActivas.map(r=>{
-      const vhsR=(vhs||[]).filter(v=>v.regional_id===r.id&&v.figura==='titular'&&!v.es_tercero&&v.tipo!=='remolque'&&v.tipo!=='bitrain');
-      const fueraR=(eventos||[]).filter(e=>{
-        const vh=(vhs||[]).find(v=>v.id===e.vehiculo_id);
-        return e.regional_id===r.id&&vh&&vh.figura==='titular'&&!vh.es_tercero;
-      }).length;
-      const bkActR=(reemps||[]).filter(r2=>{
-        const vh=(vhs||[]).find(v=>v.id===r2.reemplazo_id);
-        return vh&&vh.regional_id===r.id;
-      }).length;
+      const cupoR=r.cupo_requerido||0;
+      const noRemR=(vhs||[]).filter(v=>v.regional_id===r.id&&v.tipo!=='remolque');
+      let titOpR=0,titFueraR=0;
+      noRemR.forEach(v=>{
+        if(v.figura!=='titular'||v.es_tercero)return;
+        const rem=remMap.get(v.id);
+        const remFuera=rem&&rem.estado!=='disponible';
+        if(v.estado!=='disponible'||remFuera)titFueraR++;
+        else titOpR++;
+      });
+      const bkActR=(reemps||[]).filter(rp=>reempSet.has(rp.reemplazo_id)&&(vhs||[]).find(v=>v.id===rp.reemplazo_id)?.regional_id===r.id).length;
       const tcActR=(vhs||[]).filter(v=>v.regional_id===r.id&&v.es_tercero&&v.figura==='titular').length;
-      const opR=(vhsR.length-fueraR)+bkActR+tcActR;
-      const pctR=vhsR.length?Math.round(opR/vhsR.length*100):0;
+      const opR=titOpR+bkActR+tcActR;
+      const fueraR=titFueraR;
+      const pctR=cupoR?Math.min(100,Math.round(opR/cupoR*100)):0;
       const colR=pctR>=90?'var(--green)':pctR>=80?'var(--amber)':'var(--red)';
       const clR=(cls||[]).filter(c=>c.regional_id===r.id).length;
       const clTotR=vhsR.length;
@@ -5336,7 +5347,7 @@ async function cargarPanelGerencial(){
             <div style="width:${pctR}%;height:100%;background:${colR};border-radius:2px"></div>
           </div>
         </td>
-        <td style="text-align:center;font-weight:600;color:var(--green)">${opR}<span style="font-weight:400;color:var(--text3)">/${vhsR.length}</span></td>
+        <td style="text-align:center;font-weight:600;color:var(--green)">${opR}<span style="font-weight:400;color:var(--text3)">/${cupoR}</span></td>
         <td style="text-align:center;font-weight:600;color:${fueraR>0?'var(--red)':'var(--text3)'}">${fueraR}</td>
         <td style="text-align:center;font-weight:600;color:${clColR}">${clR}<span style="font-weight:400;color:var(--text3)">/${clTotR}</span></td>
         <td style="text-align:center">${novR>0?`<span class="badge b-amber">${novR}</span>`:'<span style="color:var(--text3)">—</span>'}</td>
