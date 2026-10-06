@@ -1840,7 +1840,7 @@ async function cargarChecklists(){
 }
 
 function verChecklist(c){
-  const LABELS={soat:'SOAT',tecnomecanica:'Tecnicomecánica',luces:'Luces',llantas:'Llantas',nivel_aceite:'Nivel aceite',nivel_agua:'Nivel agua',sin_fugas:'Sin fugas',frenos:'Frenos',pito_reversa:'Pito de reversa',extintor:'Extintor',botiquin:'Botiquín',cinturon:'Cinturón',plataforma:'Plataforma',termo_refrigeracion:'Termo refrigeración',furgon_interno:'Furgón interno'};
+  const LABELS={soat:'SOAT',tecnomecanica:'Tecnicomecánica',luces:'Luces',llantas:'Llantas',nivel_aceite:'Nivel aceite',nivel_agua:'Nivel agua',sin_fugas:'Sin fugas',frenos:'Frenos',pito_reversa:'Pito de reversa',falla_motor:'Falla motor/potencia',extintor:'Extintor',botiquin:'Botiquín',cinturon:'Cinturón',plataforma:'Plataforma',termo_refrigeracion:'Termo refrigeración',furgon_interno:'Furgón interno',dano_furgon_interno:'Daño furgón interno'};
   document.getElementById('modal-cl-title').textContent=`Checklist — ${c.vehiculos?.placa||'—'} · ${fmtF(c.fecha)}`;
   const items=Object.entries(LABELS).map(([k,label])=>{
     const val=c[k];
@@ -2144,10 +2144,10 @@ async function cargarFuera(){
 const ITEM_LABEL_AL={
   frenos:'Frenos',nivel_aceite:'Nivel de aceite',sin_fugas:'Sin fugas',
   luces:'Luces',llantas:'Llantas',pito_reversa:'Pito de reversa',
-  soat:'SOAT',tecnomecanica:'Tecnicomecánica',extintor:'Extintor',
-  botiquin:'Botiquín',cinturon:'Cinturón',nivel_agua:'Nivel de agua',
+  falla_motor:'Falla motor/potencia',soat:'SOAT',tecnomecanica:'Tecnicomecánica',
+  extintor:'Extintor',botiquin:'Botiquín',cinturon:'Cinturón',nivel_agua:'Nivel de agua',
   plataforma:'Plataforma',termo_refrigeracion:'Termo refrigeración',
-  furgon_interno:'Furgón interno'
+  furgon_interno:'Furgón interno',dano_furgon_interno:'Daño furgón interno'
 };
 
 async function cargarAlertas(){
@@ -3919,9 +3919,10 @@ const LABELS_CL = {
   soat:'SOAT', tecnomecanica:'Tecnicomecánica', luces:'Luces',
   llantas:'Llantas', nivel_aceite:'Nivel aceite', nivel_agua:'Nivel agua',
   sin_fugas:'Sin fugas', frenos:'Frenos', pito_reversa:'Pito reversa',
-  extintor:'Extintor', botiquin:'Botiquín', cinturon:'Cinturón',
-  plataforma:'Plataforma', termo_refrigeracion:'Termo refrigeración',
-  furgon_interno:'Furgón interno'
+  falla_motor:'Falla motor/potencia', extintor:'Extintor', botiquin:'Botiquín',
+  cinturon:'Cinturón', plataforma:'Plataforma',
+  termo_refrigeracion:'Termo refrigeración', furgon_interno:'Furgón interno',
+  dano_furgon_interno:'Daño furgón interno'
 };
 
 function initReportes(){
@@ -4336,8 +4337,8 @@ async function generarReporteFallas(){
     if(regF)q=q.eq('regional_id',regF);
     const{data,error}=await q;if(error)throw error;
 
-    const ITEMS_CL=['soat','tecnomecanica','luces','llantas','nivel_aceite','nivel_agua','sin_fugas','frenos','pito_reversa','extintor','botiquin','cinturon','plataforma','termo_refrigeracion','furgon_interno'];
-    const LABELS_CL2={soat:'SOAT',tecnomecanica:'Tecnicomecánica',luces:'Luces',llantas:'Llantas',nivel_aceite:'Nivel aceite',nivel_agua:'Nivel agua',sin_fugas:'Sin fugas',frenos:'Frenos',pito_reversa:'Pito reversa',extintor:'Extintor',botiquin:'Botiquín',cinturon:'Cinturón',plataforma:'Plataforma',termo_refrigeracion:'Termo refrigeración',furgon_interno:'Furgón interno'};
+    const ITEMS_CL=['soat','tecnomecanica','luces','llantas','nivel_aceite','nivel_agua','sin_fugas','frenos','pito_reversa','falla_motor','extintor','botiquin','cinturon','plataforma','termo_refrigeracion','furgon_interno','dano_furgon_interno'];
+    const LABELS_CL2={soat:'SOAT',tecnomecanica:'Tecnicomecánica',luces:'Luces',llantas:'Llantas',nivel_aceite:'Nivel aceite',nivel_agua:'Nivel agua',sin_fugas:'Sin fugas',frenos:'Frenos',pito_reversa:'Pito reversa',falla_motor:'Falla motor/potencia',extintor:'Extintor',botiquin:'Botiquín',cinturon:'Cinturón',plataforma:'Plataforma',termo_refrigeracion:'Termo refrigeración',furgon_interno:'Furgón interno',dano_furgon_interno:'Daño furgón interno'};
 
     // Agrupar por vehículo
     const porVh={};
