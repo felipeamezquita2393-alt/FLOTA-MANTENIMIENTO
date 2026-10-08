@@ -5293,7 +5293,7 @@ async function cargarPanelGerencial(){
     const pctDisp=cupoTotal?Math.min(100,Math.round(operativos/cupoTotal*100)):0;
     const dispColor=pctDisp>=90?'var(--green)':pctDisp>=80?'var(--amber)':'var(--red)';
     const clHoy=(cls||[]).length;
-    const clPend=titulares.length-clHoy;
+    const clPend=noRemolques.filter(v=>v.figura==='titular'&&!v.es_tercero).length-clHoy;
 
     document.getElementById('ger-disp').textContent=pctDisp+'%';
     document.getElementById('ger-disp').style.color=dispColor;
