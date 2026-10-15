@@ -5327,7 +5327,7 @@ async function cargarPanelGerencial(){
       const pctR=cupoR?Math.min(100,Math.round(opR/cupoR*100)):0;
       const colR=pctR>=90?'var(--green)':pctR>=80?'var(--amber)':'var(--red)';
       const clR=(cls||[]).filter(c=>c.regional_id===r.id).length;
-      const clTotR=vhsR.length;
+      const clTotR=noRemR.filter(v=>v.figura==='titular'&&!v.es_tercero).length;
       const clColR=clR>=clTotR?'var(--green)':clR>=clTotR*0.7?'var(--amber)':'var(--red)';
       const novR=(novedades||[]).filter(n=>n.regional_id===r.id).length;
       const alR=(alertas||[]).filter(a=>a.regional_id===r.id).length;
