@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FlotaOps — Coordinador</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -286,7 +286,7 @@ tr:hover td{background:var(--bg2)}
 
 <!-- Modal celda lavado -->
 <div class="modal-overlay" id="modal-lav-celda">
-  <div class="modal" style="max-width:380px">
+  <div class="modal" style="max-width:460px;max-height:92vh;overflow-y:auto">
     <div class="modal-title" id="lav-celda-titulo">Registrar lavado</div>
     <input type="hidden" id="lav-celda-vhid">
     <input type="hidden" id="lav-celda-fecha">
@@ -313,6 +313,7 @@ tr:hover td{background:var(--bg2)}
       <textarea id="lav-celda-obs" placeholder="Observación (motivo de omisión, detalle del lavado...)" rows="2"
         style="width:100%;border:1px solid var(--border);border-radius:var(--r);padding:8px;font-size:13px;font-family:inherit;resize:none"></textarea>
     </div>
+    <div id="lav-celda-evid" style="display:none;margin-bottom:14px"></div>
     <div class="modal-footer">
       <button class="btn btn-sm btn-red" id="lav-btn-borrar" onclick="borrarLavCelda()" style="display:none;margin-right:auto">🗑 Borrar</button>
       <button class="btn" onclick="cerrarModal('modal-lav-celda')">Cancelar</button>
@@ -1335,7 +1336,7 @@ tr:hover td{background:var(--bg2)}
       <div class="metric">
         <div class="metric-label">Vehículos al día</div>
         <div class="metric-val" id="lav-al-dia">—</div>
-        <div class="metric-sub" id="lav-al-dia-sub">con 4 lavados</div>
+        <div class="metric-sub" id="lav-al-dia-sub">4 lavados y 1 general</div>
       </div>
     </div>
 
@@ -1354,6 +1355,7 @@ tr:hover td{background:var(--bg2)}
         <span style="font-size:12px;display:flex;align-items:center;gap:4px"><span style="background:#2E7D32;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">G</span> Lavado general</span>
         <span style="font-size:12px;display:flex;align-items:center;gap:4px"><span style="background:#1565C0;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">E</span> Enjuague</span>
         <span style="font-size:12px;display:flex;align-items:center;gap:4px"><span style="background:#B0BEC5;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">×</span> Omitido</span>
+        <span style="font-size:12px;display:flex;align-items:center;gap:4px"><span style="background:#E8F5E9;color:#2E7D32;padding:2px 8px;border-radius:4px;font-weight:700;box-shadow:inset 0 -3px 0 #2E7D32">G</span> Subrayado: con firma y evidencia</span>
       </div>
 
       <!-- Grilla -->
@@ -1366,7 +1368,11 @@ tr:hover td{background:var(--bg2)}
     <div class="card">
       <div class="card-hdr">
         <span class="card-title">Soportes semanales</span>
-        <button class="btn btn-sm btn-primary" onclick="abrirSubirSoporte()">+ Subir soporte</button>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="date" id="sop-gen-fecha" title="Cualquier día de la semana a generar" style="font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:var(--r)">
+          <button class="btn btn-sm" onclick="generarSoporteSemanal()">🖨 Generar soporte de la semana</button>
+          <button class="btn btn-sm btn-primary" onclick="abrirSubirSoporte()">+ Subir soporte</button>
+        </div>
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
@@ -1565,23 +1571,31 @@ const db=createClient(
 let REGIONAL_ID=null, USER_ROL=null, USER_EMAIL='';
 var regionales=[];
 
-const hoy=()=>new Date().toISOString().split('T')[0];
-const hace30=()=>new Date(Date.now()-30*24*60*60*1000).toISOString().split('T')[0];
+// Fecha en hora local (Colombia). toISOString() usa UTC y después de las 7 p. m. devolvía el día siguiente.
+function fechaLocal(d=new Date()){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+const hoy=()=>fechaLocal();
+const hace30=()=>fechaLocal(new Date(Date.now()-30*24*60*60*1000));
+// Escapa texto antes de insertarlo como HTML (evita que un texto guardado ejecute código en el panel)
+function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+// Para texto dentro de onclick="fn('...')": escapa para JavaScript y luego para HTML
+function escJs(v){return esc(String(v??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,' '));}
+// Solo permite enlaces a archivos del propio Supabase
+function safeUrl(u){return typeof u==='string'&&u.startsWith('https://sixtqtopppbclxqdardb.supabase.co/')?esc(u):'#';}
 function rNombre(id){return regionales.find(r=>r.id===id)?.nombre||'—';}
 function diasFuera(f){const d=new Date();d.setHours(0,0,0,0);return Math.max(0,Math.floor((d-new Date(f+'T00:00:00'))/86400000));}
 function clrDias(d){return d>=7?'dias-crit':d>=3?'dias-warn':'dias-ok';}
 function fmtF(iso){if(!iso)return'—';return new Date(iso+'T00:00:00').toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'});}
 function fmtT(iso){if(!iso)return'—';return new Date(iso).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});}
 function fmtM(v){return v?'$'+Number(v).toLocaleString('es-CO'):'—';}
-function lTaller(t){return{taller_propio:'Taller propio',concesionario:'Concesionario',patios:'Patios',siniestro:'Siniestro'}[t]||t;}
+function lTaller(t){return{taller_propio:'Taller propio',concesionario:'Concesionario',patios:'Patios',siniestro:'Siniestro'}[t]||esc(t);}
 function bPrior(p){if(p==='urgente')return'<span class="badge b-red">Urgente</span>';if(p==='programado')return'<span class="badge b-blue">Programado</span>';return'<span class="badge b-gray">Normal</span>';}
 function bFig(f,esTercero){
   const tc=esTercero?'<span class="badge b-blue" style="font-size:10px;margin-left:4px">3°</span>':'';
   if(f==='backup')return'<span class="badge b-purple">Respaldo</span>'+tc;
   return'<span class="badge b-green">Titular</span>'+tc;
 }
-function bTipo(t){const m={camion:'Camión',bitrain:'Bitrain',remolque:'Remolque',furgon:'Furgón',camioneta:'Camioneta'};return m[t]||t||'—';}
-function bEst(e){const m={disponible:'<span class="badge b-green">Disponible</span>',taller_propio:'<span class="badge b-amber">Taller propio</span>',concesionario:'<span class="badge b-blue">Concesionario</span>',en_patios:'<span class="badge b-amber">En patios</span>',siniestro:'<span class="badge b-red">Siniestro</span>',inactivo:'<span class="badge b-gray">Inactivo</span>'};return m[e]||`<span class="badge b-gray">${e}</span>`;}
+function bTipo(t){const m={camion:'Camión',bitrain:'Bitrain',remolque:'Remolque',furgon:'Furgón',camioneta:'Camioneta'};return m[t]||esc(t)||'—';}
+function bEst(e){const m={disponible:'<span class="badge b-green">Disponible</span>',taller_propio:'<span class="badge b-amber">Taller propio</span>',concesionario:'<span class="badge b-blue">Concesionario</span>',en_patios:'<span class="badge b-amber">En patios</span>',siniestro:'<span class="badge b-red">Siniestro</span>',inactivo:'<span class="badge b-gray">Inactivo</span>'};return m[e]||`<span class="badge b-gray">${esc(e)}</span>`;}
 function bPuntaje(p){if(p===3)return'<span class="badge b-red" style="font-size:10px">3-Inmediata</span>';if(p===2)return'<span class="badge b-amber" style="font-size:10px">2-Semana</span>';return'<span class="badge b-green" style="font-size:10px">1-OK</span>';}
 function bCrit(c){if(c==='ALTA')return'<span class="badge b-red" style="font-weight:700">⚠ ALTA</span>';if(c==='MEDIA ALTA')return'<span class="badge b-amber">MEDIA ALTA</span>';if(c==='MEDIA BAJA')return'<span class="badge b-blue">MEDIA BAJA</span>';return'<span class="badge b-green">BAJA</span>';}
 function urgA(a){const h=hoy();if(a.tipo_alerta==='por_fecha'){if(!a.fecha_limite)return'prog';if(a.fecha_limite<h)return'venc';const d=Math.ceil((new Date(a.fecha_limite)-new Date())/86400000);if(d<=(a.anticipacion_dias||15))return'prox';}if(a.tipo_alerta==='por_km'){if((a.km_limite||0)-(a.vehiculos?.km_actuales||0)<=(a.anticipacion_km||500))return'prox_km';}return'prog';}
@@ -1594,10 +1608,13 @@ async function checkAuth(){
   const{data:{session}}=await db.auth.getSession();
   if(!session){window.location.href='login.html';return false;}
   USER_EMAIL=session.user.email;
-  const meta=session.user.user_metadata||{};
-  USER_ROL=meta.rol||'coordinador';
-  const regNom=meta.regional||null;
-  const esGerente=USER_ROL==='gerente'||regNom==='Nacional'||!regNom;
+  // El rol y la regional se leen de perfiles_usuario (el usuario no puede modificarlos).
+  // Antes se leían de user_metadata, que el propio usuario puede cambiar desde el navegador.
+  const{data:perfil}=await db.from('perfiles_usuario').select('rol,regional_id,nombre_regional').eq('user_id',session.user.id).maybeSingle();
+  if(!perfil){document.body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;flex-direction:column;gap:10px"><p>Tu usuario no tiene un perfil asignado. Contacta al administrador.</p><button onclick="db.auth.signOut().then(()=>location.href='login.html')" style="padding:8px 16px;cursor:pointer;border:1px solid #ccc;border-radius:6px">Cerrar sesión</button></div>`;return false;}
+  USER_ROL=perfil.rol||'coordinador';
+  const regNom=perfil.nombre_regional||null;
+  const esGerente=USER_ROL==='gerente';
   document.getElementById('nav-user').textContent=`${USER_EMAIL} · ${esGerente?'Gerente':'Coordinador'}`;
   if(esGerente){
     USER_ROL='gerente';REGIONAL_ID=null;
@@ -1606,9 +1623,8 @@ async function checkAuth(){
   }
   else{
     USER_ROL='coordinador';
-    const{data:reg}=await db.from('regionales').select('id,nombre').eq('nombre',regNom).single();
-    if(reg){REGIONAL_ID=reg.id;}
-    else{document.body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;flex-direction:column;gap:10px"><p>Regional no encontrada: ${regNom}</p><button onclick="db.auth.signOut().then(()=>location.href='login.html')" style="padding:8px 16px;cursor:pointer;border:1px solid #ccc;border-radius:6px">Cerrar sesión</button></div>`;return false;}
+    if(perfil.regional_id){REGIONAL_ID=perfil.regional_id;}
+    else{document.body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;flex-direction:column;gap:10px"><p>Regional no encontrada: ${esc(regNom)}</p><button onclick="db.auth.signOut().then(()=>location.href='login.html')" style="padding:8px 16px;cursor:pointer;border:1px solid #ccc;border-radius:6px">Cerrar sesión</button></div>`;return false;}
   }
   return true;
 }
@@ -1657,7 +1673,7 @@ async function init(){
     const miReg=regionales.find(r=>r.id===REGIONAL_ID);
     ['filtro-regional','fl-reg'].forEach(id=>{
       const sel=document.getElementById(id);if(!sel)return;
-      sel.innerHTML=miReg?`<option value="${miReg.id}">${miReg.nombre}</option>`:'';
+      sel.innerHTML=miReg?`<option value="${miReg.id}">${esc(miReg.nombre)}</option>`:'';
       sel.disabled=true;sel.style.opacity='0.7';
     });
   }
@@ -1767,12 +1783,12 @@ async function cargarDispRegionales(noRemolques,remMap,reempSet,terc){
     const color=pct>=100?'var(--green)':pct>=85?'var(--amber)':'var(--red)';
     const bitrains=vhsR.filter(v=>v.figura==='titular' && remMap.has(v.id)).length;
     return`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--border)">
-      <span style="font-size:13px;font-weight:500;width:160px;flex-shrink:0">${r.nombre}</span>
+      <span style="font-size:13px;font-weight:500;width:160px;flex-shrink:0">${esc(r.nombre)}</span>
       <div style="flex:1"><div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${color}"></div></div>
       <div style="font-size:11px;color:var(--text2);margin-top:3px">${op}/${cupo} operativos • ${titFuera} fuera • ${bkR} respaldo(s) • ${tcR} tercero(s)${bitrains?' • '+bitrains+' bitrain(s)':''}</div></div>
       <span style="font-size:18px;font-weight:700;color:${color};width:50px;text-align:right">${pct}%</span>
       ${op<cupo?`<span class="badge b-red">-${cupo-op}</span>`:'<span class="badge b-green">✓</span>'}
-      <button class="btn btn-sm" onclick="abrirCupo('${r.id}','${r.nombre}',${r.cupo_requerido||0})" title="Editar cupo">✏️</button>
+      <button class="btn btn-sm" onclick="abrirCupo('${r.id}','${escJs(r.nombre)}',${r.cupo_requerido||0})" title="Editar cupo">✏️</button>
     </div>`;
   }).join('');
 }
@@ -1797,7 +1813,7 @@ async function cargarClDash(){
     if(!total){el.innerHTML='<div class="empty">Sin vehículos</div>';return;}
     el.innerHTML=(vhs||[]).slice(0,8).map(v=>{
       const c=clMap.get(v.id);
-      return`<div class="row-item"><span class="plate">${v.placa}</span><span style="flex:1"></span>${c?(c.tiene_fallas?'<span class="badge b-red">Fallas</span>':'<span class="badge b-green">OK</span>'):'<span class="badge b-gray">Pendiente</span>'}</div>`;
+      return`<div class="row-item"><span class="plate">${esc(v.placa)}</span><span style="flex:1"></span>${c?(c.tiene_fallas?'<span class="badge b-red">Fallas</span>':'<span class="badge b-green">OK</span>'):'<span class="badge b-gray">Pendiente</span>'}</div>`;
     }).join('')+(total>8?`<div style="padding:8px;font-size:12px;color:var(--text2);text-align:center">+${total-8} más</div>`:'');
   }catch(e){el.innerHTML='<div class="empty">Error</div>';}
 }
@@ -1817,11 +1833,11 @@ async function cargarChecklists(){
       tb.innerHTML=cls.map(c=>{
         const fallas=Object.entries(c).filter(([k,v])=>['soat','tecnomecanica','luces','llantas','nivel_aceite','nivel_agua','sin_fugas','frenos','extintor','botiquin','cinturon','plataforma','termo_refrigeracion','furgon_interno'].includes(k)&&v===false).map(([k])=>k);
         return`<tr>
-          <td style="font-weight:600">${c.vehiculos?.placa||'—'}</td>
-          <td>${c.conductor_nombre||'—'}</td>
+          <td style="font-weight:600">${esc(c.vehiculos?.placa||'—')}</td>
+          <td>${esc(c.conductor_nombre||'—')}</td>
           <td>${fmtT(c.created_at)}</td>
           <td>${c.km_inicio?c.km_inicio.toLocaleString('es-CO')+' km':'—'}</td>
-          <td>${c.combustible||'—'}</td>
+          <td>${esc(c.combustible||'—')}</td>
           <td>${fallas.length>0?`<span class="badge b-red">${fallas.length} falla(s)</span>`:'<span class="badge b-green">Sin fallas</span>'}</td>
           <td>${c.tiene_fallas?'<span class="badge b-red">Con fallas</span>':'<span class="badge b-green">OK</span>'}</td>
           <td><button class="btn btn-sm" onclick='verChecklist(${JSON.stringify(c).replace(/'/g,"&#39;")})'>Ver</button></td>
@@ -1835,8 +1851,8 @@ async function cargarChecklists(){
     const conCl=new Set((cls||[]).map(c=>c.vehiculo_id));
     const sinCl=(vhs||[]).filter(v=>!conCl.has(v.id));
     document.getElementById('badge-sin-cl').textContent=sinCl.length;
-    sinLista.innerHTML=sinCl.length?sinCl.map(v=>`<div class="row-item"><span class="plate">${v.placa}</span>${bFig(v.figura)}</div>`).join(''):'<div class="empty">Todos enviaron su checklist ✓</div>';
-  }catch(e){tb.innerHTML=`<tr><td colspan="8" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
+    sinLista.innerHTML=sinCl.length?sinCl.map(v=>`<div class="row-item"><span class="plate">${esc(v.placa)}</span>${bFig(v.figura)}</div>`).join(''):'<div class="empty">Todos enviaron su checklist ✓</div>';
+  }catch(e){tb.innerHTML=`<tr><td colspan="8" style="color:var(--red);padding:12px">Error: ${esc(e.message)}</td></tr>`;}
 }
 
 function verChecklist(c){
@@ -1849,13 +1865,13 @@ function verChecklist(c){
   }).join('');
   document.getElementById('modal-cl-body').innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-      <div><span style="font-size:11px;color:var(--text2)">Conductor</span><div style="font-size:13px;font-weight:500">${c.conductor_nombre||'—'}</div></div>
+      <div><span style="font-size:11px;color:var(--text2)">Conductor</span><div style="font-size:13px;font-weight:500">${esc(c.conductor_nombre||'—')}</div></div>
       <div><span style="font-size:11px;color:var(--text2)">KM</span><div style="font-size:13px;font-weight:500">${c.km_inicio?c.km_inicio.toLocaleString('es-CO')+' km':'—'}</div></div>
-      <div><span style="font-size:11px;color:var(--text2)">Combustible</span><div style="font-size:13px">${c.combustible||'—'}</div></div>
+      <div><span style="font-size:11px;color:var(--text2)">Combustible</span><div style="font-size:13px">${esc(c.combustible||'—')}</div></div>
       <div><span style="font-size:11px;color:var(--text2)">Hora</span><div style="font-size:13px">${fmtT(c.created_at)}</div></div>
     </div>
     ${items}
-    ${c.observacion?`<div style="margin-top:12px;padding:10px;background:var(--bg2);border-radius:var(--r);font-size:13px;color:var(--text2)"><strong>Observación:</strong> ${c.observacion}</div>`:''}`;
+    ${c.observacion?`<div style="margin-top:12px;padding:10px;background:var(--bg2);border-radius:var(--r);font-size:13px;color:var(--text2)"><strong>Observación:</strong> ${esc(c.observacion)}</div>`:''}`;
   document.getElementById('modal-cl').classList.add('open');
 }
 
@@ -1888,16 +1904,16 @@ async function cargarAlDash(){
     // Renderizar combinadas
     const itemsMant=urg.slice(0,3).map(a=>`
       <div class="row-item">
-        <span class="plate">${a.vehiculos?.placa||'—'}</span>
-        <span style="flex:1;font-size:12px;color:var(--text2)">${a.tipos_mantenimiento?.nombre||'—'}</span>
+        <span class="plate">${esc(a.vehiculos?.placa||'—')}</span>
+        <span style="flex:1;font-size:12px;color:var(--text2)">${esc(a.tipos_mantenimiento?.nombre||'—')}</span>
         ${bUrg(urgA(a))}
       </div>`);
 
     const itemsDocs=docsAlerta.slice(0,5).map(d=>`
       <div class="row-item" style="cursor:pointer" onclick="ir('documentos')">
-        <span class="plate">${d.vehiculos?.placa||'—'}</span>
-        <span style="flex:1;font-size:12px;color:var(--text2)">${DOC_L[d.tipo]||d.tipo}</span>
-        <span class="badge ${d.estado==='vencido'?'b-red':'b-amber'}">
+        <span class="plate">${esc(d.vehiculos?.placa||'—')}</span>
+        <span style="flex:1;font-size:12px;color:var(--text2)">${esc(DOC_L[d.tipo]||d.tipo)}</span>
+        <span class="badge ${esc(d.estado==='vencido'?'b-red':'b-amber')}">
           ${d.estado==='vencido'?`Vencido hace ${Math.abs(d.dias)}d`:`Vence en ${d.dias}d`}
         </span>
       </div>`);
@@ -1959,21 +1975,21 @@ async function cargarFueraDash(){
         : `${d}d`;
       const tColor=d>=7?'var(--red)':d>=3?'var(--amber)':'var(--green)';
       return`<tr style="${e.perdida_total?'background:rgba(198,40,40,0.06);border-left:3px solid var(--red)':''}">
-        <td style="font-weight:600;color:${e.perdida_total?'var(--red)':'inherit'}">${e.vehiculos?.placa||'—'}${e.perdida_total?' <span class="badge b-red" style="font-size:10px">PÉRDIDA TOTAL</span>':''}${e.vehiculos?.es_tercero?' <span class="badge b-blue" style="font-size:10px">3°</span>':''}</td>
+        <td style="font-weight:600;color:${e.perdida_total?'var(--red)':'inherit'}">${esc(e.vehiculos?.placa||'—')}${e.perdida_total?' <span class="badge b-red" style="font-size:10px">PÉRDIDA TOTAL</span>':''}${e.vehiculos?.es_tercero?' <span class="badge b-blue" style="font-size:10px">3°</span>':''}</td>
         <td>${bFig(e.vehiculos?.figura||'titular',e.vehiculos?.es_tercero)}</td>
-        <td style="font-size:12px">${rNombre(e.regional_id)}</td>
-        <td style="font-size:12px">${e.talleres?.nombre||'—'}</td>
-        <td style="font-size:12px">${e.tipos_mantenimiento?.nombre||'—'}</td>
+        <td style="font-size:12px">${esc(rNombre(e.regional_id))}</td>
+        <td style="font-size:12px">${esc(e.talleres?.nombre||'—')}</td>
+        <td style="font-size:12px">${esc(e.tipos_mantenimiento?.nombre||'—')}</td>
         <td style="font-size:12px">${fmtF(e.fecha_entrada)}${e.hora_entrada?'<br><span style="color:var(--text3);font-size:11px">'+e.hora_entrada+'</span>':''}</td>
         <td style="text-align:center;font-weight:700;color:${tColor}">${tiempoStr}</td>
         <td>${reem
-          ?`<span class="badge b-purple">🔄 ${reem.placa}</span> <button class="btn btn-sm" style="margin-left:4px" onclick="asignarReemplazo('${e.id}','${e.vehiculos?.id||''}','${e.vehiculos?.placa||''}')">Cambiar</button>`
-          :`<button class="btn btn-sm btn-amber" onclick="asignarReemplazo('${e.id}','${e.vehiculos?.id||''}','${e.vehiculos?.placa||''}')">+ Asignar</button>`
+          ?`<span class="badge b-purple">🔄 ${esc(reem.placa)}</span> <button class="btn btn-sm" style="margin-left:4px" onclick="asignarReemplazo('${e.id}','${e.vehiculos?.id||''}','${escJs(e.vehiculos?.placa||'')}')">Cambiar</button>`
+          :`<button class="btn btn-sm btn-amber" onclick="asignarReemplazo('${e.id}','${e.vehiculos?.id||''}','${escJs(e.vehiculos?.placa||'')}')">+ Asignar</button>`
         }</td>
         <td>${bPrior(e.prioridad)}</td>
       </tr>`;
     }).join('');
-  }catch(e){tb.innerHTML=`<tr><td colspan="8" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
+  }catch(e){tb.innerHTML=`<tr><td colspan="8" style="color:var(--red);padding:12px">Error: ${esc(e.message)}</td></tr>`;}
 }
 
 // ── Disponibilidad detalle ──
@@ -2027,21 +2043,21 @@ async function cargarDispDetalle(){
         else if(v.figura==='titular')situacion='<span class="badge b-green">Operando</span>'+(rem?'<span class="badge b-blue" style="margin-left:4px">Bitrain</span>':'');
         else if(esReemplazo)situacion=`<span class="badge b-amber">Reemplaza: ${titReemPlaca||'—'}</span>`;
         else situacion='<span class="badge b-gray">En espera</span>';
-        return`<tr><td style="font-weight:600">${v.placa}</td><td>${bFig(v.figura)}</td><td>${bEst(v.estado)}</td><td>${situacion}</td></tr>`;
+        return`<tr><td style="font-weight:600">${esc(v.placa)}</td><td>${bFig(v.figura)}</td><td>${bEst(v.estado)}</td><td>${situacion}</td></tr>`;
       }).join('');
 
-      const tcRows=tcR.map(t=>`<tr><td style="font-weight:600">${t.placa}</td><td>${bFig(t.figura||'titular',true)}</td><td><span class="badge b-green">Operando</span></td><td><span class="badge b-blue">Tercero ${t.empresa_tercero||''}</span></td></tr>`).join('');
+      const tcRows=tcR.map(t=>`<tr><td style="font-weight:600">${esc(t.placa)}</td><td>${bFig(t.figura||'titular',true)}</td><td><span class="badge b-green">Operando</span></td><td><span class="badge b-blue">Tercero ${esc(t.empresa_tercero||'')}</span></td></tr>`).join('');
 
       return`<div class="card">
         <div class="card-hdr">
-          <div><div class="card-title">${r.nombre}</div><div style="font-size:12px;color:var(--text2);margin-top:2px">${op}/${cupo} operativos • ${titFuera} fuera de servicio</div></div>
+          <div><div class="card-title">${esc(r.nombre)}</div><div style="font-size:12px;color:var(--text2);margin-top:2px">${op}/${cupo} operativos • ${titFuera} fuera de servicio</div></div>
           <span style="font-size:22px;font-weight:700;color:${color}">${pct}%</span>
         </div>
         <div class="tbl-wrap"><table><thead><tr><th>Placa</th><th>Figura</th><th>Estado</th><th>Situación</th></tr></thead>
         <tbody>${rows}${tcRows}</tbody></table></div>
       </div>`;
     }).join('');
-  }catch(e){el.innerHTML=`<div class="card"><div class="empty" style="color:var(--red)">Error: ${e.message}</div></div>`;}
+  }catch(e){el.innerHTML=`<div class="card"><div class="empty" style="color:var(--red)">Error: ${esc(e.message)}</div></div>`;}
 }
 
 // ── Criticidad ──
@@ -2075,8 +2091,8 @@ async function cargarCriticidad(){
     const ord={'ALTA':0,'MEDIA ALTA':1,'MEDIA BAJA':2,'BAJA':3};
     ultimos.sort((a,b)=>(ord[a.criticidad]||3)-(ord[b.criticidad]||3));
     tb.innerHTML=ultimos.map(r=>`<tr>
-      <td style="font-weight:600">${r.vehiculos?.placa||'—'}</td>
-      <td style="font-size:12px">${rNombre(r.regional_id)}</td>
+      <td style="font-weight:600">${esc(r.vehiculos?.placa||'—')}</td>
+      <td style="font-size:12px">${esc(rNombre(r.regional_id))}</td>
       <td style="text-align:center">${bPuntaje(r.puntaje_chasis)}</td>
       <td style="text-align:center">${bPuntaje(r.puntaje_furgon)}</td>
       <td style="text-align:center">${bPuntaje(r.puntaje_plataforma)}</td>
@@ -2084,11 +2100,11 @@ async function cargarCriticidad(){
       <td>${bCrit(r.criticidad)}</td>
       <td style="font-size:12px">${fmtF(r.fecha)}</td>
       <td style="display:flex;gap:4px">
-        <button class="btn btn-sm" onclick="verHistCrit('${r.vehiculo_id}','${r.vehiculos?.placa||''}')">Historial</button>
-        ${r.criticidad!=='BAJA'?`<button class="btn btn-sm btn-green" onclick="confirmarReparacion('${r.vehiculo_id}','${r.vehiculos?.placa||''}','${r.id}')">✓ Reparado</button>`:''}
+        <button class="btn btn-sm" onclick="verHistCrit('${r.vehiculo_id}','${escJs(r.vehiculos?.placa||'')}')">Historial</button>
+        ${r.criticidad!=='BAJA'?`<button class="btn btn-sm btn-green" onclick="confirmarReparacion('${r.vehiculo_id}','${escJs(r.vehiculos?.placa||'')}','${r.id}')">✓ Reparado</button>`:''}
       </td>
     </tr>`).join('');
-  }catch(e){tb.innerHTML=`<tr><td colspan="9" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
+  }catch(e){tb.innerHTML=`<tr><td colspan="9" style="color:var(--red);padding:12px">Error: ${esc(e.message)}</td></tr>`;}
 }
 
 async function verHistCrit(vid,placa){
@@ -2099,7 +2115,7 @@ async function verHistCrit(vid,placa){
   card.style.display='block';card.scrollIntoView({behavior:'smooth',block:'start'});
   const{data}=await db.from('criticidad_vehiculo').select('fecha,puntaje_chasis,puntaje_furgon,puntaje_plataforma,puntaje_refrigeracion,criticidad,observaciones').eq('vehiculo_id',vid).order('fecha',{ascending:false}).limit(60);
   if(!data?.length){body.innerHTML='<tr><td colspan="7" class="empty">Sin historial</td></tr>';return;}
-  body.innerHTML=data.map(r=>`<tr><td>${fmtF(r.fecha)}</td><td style="text-align:center">${bPuntaje(r.puntaje_chasis)}</td><td style="text-align:center">${bPuntaje(r.puntaje_furgon)}</td><td style="text-align:center">${bPuntaje(r.puntaje_plataforma)}</td><td style="text-align:center">${bPuntaje(r.puntaje_refrigeracion)}</td><td>${bCrit(r.criticidad)}</td><td style="font-size:12px;color:var(--text2)">${r.observaciones||'—'}</td></tr>`).join('');
+  body.innerHTML=data.map(r=>`<tr><td>${fmtF(r.fecha)}</td><td style="text-align:center">${bPuntaje(r.puntaje_chasis)}</td><td style="text-align:center">${bPuntaje(r.puntaje_furgon)}</td><td style="text-align:center">${bPuntaje(r.puntaje_plataforma)}</td><td style="text-align:center">${bPuntaje(r.puntaje_refrigeracion)}</td><td>${bCrit(r.criticidad)}</td><td style="font-size:12px;color:var(--text2)">${esc(r.observaciones||'—')}</td></tr>`).join('');
 }
 
 // ── Fuera página ──
@@ -2122,22 +2138,22 @@ async function cargarFuera(){
       const d=diasFuera(e.fecha_entrada);
       const reem=rMap.get(e.vehiculos?.id);
       return`<tr>
-        <td style="font-weight:600">${e.vehiculos?.placa||'—'}</td>
+        <td style="font-weight:600">${esc(e.vehiculos?.placa||'—')}</td>
         <td>${bFig(e.vehiculos?.figura||'titular')}</td>
-        <td>${rNombre(e.regional_id)}</td>
-        <td>${e.talleres?.nombre||'—'}<br><span style="font-size:11px;color:var(--text2)">${e.talleres?.tipo?lTaller(e.talleres.tipo):''}</span></td>
+        <td>${esc(rNombre(e.regional_id))}</td>
+        <td>${esc(e.talleres?.nombre||'—')}<br><span style="font-size:11px;color:var(--text2)">${e.talleres?.tipo?lTaller(e.talleres.tipo):''}</span></td>
         <td>${fmtF(e.fecha_entrada)}</td>
         <td style="text-align:center"><span class="${clrDias(d)}">${d}</span></td>
-        <td>${reem?`<span class="badge b-purple">${reem.placa}</span>`:'<span class="badge b-gray">Sin reemplazo</span>'}</td>
+        <td>${reem?`<span class="badge b-purple">${esc(reem.placa)}</span>`:'<span class="badge b-gray">Sin reemplazo</span>'}</td>
         <td>${bPrior(e.prioridad)}</td>
         <td style="display:flex;gap:4px;flex-wrap:wrap">
           <button class="btn btn-sm" onclick="irRet('${e.id}')">Retorno</button>
-          <button class="btn btn-sm btn-amber" onclick="asignarReemplazo('${e.id}','${e.vehiculos?.id||''}','${e.vehiculos?.placa||''}')">Reemplazo</button>
+          <button class="btn btn-sm btn-amber" onclick="asignarReemplazo('${e.id}','${e.vehiculos?.id||''}','${escJs(e.vehiculos?.placa||'')}')">Reemplazo</button>
           <button class="btn btn-sm" onclick="editarEv(event)" data-id="${e.id}">✏️</button>
         </td>
       </tr>`;
     }).join('');
-  }catch(e){tb.innerHTML=`<tr><td colspan="9" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
+  }catch(e){tb.innerHTML=`<tr><td colspan="9" style="color:var(--red);padding:12px">Error: ${esc(e.message)}</td></tr>`;}
 }
 
 // ── Alertas ──
@@ -2184,12 +2200,12 @@ async function cargarAlertas(){
         const priorColor=a.prioridad==='alta'?'b-red':a.prioridad==='media'?'b-amber':'b-gray';
         const fecha=a.fecha_reporte?new Date(a.fecha_reporte).toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
         return`<tr>
-          <td style="font-weight:600">${a.vehiculos?.placa||'—'}</td>
-          <td style="font-size:12px">${rNombre(a.regional_id)}</td>
-          <td>${ITEM_LABEL_AL[a.item_checklist]||a.item_checklist||'—'}</td>
-          <td style="font-size:12px;color:var(--text2)">${a.descripcion||'—'}</td>
+          <td style="font-weight:600">${esc(a.vehiculos?.placa||'—')}</td>
+          <td style="font-size:12px">${esc(rNombre(a.regional_id))}</td>
+          <td>${esc(ITEM_LABEL_AL[a.item_checklist]||a.item_checklist||'—')}</td>
+          <td style="font-size:12px;color:var(--text2)">${esc(a.descripcion||'—')}</td>
           <td style="font-size:12px">${fecha}</td>
-          <td><span class="badge ${priorColor}">${a.prioridad||'—'}</span></td>
+          <td><span class="badge ${priorColor}">${esc(a.prioridad||'—')}</span></td>
           <td style="display:flex;gap:4px">
             <button class="btn btn-sm btn-green" onclick="resolverAlerta('${a.id}')">✓ Resolver</button>
             <button class="btn btn-sm" onclick="ir('entrada')">Taller</button>
@@ -2207,9 +2223,9 @@ async function cargarAlertas(){
         const u=urgA(a);
         const v=a.tipo_alerta==='por_fecha'?fmtF(a.fecha_limite):(a.km_limite?a.km_limite.toLocaleString('es-CO')+' km':'—');
         return`<tr>
-          <td style="font-weight:600">${a.vehiculos?.placa||'—'}</td>
-          <td style="font-size:12px">${rNombre(a.regional_id)}</td>
-          <td>${a.tipos_mantenimiento?.nombre||'—'}</td>
+          <td style="font-weight:600">${esc(a.vehiculos?.placa||'—')}</td>
+          <td style="font-size:12px">${esc(rNombre(a.regional_id))}</td>
+          <td>${esc(a.tipos_mantenimiento?.nombre||'—')}</td>
           <td style="font-size:12px;color:var(--text2)">${v}</td>
           <td style="font-size:12px">—</td>
           <td>${bUrg(u)}</td>
@@ -2219,7 +2235,7 @@ async function cargarAlertas(){
     }
 
     tb.innerHTML=html;
-  }catch(e){tb.innerHTML=`<tr><td colspan="7" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
+  }catch(e){tb.innerHTML=`<tr><td colspan="7" style="color:var(--red);padding:12px">Error: ${esc(e.message)}</td></tr>`;}
 }
 
 async function resolverAlerta(id){
@@ -2263,11 +2279,11 @@ async function cargarHistorial(){
         const h=Math.round((new Date()-ini)/36000)/100;
         horas='<span style="color:var(--amber)">'+h+'h</span>';
       }
-      return`<tr style="cursor:pointer" onclick="verTL('${e.vehiculos?.id||''}','${e.vehiculos?.placa||''}')">
-        <td style="font-weight:600">${e.vehiculos?.placa||'—'}</td>
-        <td>${rNombre(e.regional_id)}</td>
-        <td>${e.tipos_mantenimiento?.nombre||'—'}</td>
-        <td>${e.talleres?.nombre||'—'}</td>
+      return`<tr style="cursor:pointer" onclick="verTL('${e.vehiculos?.id||''}','${escJs(e.vehiculos?.placa||'')}')">
+        <td style="font-weight:600">${esc(e.vehiculos?.placa||'—')}</td>
+        <td>${esc(rNombre(e.regional_id))}</td>
+        <td>${esc(e.tipos_mantenimiento?.nombre||'—')}</td>
+        <td>${esc(e.talleres?.nombre||'—')}</td>
         <td>${fmtF(e.fecha_entrada)}</td>
         <td style="font-size:12px;color:var(--text2)">${e.hora_entrada||'—'}</td>
         <td>${fmtF(e.fecha_salida)}</td>
@@ -2275,10 +2291,10 @@ async function cargarHistorial(){
         <td style="text-align:center">${e.dias_en_taller!=null?`<strong>${e.dias_en_taller}d</strong>`:'<span style="color:var(--amber)">Hoy</span>'}</td>
         <td style="text-align:center">${horas}</td>
         <td style="text-align:right">${fmtM(e.costo)}</td>
-        <td><button class="btn btn-sm" style="margin-right:4px" onclick="verHistTL(event)" data-vid="${e.vehiculos?.id||''}" data-placa="${e.vehiculos?.placa||''}">Ver</button> <button class="btn btn-sm" onclick="editarEv(event)" data-id="${e.id}">✏️</button></td>
+        <td><button class="btn btn-sm" style="margin-right:4px" onclick="verHistTL(event)" data-vid="${e.vehiculos?.id||''}" data-placa="${esc(e.vehiculos?.placa||'')}">Ver</button> <button class="btn btn-sm" onclick="editarEv(event)" data-id="${e.id}">✏️</button></td>
       </tr>`;
     }).join('');
-  }catch(e){tb.innerHTML=`<tr><td colspan="9" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
+  }catch(e){tb.innerHTML=`<tr><td colspan="9" style="color:var(--red);padding:12px">Error: ${esc(e.message)}</td></tr>`;}
 }
 
 async function verTL(vid,placa){
@@ -2313,12 +2329,12 @@ async function verTL(vid,placa){
     const entradaStr=fmtF(e.fecha_entrada)+(e.hora_entrada?' '+e.hora_entrada:'');
     const salidaStr=ec?'En curso':fmtF(e.fecha_salida)+(e.hora_salida?' '+e.hora_salida:'');
     return`<div class="tl-item"><div class="tl-left"><div class="tl-dot" style="background:${col}"></div><div class="tl-line"></div></div><div>
-      <div style="font-size:13px;font-weight:500">${e.tipos_mantenimiento?.nombre||e.tipo||'—'} — ${e.talleres?.nombre||'—'}</div>
+      <div style="font-size:13px;font-weight:500">${esc(e.tipos_mantenimiento?.nombre||e.tipo||'—')} — ${esc(e.talleres?.nombre||'—')}</div>
       <div style="font-size:12px;color:var(--text2);margin-top:2px">${entradaStr} → ${salidaStr}</div>
       <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap">
         <span class="badge ${ec?'b-amber':'b-green'}">${duracion}</span>
         ${e.costo?`<span class="badge b-gray">${fmtM(e.costo)}</span>`:''}
-        ${e.descripcion_trabajo?`<span style="font-size:11px;color:var(--text2)">${e.descripcion_trabajo}</span>`:''}
+        ${e.descripcion_trabajo?`<span style="font-size:11px;color:var(--text2)">${esc(e.descripcion_trabajo)}</span>`:''}
       </div>
     </div></div>`;
   }).join('');
@@ -2342,19 +2358,19 @@ async function cargarFlota(){
     document.getElementById('fl-count').textContent=`${(data||[]).length} vehículos`;
     if(!data?.length){tb.innerHTML='<tr><td colspan="7" class="empty">Sin vehículos</td></tr>';return;}
     tb.innerHTML=(data||[]).map(v=>`<tr style="${v.es_tercero?'background:rgba(21,101,192,0.04)':''}">
-      <td style="font-weight:600">${v.placa}${v.es_tercero?`<br><span style="font-size:10px;color:var(--blue)">${v.empresa_tercero||'Tercero'}</span>`:''}      </td>
+      <td style="font-weight:600">${esc(v.placa)}${v.es_tercero?`<br><span style="font-size:10px;color:var(--blue)">${esc(v.empresa_tercero||'Tercero')}</span>`:''}      </td>
       <td>${bTipo(v.tipo)}</td>
-      <td>${rNombre(v.regional_id)}</td>
+      <td>${esc(rNombre(v.regional_id))}</td>
       <td>${bFig(v.figura,v.es_tercero)}</td>
       <td>${bEst(v.estado)}</td>
       <td>${v.km_actuales?v.km_actuales.toLocaleString('es-CO')+' km':'—'}</td>
       <td style="display:flex;gap:4px;flex-wrap:wrap;padding:6px 10px">
         <button class="btn btn-sm" onclick="abrirFicha('${v.id}')">Editar</button>
-        <button class="btn btn-sm" onclick="verHistTL(event)" data-vid="${v.id}" data-placa="${v.placa}">Hist.</button>
-        ${v.activo?`<button class="btn btn-sm btn-red" onclick="abrirRetiro('${v.id}','${v.placa}')">Retirar</button>`:`<button class="btn btn-sm btn-green" onclick="reactivar('${v.id}','${v.placa}')">Reactivar</button>`}
+        <button class="btn btn-sm" onclick="verHistTL(event)" data-vid="${v.id}" data-placa="${esc(v.placa)}">Hist.</button>
+        ${v.activo?`<button class="btn btn-sm btn-red" onclick="abrirRetiro('${v.id}','${escJs(v.placa)}')">Retirar</button>`:`<button class="btn btn-sm btn-green" onclick="reactivar('${v.id}','${escJs(v.placa)}')">Reactivar</button>`}
       </td>
     </tr>`).join('');
-  }catch(e){tb.innerHTML=`<tr><td colspan="7" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
+  }catch(e){tb.innerHTML=`<tr><td colspan="7" style="color:var(--red);padding:12px">Error: ${esc(e.message)}</td></tr>`;}
 }
 
 function abrirNuevoVh(){
@@ -2466,18 +2482,18 @@ async function prepEntrada(){
     const{data:tal}=await db.from('talleres').select('id,nombre,tipo,regional_id').eq('activo',true).order('nombre');
     const{data:tms}=await db.from('tipos_mantenimiento').select('id,nombre').eq('activo',true).order('nombre');
 
-    document.getElementById('e-vh').innerHTML='<option value="">Seleccionar vehículo...</option>'+(vhs||[]).filter(v=>v.tipo!=='remolque').map(v=>`<option value="${v.id}" data-reg="${v.regional_id||''}" data-fig="${v.figura}">${v.placa}${v.es_tercero?' [3°]':''} [${rNombre(v.regional_id)}] — ${v.figura} — ${v.estado}</option>`).join('');
+    document.getElementById('e-vh').innerHTML='<option value="">Seleccionar vehículo...</option>'+(vhs||[]).filter(v=>v.tipo!=='remolque').map(v=>`<option value="${v.id}" data-reg="${v.regional_id||''}" data-fig="${esc(v.figura)}">${esc(v.placa)}${v.es_tercero?' [3°]':''} [${esc(rNombre(v.regional_id))}] — ${esc(v.figura)} — ${esc(v.estado)}</option>`).join('');
 
     // Talleres filtrados por regional si aplica
     const talFiltrados=REGIONAL_ID?(tal||[]).filter(t=>!t.regional_id||t.regional_id===REGIONAL_ID):(tal||[]);
-    document.getElementById('e-taller').innerHTML='<option value="">Seleccionar taller...</option>'+talFiltrados.map(t=>`<option value="${t.id}" data-tipo="${t.tipo}">${t.nombre} (${lTaller(t.tipo)})</option>`).join('');
+    document.getElementById('e-taller').innerHTML='<option value="">Seleccionar taller...</option>'+talFiltrados.map(t=>`<option value="${t.id}" data-tipo="${esc(t.tipo)}">${esc(t.nombre)} (${lTaller(t.tipo)})</option>`).join('');
 
-    document.getElementById('e-tipomant').innerHTML='<option value="">Seleccionar tipo...</option>'+(tms||[]).map(m=>`<option value="${m.id}">${m.nombre}</option>`).join('');
+    document.getElementById('e-tipomant').innerHTML='<option value="">Seleccionar tipo...</option>'+(tms||[]).map(m=>`<option value="${m.id}">${esc(m.nombre)}</option>`).join('');
     document.getElementById('e-fecha').value=hoy();
 
     // Backups disponibles para reemplazo
     const backups=(vhs||[]).filter(v=>v.figura==='backup'&&v.estado==='disponible'&&v.tipo!=='remolque');
-    document.getElementById('e-reem-vh').innerHTML='<option value="">Seleccionar...</option>'+backups.map(v=>`<option value="${v.id}" data-tipo="backup">${v.placa} [${rNombre(v.regional_id)}]</option>`).join('');
+    document.getElementById('e-reem-vh').innerHTML='<option value="">Seleccionar...</option>'+backups.map(v=>`<option value="${v.id}" data-tipo="backup">${esc(v.placa)} [${esc(rNombre(v.regional_id))}]</option>`).join('');
     document.getElementById('e-reem-tipo').value='ninguno';
     document.getElementById('e-reem-wrap').style.display='none';
     document.getElementById('e-reem-obs-wrap').style.display='none';
@@ -2558,7 +2574,7 @@ async function prepRetorno(){
     let q=db.from('eventos_mantenimiento').select('id,fecha_entrada,regional_id,vehiculos(id,placa),talleres(nombre)').eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     const{data}=await q;
-    document.getElementById('r-evento').innerHTML='<option value="">Seleccionar...</option>'+(data||[]).map(e=>`<option value="${e.id}" data-vh="${e.vehiculos?.id}" data-entrada="${e.fecha_entrada}">${e.vehiculos?.placa} — ${diasFuera(e.fecha_entrada)} días — ${e.talleres?.nombre||''}</option>`).join('');
+    document.getElementById('r-evento').innerHTML='<option value="">Seleccionar...</option>'+(data||[]).map(e=>`<option value="${e.id}" data-vh="${e.vehiculos?.id}" data-entrada="${e.fecha_entrada}">${esc(e.vehiculos?.placa)} — ${diasFuera(e.fecha_entrada)} días — ${esc(e.talleres?.nombre||'')}</option>`).join('');
     document.getElementById('r-fecha').value=hoy();
     document.getElementById('r-info-wrap').style.display='none';
   }catch(e){toast('Error: '+e.message,true);}
@@ -2671,20 +2687,20 @@ async function cargarTerceros(){
       (tvhs||[]).forEach(v=>titMap[v.id]=v.placa);
     }
     tb.innerHTML=data.map(t=>`<tr>
-      <td style="font-weight:600">${t.placa}</td>
-      <td>${t.empresa||'—'}</td>
-      <td>${rNombre(t.regional_id)}</td>
-      <td>${t.tipo||'—'}</td>
+      <td style="font-weight:600">${esc(t.placa)}</td>
+      <td>${esc(t.empresa||'—')}</td>
+      <td>${esc(rNombre(t.regional_id))}</td>
+      <td>${esc(t.tipo||'—')}</td>
       <td>${t.figura==='backup'?`<span class="badge b-amber">Respaldo${t.titular_reemplazado_id?' → '+titMap[t.titular_reemplazado_id]:''}` +'</span>':'<span class="badge b-green">Titular</span>'}</td>
       <td>${fmtF(t.fecha_inicio)}</td>
       <td>${fmtF(t.fecha_fin)}</td>
-      <td style="font-size:12px;color:var(--text2)">${t.observaciones||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${esc(t.observaciones||'—')}</td>
       <td style="display:flex;gap:4px">
         <button class="btn btn-sm" onclick="editarTercero('${t.id}')">Editar</button>
-        <button class="btn btn-sm btn-red" onclick="desactivarTercero('${t.id}','${t.placa}')">Desactivar</button>
+        <button class="btn btn-sm btn-red" onclick="desactivarTercero('${t.id}','${escJs(t.placa)}')">Desactivar</button>
       </td>
     </tr>`).join('');
-  }catch(e){tb.innerHTML=`<tr><td colspan="8" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
+  }catch(e){tb.innerHTML=`<tr><td colspan="8" style="color:var(--red);padding:12px">Error: ${esc(e.message)}</td></tr>`;}
 }
 
 async function desactivarTercero(id,placa){
@@ -2728,7 +2744,7 @@ async function ejecutarMasivo(){
     const{data:vh}=await db.from('vehiculos').select('id,regional_id').eq('placa',placa).single();
     if(!vh){errores.push(`${placa}: No encontrado`);continue;}
     const{error}=await db.from('eventos_mantenimiento').insert({vehiculo_id:vh.id,taller_id:tallerId,tipo_mantenimiento_id:tmId,regional_id:vh.regional_id,origen:talTipo,tipo,prioridad:prior,fecha_entrada:fecha,descripcion_trabajo:desc||null,estado:'en_proceso'});
-    if(error){errores.push(`${placa}: ${error.message}`);continue;}
+    if(error){errores.push(`${placa}: ${esc(error.message)}`);continue;}
     await db.from('vehiculos').update({estado:talTipo}).eq('id',vh.id);
     ok++;
   }
@@ -2773,7 +2789,7 @@ async function confirmarReparacion(vid, placa, critId){
       puntaje_plataforma: 1,
       puntaje_refrigeracion: 1,
       bloqueada: false,
-      fecha_reparacion: new Date().toISOString().split('T')[0],
+      fecha_reparacion: hoy(),
       observaciones: 'Reparación confirmada por coordinador',
       fuente: 'manual',
     }).eq('id', critId);
@@ -2792,8 +2808,8 @@ async function asignarReemplazo(eventoId, titularId, titularPlaca){
 
   const{data:terc}=await db.from('vehiculos_terceros').select('id,placa').eq('activo',true);
 
-  const opsBk=(bks||[]).map(v=>`<option value="bk_${v.id}">${v.placa} [Respaldo]</option>`).join('');
-  const opsTc=(terc||[]).map(t=>`<option value="tc_${t.id}">${t.placa} [Tercero]</option>`).join('');
+  const opsBk=(bks||[]).map(v=>`<option value="bk_${v.id}">${esc(v.placa)} [Respaldo]</option>`).join('');
+  const opsTc=(terc||[]).map(t=>`<option value="tc_${t.id}">${esc(t.placa)} [Tercero]</option>`).join('');
 
   const sel=`<select id="reem-sel-modal" style="width:100%;padding:10px;font-size:14px;border:0.5px solid var(--border);border-radius:var(--r);margin-bottom:10px">
     <option value="">Sin reemplazo disponible</option>
@@ -2822,7 +2838,7 @@ async function guardarReemplazoModal(eventoId, titularId, btn){
   const overlay=btn.closest('[style*=fixed]');
 
   // Cerrar reemplazo anterior si existe
-  await db.from('reemplazos_activos').update({activo:false,fecha_fin:new Date().toISOString().split('T')[0]}).eq('titular_id',titularId).eq('activo',true);
+  await db.from('reemplazos_activos').update({activo:false,fecha_fin:hoy()}).eq('titular_id',titularId).eq('activo',true);
 
   if(sel){
     const esBk=sel.startsWith('bk_');
@@ -2836,7 +2852,7 @@ async function guardarReemplazoModal(eventoId, titularId, btn){
       reemplazo_id: esBk ? reemId : null,
       evento_id: eventoId,
       regional_id: vhData?.regional_id||REGIONAL_ID,
-      fecha_inicio: new Date().toISOString().split('T')[0],
+      fecha_inicio: hoy(),
       activo: true,
       motivo: obs||null,
     });
@@ -2913,8 +2929,8 @@ function poblarListaCrit(tbId, rows){
   const tb = document.getElementById(tbId);
   if(!rows.length){ tb.innerHTML='<tr><td colspan="7" class="empty">Sin vehículos en esta categoría</td></tr>'; return; }
   tb.innerHTML = rows.map(r=>`<tr>
-    <td style="font-weight:600">${r.vehiculos?.placa||r.placa||'—'}</td>
-    <td style="font-size:12px">${r.regional||rNombre(r.regional_id)}</td>
+    <td style="font-weight:600">${esc(r.vehiculos?.placa||r.placa||'—')}</td>
+    <td style="font-size:12px">${esc(r.regional||rNombre(r.regional_id))}</td>
     <td style="text-align:center">${bPuntaje(r.puntaje_chasis)}</td>
     <td style="text-align:center">${bPuntaje(r.puntaje_furgon)}</td>
     <td style="text-align:center">${bPuntaje(r.puntaje_plataforma)}</td>
@@ -3014,7 +3030,7 @@ function cargarDistPorRegional(ultimos){
   el.innerHTML = regsShow.map(reg=>{
     const vhsReg = ultimos.filter(r=>r.regional_id===reg.id||r.regional===reg.nombre);
     const total  = vhsReg.length;
-    if(!total) return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:13px"><span style="color:var(--text2)">${reg.nombre}</span><span class="badge b-gray">Sin datos</span></div>`;
+    if(!total) return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:13px"><span style="color:var(--text2)">${esc(reg.nombre)}</span><span class="badge b-gray">Sin datos</span></div>`;
     const alta  = vhsReg.filter(r=>r.criticidad==='ALTA').length;
     const ma    = vhsReg.filter(r=>r.criticidad==='MEDIA ALTA').length;
     const mb    = vhsReg.filter(r=>r.criticidad==='MEDIA BAJA').length;
@@ -3023,7 +3039,7 @@ function cargarDistPorRegional(ultimos){
     const barW = (n)=> total ? Math.round(n/total*100) : 0;
     return `<div style="padding:10px 0;border-bottom:0.5px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:13px;font-weight:500">${reg.nombre}</span>
+        <span style="font-size:13px;font-weight:500">${esc(reg.nombre)}</span>
         <span style="font-size:11px;color:var(--text2)">${total} vehículos</span>
       </div>
       <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;gap:1px">
@@ -3199,8 +3215,8 @@ async function cargarDocsFicha(vhId){
     const badge=dias<0?'b-red':dias<=30?'b-amber':'b-green';
     return`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--border)">
       <div style="flex:1">
-        <div style="font-size:13px;font-weight:500">${DOC_LABELS[d.tipo]||d.tipo}</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:2px">Vence: ${fmtF(d.fecha_vencimiento)} ${d.numero_documento?'· '+d.numero_documento:''}</div>
+        <div style="font-size:13px;font-weight:500">${esc(DOC_LABELS[d.tipo]||d.tipo)}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px">Vence: ${fmtF(d.fecha_vencimiento)} ${esc(d.numero_documento?'· '+d.numero_documento:'')}</div>
       </div>
       <span class="badge ${badge}">${dias<0?'Vencido hace '+Math.abs(dias)+' días':dias===0?'Vence hoy':dias+' días'}</span>
       <button class="btn btn-sm btn-red" onclick="eliminarDoc('${d.id}','${vhId}')">×</button>
@@ -3237,11 +3253,10 @@ async function guardarDocumento(){
 
       const uploadRes=await fetch(`${SUPABASE_URL}/storage/v1/object/documentos-vehiculos/${filename}`,{
         method:'POST',
-        headers:{
-          'Authorization':`Bearer ${SUPABASE_KEY}`,
+        headers:await storageHeaders({
           'x-upsert':'true',
           'Content-Type':archivo.type||'application/octet-stream',
-        },
+        }),
         body:archivo,
       });
       if(barEl)barEl.style.width='70%';
@@ -3253,7 +3268,7 @@ async function guardarDocumento(){
       // URL firmada por 1 año
       const signRes=await fetch(`${SUPABASE_URL}/storage/v1/object/sign/documentos-vehiculos/${filename}`,{
         method:'POST',
-        headers:{'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+        headers:await storageHeaders({'Content-Type':'application/json'}),
         body:JSON.stringify({expiresIn:31536000}),
       });
       const signData=await signRes.json();
@@ -3403,20 +3418,20 @@ async function cargarDocumentos(){
       const estadoLabel=d.estado==='vencido'?'Vencido':d.estado==='proximo'?'Próximo 30d':'Vigente';
       // Lupa si tiene archivo
       const lupaBtn=d.archivo_url
-        ?`<a href="${d.archivo_url}" target="_blank" title="Ver documento" style="text-decoration:none;font-size:16px;cursor:pointer">🔍</a>`
+        ?`<a href="${safeUrl(d.archivo_url)}" target="_blank" rel="noopener" title="Ver documento" style="text-decoration:none;font-size:16px;cursor:pointer">🔍</a>`
         :'';
       return`<tr>
-        <td style="font-weight:600">${d.vehiculos?.placa||'—'} ${lupaBtn}</td>
-        <td style="font-size:12px">${rNombre(d.regional_id)}</td>
-        <td>${DOC_LABELS[d.tipo]||d.tipo}</td>
+        <td style="font-weight:600">${esc(d.vehiculos?.placa||'—')} ${lupaBtn}</td>
+        <td style="font-size:12px">${esc(rNombre(d.regional_id))}</td>
+        <td>${esc(DOC_LABELS[d.tipo]||d.tipo)}</td>
         <td>${fmtF(d.fecha_vencimiento)}</td>
         <td style="text-align:center"><span class="badge ${badge}">${diasText}</span></td>
-        <td style="font-size:12px">${d.numero_documento||'—'}</td>
+        <td style="font-size:12px">${esc(d.numero_documento||'—')}</td>
         <td><span class="badge ${badge}">${estadoLabel}</span></td>
         <td><button class="btn btn-sm" onclick="abrirFicha('${d.vehiculo_id}');setTimeout(()=>switchFichaTab('docs'),300)">Ver ficha</button></td>
       </tr>`;
     }).join('');
-  }catch(e){tb.innerHTML=`<tr><td colspan="8" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
+  }catch(e){tb.innerHTML=`<tr><td colspan="8" style="color:var(--red);padding:12px">Error: ${esc(e.message)}</td></tr>`;}
 }
 
 // ── Auto-refresh cada 5 minutos ────────────────────────────
@@ -3693,8 +3708,8 @@ async function cargarDispOperativa(){
     tb.innerHTML=resultado.map(v=>{
       const color=v.pct>=90?'var(--green)':v.pct>=80?'var(--amber)':'var(--red)';
       return`<tr>
-        <td style="font-weight:600">${v.placa}</td>
-        <td style="font-size:12px">${v.regional}</td>
+        <td style="font-weight:600">${esc(v.placa)}</td>
+        <td style="font-size:12px">${esc(v.regional)}</td>
         <td style="text-align:center">${v.dias}</td>
         <td style="text-align:center">${v.hbase}h</td>
         <td style="text-align:center;color:${v.hfuera>0?'var(--red)':'var(--text3)'}">${v.hfuera}h</td>
@@ -3711,7 +3726,7 @@ async function cargarDispOperativa(){
     }).join('');
 
   }catch(e){
-    document.getElementById('dop-cons-body').innerHTML=`<tr><td colspan="7" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;
+    document.getElementById('dop-cons-body').innerHTML=`<tr><td colspan="7" style="color:var(--red);padding:12px">Error: ${esc(e.message)}</td></tr>`;
   }
 }
 
@@ -3744,15 +3759,15 @@ async function cargarDetalleDiario(){
       filas.push(`<tr>
         <td>${fmtF(d.fecha)}</td>
         <td><span class="badge b-blue" style="font-size:10px">${dias[fecha.getDay()]}</span></td>
-        <td style="font-weight:600">${v.placa}</td>
-        <td style="font-size:12px">${v.regional}</td>
+        <td style="font-weight:600">${esc(v.placa)}</td>
+        <td style="font-size:12px">${esc(v.regional)}</td>
         <td style="text-align:center;color:var(--amber);font-weight:600">${d.hfuera}h</td>
         <td style="text-align:center">${d.conReemplazo
           ?'<span class="badge b-green">✓ Cubierto</span>'
           :'<span class="badge b-red">Sin cobertura</span>'}</td>
         <td style="text-align:center;color:${d.hfueraReal>0?'var(--red)':'var(--green)'};font-weight:600">${d.hfueraReal}h</td>
         <td style="text-align:center;font-weight:700;color:${color}">${pct}%</td>
-        <td style="font-size:12px;color:var(--text2)">${d.motivo}</td>
+        <td style="font-size:12px;color:var(--text2)">${esc(d.motivo)}</td>
       </tr>`);
     }
   }
@@ -3800,12 +3815,12 @@ async function editarEvento(eventoId){
     // Poblar talleres
     const{data:tal}=await db.from('talleres').select('id,nombre,tipo').eq('activo',true).order('nombre');
     const selT=document.getElementById('ev-taller');
-    selT.innerHTML=(tal||[]).map(t=>`<option value="${t.id}" ${t.id===ev.taller_id?'selected':''}>${t.nombre}</option>`).join('');
+    selT.innerHTML=(tal||[]).map(t=>`<option value="${t.id}" ${t.id===ev.taller_id?'selected':''}>${esc(t.nombre)}</option>`).join('');
 
     // Poblar tipos mantenimiento
     const{data:tms}=await db.from('tipos_mantenimiento').select('id,nombre').eq('activo',true).order('nombre');
     const selTM=document.getElementById('ev-tipomant');
-    selTM.innerHTML=(tms||[]).map(m=>`<option value="${m.id}" ${m.id===ev.tipo_mantenimiento_id?'selected':''}>${m.nombre}</option>`).join('');
+    selTM.innerHTML=(tms||[]).map(m=>`<option value="${m.id}" ${m.id===ev.tipo_mantenimiento_id?'selected':''}>${esc(m.nombre)}</option>`).join('');
 
     document.getElementById('modal-evento').classList.add('open');
   }catch(e){toast('Error: '+e.message,true);}
@@ -3876,7 +3891,7 @@ async function editarTercero(tcId){
   if(REGIONAL_ID)qt=qt.eq('regional_id',REGIONAL_ID);
   const{data:tits}=await qt;
   const selTit=document.getElementById('etc-titular-vh');
-  selTit.innerHTML='<option value="">Seleccionar titular...</option>'+(tits||[]).map(v=>`<option value="${v.id}" ${v.id===t.titular_reemplazado_id?'selected':''}>${v.placa} [${rNombre(v.regional_id)}]</option>`).join('');
+  selTit.innerHTML='<option value="">Seleccionar titular...</option>'+(tits||[]).map(v=>`<option value="${v.id}" ${v.id===t.titular_reemplazado_id?'selected':''}>${esc(v.placa)} [${esc(rNombre(v.regional_id))}]</option>`).join('');
 
   document.getElementById('modal-edit-tc').classList.add('open');
 }
@@ -3981,11 +3996,11 @@ async function previsualizarChecklist(){
     const fallas=Object.entries(LABELS_CL).filter(([k])=>c[k]===false).map(([,v])=>v);
     return`<tr>
       <td>${fmtF(c.fecha)}</td>
-      <td style="font-weight:600">${c.vehiculos?.placa||'—'}</td>
-      <td style="font-size:12px">${rNombre(c.regional_id)}</td>
-      <td>${c.conductor_nombre||'—'}</td>
+      <td style="font-weight:600">${esc(c.vehiculos?.placa||'—')}</td>
+      <td style="font-size:12px">${esc(rNombre(c.regional_id))}</td>
+      <td>${esc(c.conductor_nombre||'—')}</td>
       <td>${c.km_inicio?c.km_inicio.toLocaleString('es-CO')+' km':'—'}</td>
-      <td>${c.combustible||'—'}</td>
+      <td>${esc(c.combustible||'—')}</td>
       <td>${fallas.length>0?`<span class="badge b-red">${fallas.length} falla(s)</span>`:'<span class="badge b-green">OK</span>'}</td>
       <td style="font-size:12px;color:var(--text2)">${fallas.join(', ')||'—'}</td>
     </tr>`;
@@ -4172,7 +4187,7 @@ async function generarReporteDocumentos(){
     const dias=parseInt(document.getElementById('rep-docs-dias').value);
     const regF=document.getElementById('rep-regional').value||REGIONAL_ID;
     const hasta=new Date();hasta.setDate(hasta.getDate()+dias);
-    const hastaStr=hasta.toISOString().split('T')[0];
+    const hastaStr=fechaLocal(hasta);
 
     let q=db.from('documentos_vehiculo')
       .select('*,vehiculos(placa,tipo,figura,marca,poseedor)')
@@ -4421,7 +4436,8 @@ async function cargarLavados(){
     const{data:vhs}=await qv;
 
     // Lavados del mes
-    let ql=db.from('lavados').select('*').gte('fecha',desde).lte('fecha',hasta);
+    // Sin la firma ni las fotos: se cargan solo al abrir el detalle de un lavado
+    let ql=db.from('lavados').select('id,vehiculo_id,regional_id,fecha,tipo,estado,observacion,recibe_nombre,apto').gte('fecha',desde).lte('fecha',hasta);
     if(REGIONAL_ID)ql=ql.eq('regional_id',REGIONAL_ID);
     const{data:lavs}=await ql;
 
@@ -4444,7 +4460,10 @@ async function cargarLavados(){
     (lavs||[]).filter(l=>l.estado==='ejecutado').forEach(l=>{
       lavPorVh[l.vehiculo_id]=(lavPorVh[l.vehiculo_id]||0)+1;
     });
-    const alDia=Object.values(lavPorVh).filter(n=>n>=4).length;
+    const genPorVh={};
+    (lavs||[]).filter(l=>l.estado==='ejecutado'&&l.tipo==='general').forEach(l=>{genPorVh[l.vehiculo_id]=(genPorVh[l.vehiculo_id]||0)+1;});
+    // Al día: 4 lavados en el mes y al menos 1 general (exigido por el procedimiento)
+    const alDia=Object.keys(lavPorVh).filter(id=>lavPorVh[id]>=4&&(genPorVh[id]||0)>=1).length;
 
     // Ritmo esperado al día de hoy
     const diasMes=lastDay;
@@ -4498,7 +4517,7 @@ async function cargarLavados(){
 
       html+=`<tr>
         <td style="position:sticky;left:0;background:#fff;z-index:1;padding:3px 8px;border:1px solid var(--border);font-weight:600;white-space:nowrap">
-          ${vh.placa}${vh.es_tercero?'<span style="font-size:9px;color:var(--blue);margin-left:3px">3°</span>':''}
+          ${esc(vh.placa)}${vh.es_tercero?'<span style="font-size:9px;color:var(--blue);margin-left:3px">3°</span>':''}
         </td>
         <td style="position:sticky;left:80px;background:#fff;z-index:1;padding:3px 6px;border:1px solid var(--border);text-align:center;font-weight:700;color:${pctCol}">${pctVh}%</td>
         ${dias.map(d=>{
@@ -4513,8 +4532,10 @@ async function cargarLavados(){
               else{bg='#E3F2FD';celda='E';color='#1565C0';}
             } else if(lav.estado==='omitido'){bg='#ECEFF1';celda='×';color='#90A4AE';}
           }
-          return`<td onclick="toggleLavado('${vh.id}','${fecha}','${vh.placa}')"
-            style="padding:3px;border:1px solid var(--border);text-align:center;background:${bg};cursor:${cursor};font-weight:700;color:${color};min-width:28px">
+          // Subrayado = lavado con firma y evidencia registrada desde el formulario
+          const conEvid=lav&&lav.recibe_nombre;
+          return`<td onclick="toggleLavado('${vh.id}','${fecha}','${escJs(vh.placa)}')" title="${conEvid?'Con firma de quien recibe':''}"
+            style="padding:3px;border:1px solid var(--border);text-align:center;background:${bg};cursor:${cursor};font-weight:700;color:${color};min-width:28px;${conEvid?`box-shadow:inset 0 -3px 0 ${color}`:''}">
             ${celda}
           </td>`;
         }).join('')}
@@ -4528,7 +4549,7 @@ async function cargarLavados(){
       const diasSinLavar=ultimoLav
         ? Math.floor((new Date()-new Date(ultimoLav))/86400000)
         : null;
-      if(cnt<4){
+      if(cnt<4||gen<1){
         atrasados.push({placa:vh.placa,regional:rNombre(vh.regional_id),cnt,gen,enj,pct:pctVh,ultimoLav,diasSinLavar});
       }
     });
@@ -4547,8 +4568,8 @@ async function cargarLavados(){
         const col=v.pct>=75?'var(--amber)':'var(--red)';
         const diasCol=v.diasSinLavar>14?'var(--red)':v.diasSinLavar>7?'var(--amber)':'var(--text)';
         return`<tr>
-          <td style="font-weight:600">${v.placa}</td>
-          <td style="font-size:12px">${v.regional}</td>
+          <td style="font-weight:600">${esc(v.placa)}</td>
+          <td style="font-size:12px">${esc(v.regional)}</td>
           <td style="text-align:center;font-weight:700;color:${col}">${v.cnt} / 4</td>
           <td style="text-align:center">${v.gen}</td>
           <td style="text-align:center">${v.enj}</td>
@@ -4568,7 +4589,7 @@ async function cargarLavados(){
 
     window._lavVhs=vhs;
   }catch(e){
-    document.getElementById('lav-grid-wrap').innerHTML=`<div style="color:var(--red);padding:12px">Error: ${e.message}</div>`;
+    document.getElementById('lav-grid-wrap').innerHTML=`<div style="color:var(--red);padding:12px">Error: ${esc(e.message)}</div>`;
   }
 }
 
@@ -4622,7 +4643,45 @@ async function toggleLavado(vhId,fecha,placa){
     onOmitidoChange();
   }
 
+  pintarEvidenciaLavado(exist);
   document.getElementById('modal-lav-celda').classList.add('open');
+}
+
+// Muestra la evidencia (firma, fotos, desinfección) de un lavado registrado desde el formulario
+async function pintarEvidenciaLavado(l){
+  const box=document.getElementById('lav-celda-evid');
+  if(!l||!l.recibe_nombre){box.style.display='none';box.innerHTML='';return;}
+  const si=v=>v?'<span class="badge b-green">Sí</span>':'<span class="badge b-red">No</span>';
+  const fila=(k,v)=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:0.5px solid var(--border);font-size:12px"><span style="color:var(--text2)">${k}</span><span style="text-align:right">${v}</span></div>`;
+  const firmaOk=typeof l.firma==='string'&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(l.firma);
+  box.innerHTML=`<div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Evidencia del lavado</div>
+    ${fila('Hora',esc(l.hora?String(l.hora).slice(0,5):'—'))}
+    ${fila('Motivo',esc(l.motivo||'—'))}
+    ${fila('Realizó',esc(l.lavo||'—'))}
+    ${fila('Establecimiento / factura',esc([l.establecimiento,l.factura].filter(Boolean).join(' · ')||'—'))}
+    ${fila('Desinfección furgón',si(l.desinf_furgon))}
+    ${fila('Desinfección cabina',si(l.desinf_cabina))}
+    ${fila('Contacto mínimo 10 min',si(l.contacto_10min))}
+    ${fila('Estado al entregar',l.apto?'<span class="badge b-green">Apto para cargue</span>':'<span class="badge b-red">No apto</span>')}
+    ${fila('Recibió',esc(l.recibe_nombre)+(l.recibe_cedula?' · C.C. '+esc(l.recibe_cedula):''))}
+    <div style="margin-top:8px;font-size:12px;color:var(--text2)">Firma</div>
+    ${firmaOk?`<img src="${l.firma}" alt="Firma" style="width:100%;max-width:320px;border:0.5px solid var(--border);border-radius:6px;background:#fff">`:'<div style="font-size:12px">—</div>'}
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px" id="lav-evid-fotos"></div>`;
+  box.style.display='block';
+  const fotosEl=document.getElementById('lav-evid-fotos');
+  const rutas=Array.isArray(l.fotos)?l.fotos.slice(0,3):[];
+  if(!rutas.length){fotosEl.innerHTML='<div style="font-size:12px;color:var(--text2)">Fotos del lavado — sin fotos</div>';}
+  for(const [i,path] of rutas.entries()){
+    const k=String(i+1);
+    const fig=document.createElement('div');fig.style.cssText='font-size:12px;color:var(--text2)';fig.textContent='Foto '+k;
+    fotosEl.appendChild(fig);
+    // Enlace temporal (1 hora): las fotos no quedan públicas
+    const{data}=await db.storage.from('evidencias-lavados').createSignedUrl(path,3600);
+    if(data?.signedUrl){const a=document.createElement('a');a.href=data.signedUrl;a.target='_blank';a.rel='noopener';
+      const im=document.createElement('img');im.src=data.signedUrl;im.alt='Foto '+k;im.style.cssText='width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;margin-top:4px;display:block';
+      a.appendChild(im);fig.appendChild(a);}
+    else fig.append(' — no disponible');
+  }
 }
 
 async function guardarLavCelda(){
@@ -4665,8 +4724,8 @@ async function abrirRegistroLavado(){
   lista.innerHTML=vhs.map(v=>`
     <label style="display:flex;align-items:center;gap:6px;padding:4px;cursor:pointer;border-radius:4px;font-size:12px">
       <input type="checkbox" value="${v.id}" data-reg="${v.regional_id}" style="accent-color:var(--accent)">
-      <span style="font-weight:500">${v.placa}</span>
-      <span style="font-size:10px;color:var(--text2)">${rNombre(v.regional_id)}</span>
+      <span style="font-weight:500">${esc(v.placa)}</span>
+      <span style="font-size:10px;color:var(--text2)">${esc(rNombre(v.regional_id))}</span>
     </label>
   `).join('');
   document.getElementById('lav-fecha').value=hoy();
@@ -4716,7 +4775,7 @@ async function generarReporteLavados(){
     const{data:vhs}=await qv;
 
     // Lavados del mes
-    let ql=db.from('lavados').select('*').gte('fecha',desde).lte('fecha',hasta);
+    let ql=db.from('lavados').select('id,vehiculo_id,regional_id,fecha,hora,tipo,estado,observacion,lavo,desinf_furgon,desinf_cabina,contacto_10min,apto,recibe_nombre,recibe_cedula').gte('fecha',desde).lte('fecha',hasta);
     if(regF)ql=ql.eq('regional_id',regF);
     const{data:lavs}=await ql;
 
@@ -4729,6 +4788,13 @@ async function generarReporteLavados(){
         'Regional':rNombre(l.regional_id),
         'Tipo':l.tipo==='general'?'Lavado general':'Enjuague',
         'Estado':l.estado==='ejecutado'?'Ejecutado':l.estado==='omitido'?'Omitido':'Programado',
+        'Hora':l.hora?String(l.hora).slice(0,5):'',
+        'Realizó':l.lavo||'',
+        'Desinfección completa':l.recibe_nombre?((l.desinf_furgon&&l.desinf_cabina&&l.contacto_10min)?'Sí':'No'):'',
+        'Entrega':l.recibe_nombre?(l.apto?'Apto':'No apto'):'',
+        'Recibió':l.recibe_nombre||'',
+        'Cédula':l.recibe_cedula||'',
+        'Con firma':l.recibe_nombre?'Sí':'No',
         'Observación':l.observacion||'',
       };
     }).sort((a,b)=>a['Fecha'].localeCompare(b['Fecha']));
@@ -4760,7 +4826,7 @@ async function generarReporteLavados(){
       'Omitidos':v.omitidos,
       'Meta':4,
       '% Cumplimiento':Math.round(v.total/4*100)+'%',
-      'Estado':v.total>=4?'✓ Al día':v.total>=2?'⚠ Parcial':'✗ Atrasado',
+      'Estado':(v.total>=4&&v.generales>=1)?'✓ Al día':v.total>=2?'⚠ Parcial':'✗ Atrasado',
     })).sort((a,b)=>parseInt(a['% Cumplimiento'])-parseInt(b['% Cumplimiento']));
 
     const wb=XLSX.utils.book_new();
@@ -4779,8 +4845,70 @@ async function generarReporteLavados(){
 }
 
 
+// ── SOPORTE SEMANAL GENERADO (reemplaza imprimir, firmar y escanear) ──
+async function generarSoporteSemanal(){
+  const base=document.getElementById('sop-gen-fecha').value||hoy();
+  const d=new Date(base+'T00:00:00');const dow=d.getDay();
+  const lunes=new Date(d);lunes.setDate(d.getDate()-(dow===0?6:dow-1));
+  const domingo=new Date(lunes);domingo.setDate(lunes.getDate()+6);
+  const desde=fechaLocal(lunes),hasta=fechaLocal(domingo);
+  const w=window.open('','_blank');
+  if(!w){toast('Permite las ventanas emergentes para generar el soporte',true);return;}
+  w.document.write('<p style="font-family:sans-serif;padding:20px">Generando soporte…</p>');
+  try{
+    let ql=db.from('lavados').select('fecha,hora,tipo,estado,motivo,lavo,establecimiento,factura,desinf_furgon,desinf_cabina,contacto_10min,apto,recibe_nombre,recibe_cedula,firma,observacion,vehiculo_id,regional_id')
+      .gte('fecha',desde).lte('fecha',hasta).eq('estado','ejecutado').order('fecha').order('hora');
+    if(REGIONAL_ID)ql=ql.eq('regional_id',REGIONAL_ID);
+    const{data:lavs,error}=await ql;if(error)throw error;
+    const ids=[...new Set((lavs||[]).map(l=>l.vehiculo_id))];
+    const placas={};
+    if(ids.length){const{data:vs}=await db.from('vehiculos').select('id,placa').in('id',ids);(vs||[]).forEach(v=>placas[v.id]=v.placa);}
+    (lavs||[]).forEach(l=>l.vehiculos={placa:placas[l.vehiculo_id]});
+    const f=x=>{const p=x.split('-');return p[2]+'/'+p[1]+'/'+p[0];};
+    const sn=v=>v?'Sí':'No';
+    const filas=(lavs||[]).map(l=>{
+      const firmaOk=typeof l.firma==='string'&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(l.firma);
+      const desinf=l.recibe_nombre?(l.desinf_furgon&&l.desinf_cabina&&l.contacto_10min?'Completa':'Incompleta'):'—';
+      return`<tr>
+        <td>${f(l.fecha)}<br><small>${esc(l.hora?String(l.hora).slice(0,5):'')}</small></td>
+        <td><b>${esc(l.vehiculos?.placa||'—')}</b></td>
+        <td>${l.tipo==='general'?'General':'Enjuague'}</td>
+        <td>${desinf}</td>
+        <td>${l.recibe_nombre?(l.apto?'Apto':'<b>No apto</b>'):'—'}</td>
+        <td>${esc(l.lavo||'—')}</td>
+        <td>${esc(l.recibe_nombre||'')}${l.recibe_cedula?'<br><small>C.C. '+esc(l.recibe_cedula)+'</small>':''}</td>
+        <td class="firma">${firmaOk?`<img src="${l.firma}" alt="Firma">`:'<span class="sin">Sin evidencia</span>'}</td>
+        <td><small>${esc(l.observacion||'')}</small></td></tr>`;
+    }).join('');
+    const sinEvid=(lavs||[]).filter(l=>!l.recibe_nombre).length;
+    const reg=REGIONAL_ID?rNombre(REGIONAL_ID):'Todas las regionales';
+    w.document.open();
+    w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Soporte lavados ${desde} a ${hasta}</title>
+<style>body{font-family:Arial,sans-serif;font-size:11px;color:#111;margin:24px}h1{font-size:16px;margin:0}table{width:100%;border-collapse:collapse;margin-top:12px}
+th,td{border:1px solid #999;padding:4px 6px;vertical-align:middle;text-align:left}th{background:#eee;font-size:10px;text-transform:uppercase}
+.firma img{height:38px;max-width:140px}.sin{color:#b00}.hdr{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #111;padding-bottom:8px}
+.pie{margin-top:28px;display:flex;gap:60px}.pie div{border-top:1px solid #111;padding-top:4px;width:240px}
+@media print{body{margin:10mm}.noprint{display:none}}</style></head><body>
+<div class="noprint" style="margin-bottom:12px"><button onclick="print()">Imprimir / Guardar como PDF</button></div>
+<div class="hdr"><div><h1>Registro de lavado y desinfección de vehículos</h1>TRASLADAR S.A.S · ${esc(reg)}</div>
+<div style="text-align:right">Semana: ${f(desde)} al ${f(hasta)}<br>Generado: ${new Date().toLocaleString('es-CO')}</div></div>
+<p>Lavados registrados: <b>${(lavs||[]).length}</b>${sinEvid?` · <span class="sin">${sinEvid} sin firma de quien recibe (marcados manualmente en el cronograma)</span>`:''}</p>
+<table><thead><tr><th>Fecha</th><th>Placa</th><th>Tipo</th><th>Desinfección</th><th>Entrega</th><th>Realizó</th><th>Recibe</th><th>Firma</th><th>Observación</th></tr></thead>
+<tbody>${filas||'<tr><td colspan="9" style="text-align:center;padding:20px">Sin lavados en esta semana</td></tr>'}</tbody></table>
+<div class="pie"><div>Revisado por (Coordinador de flota)</div><div>Fecha</div></div>
+</body></html>`);
+    w.document.close();
+  }catch(e){w.close();toast('Error: '+e.message,true);}
+}
+
 // ── SOPORTES SEMANALES DE LAVADOS ───────────────────────────
 const SUPABASE_URL='https://sixtqtopppbclxqdardb.supabase.co';
+// Encabezados para Storage con la sesión del usuario (antes se usaba la llave pública)
+async function storageHeaders(extra={}){
+  const{data:{session}}=await db.auth.getSession();
+  if(!session)throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.');
+  return{'Authorization':`Bearer ${session.access_token}`,'apikey':SUPABASE_KEY,...extra};
+}
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpeHRxdG9wcHBiY2x4cWRhcmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5Njk2ODAsImV4cCI6MjA5MjU0NTY4MH0.WRYBP4006NZrRCNBpoclVWSz64zQfE2sjFslVc4imDg';
 
 async function cargarSoportes(){
@@ -4792,21 +4920,21 @@ async function cargarSoportes(){
     if(!data?.length){tb.innerHTML='<tr><td colspan="7" class="empty">Sin soportes subidos</td></tr>';return;}
     tb.innerHTML=data.map(s=>`<tr>
       <td style="font-size:12px">${fmtF(s.semana_inicio)} → ${fmtF(s.semana_fin)}</td>
-      <td style="font-size:12px">${rNombre(s.regional_id)}</td>
+      <td style="font-size:12px">${esc(rNombre(s.regional_id))}</td>
       <td>
-        <a href="${s.archivo_url}" target="_blank"
+        <a href="${safeUrl(s.archivo_url)}" target="_blank" rel="noopener"
           style="color:var(--accent);font-size:12px;text-decoration:none;display:flex;align-items:center;gap:4px">
-          📎 ${s.archivo_nombre||'Ver archivo'}
+          📎 ${esc(s.archivo_nombre||'Ver archivo')}
         </a>
       </td>
-      <td style="font-size:12px">${s.subido_por||'—'}</td>
+      <td style="font-size:12px">${esc(s.subido_por||'—')}</td>
       <td style="font-size:12px">${s.created_at?new Date(s.created_at).toLocaleDateString('es-CO'):'—'}</td>
-      <td style="font-size:12px;color:var(--text2)">${s.observacion||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${esc(s.observacion||'—')}</td>
       <td>
-        <button class="btn btn-sm btn-red" onclick="eliminarSoporte('${s.id}','${s.archivo_url}')">×</button>
+        <button class="btn btn-sm btn-red" onclick="eliminarSoporte('${s.id}','${escJs(s.archivo_url)}')">×</button>
       </td>
     </tr>`).join('');
-  }catch(e){tb.innerHTML=`<tr><td colspan="7" style="color:var(--red);padding:12px">Error: ${e.message}</td></tr>`;}
+  }catch(e){tb.innerHTML=`<tr><td colspan="7" style="color:var(--red);padding:12px">Error: ${esc(e.message)}</td></tr>`;}
 }
 
 function abrirSubirSoporte(){
@@ -4817,8 +4945,8 @@ function abrirSubirSoporte(){
   lunes.setDate(hoyD.getDate()-(dow===0?6:dow-1));
   const domingo=new Date(lunes);
   domingo.setDate(lunes.getDate()+6);
-  document.getElementById('sop-desde').value=lunes.toISOString().split('T')[0];
-  document.getElementById('sop-hasta').value=domingo.toISOString().split('T')[0];
+  document.getElementById('sop-desde').value=fechaLocal(lunes);
+  document.getElementById('sop-hasta').value=fechaLocal(domingo);
   document.getElementById('sop-archivo').value='';
   document.getElementById('sop-responsable').value='';
   document.getElementById('sop-obs').value='';
@@ -4856,10 +4984,7 @@ async function subirSoporte(){
 
     const uploadRes=await fetch(`${SUPABASE_URL}/storage/v1/object/soportes-lavados/${filename}`,{
       method:'POST',
-      headers:{
-        'Authorization':`Bearer ${SUPABASE_KEY}`,
-        'x-upsert':'true',
-      },
+      headers:await storageHeaders({'x-upsert':'true','Content-Type':archivo.type||'application/octet-stream'}),
       body:archivo,
     });
 
@@ -4873,10 +4998,7 @@ async function subirSoporte(){
     // URL pública firmada (1 año)
     const signRes=await fetch(`${SUPABASE_URL}/storage/v1/object/sign/soportes-lavados/${filename}`,{
       method:'POST',
-      headers:{
-        'Authorization':`Bearer ${SUPABASE_KEY}`,
-        'Content-Type':'application/json',
-      },
+      headers:await storageHeaders({'Content-Type':'application/json'}),
       body:JSON.stringify({expiresIn:31536000}),
     });
     const signData=await signRes.json();
@@ -4923,7 +5045,7 @@ async function eliminarSoporte(id,url){
       const filename=parts[1].split('?')[0];
       await fetch(`${SUPABASE_URL}/storage/v1/object/soportes-lavados/${filename}`,{
         method:'DELETE',
-        headers:{'Authorization':`Bearer ${SUPABASE_KEY}`},
+        headers:await storageHeaders(),
       });
     }
     await db.from('soportes_lavados').delete().eq('id',id);
@@ -5006,7 +5128,7 @@ function renderCapsulasDoc(){
       const badgeColor = estado==='vencido'?'var(--red-dark)':estado==='proximo'?'var(--amber-dark)':'var(--green-dark)';
       const diasTxt = dias===null?'—':dias<0?`Vencido ${Math.abs(dias)}d`:dias===0?'Hoy':`${dias}d`;
       const lupa = d.archivo_url
-        ? `<a href="${d.archivo_url}" target="_blank" title="Ver documento" style="font-size:14px;text-decoration:none;margin-left:4px">🔍</a>`
+        ? `<a href="${safeUrl(d.archivo_url)}" target="_blank" rel="noopener" title="Ver documento" style="font-size:14px;text-decoration:none;margin-left:4px">🔍</a>`
         : `<span style="font-size:10px;color:var(--text3);margin-left:4px">Sin archivo</span>`;
 
       return `<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border)">
@@ -5024,9 +5146,9 @@ function renderCapsulasDoc(){
     return `<div style="background:var(--bg);border:1px solid ${tieneVencido?'var(--red)':'var(--border)'};border-radius:var(--rl);padding:14px;cursor:pointer"
       onclick="abrirFicha('${vid}');setTimeout(()=>switchFichaTab('docs'),300)">
       <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px">
-        ${vh.placa}${vh.esTercero?`<span style="font-size:10px;background:var(--accent-light);color:var(--accent);padding:1px 6px;border-radius:99px;margin-left:6px">3°</span>`:''}
+        ${esc(vh.placa)}${vh.esTercero?`<span style="font-size:10px;background:var(--accent-light);color:var(--accent);padding:1px 6px;border-radius:99px;margin-left:6px">3°</span>`:''}
       </div>
-      <div style="font-size:11px;color:var(--text2);margin-bottom:10px">${vh.esTercero&&vh.empresa?vh.empresa+' · ':''} ${vh.regional}</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px">${esc(vh.esTercero&&vh.empresa?vh.empresa+' · ':'')} ${esc(vh.regional)}</div>
       ${filas}
     </div>`;
   });
@@ -5083,10 +5205,10 @@ async function cargarNovedades(){
           const tColor=totalH>48?'var(--red)':totalH>24?'var(--amber)':'var(--green)';
           const fechaStr=ini.toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
           return`<tr style="background:rgba(245,124,0,0.04)">
-            <td style="font-weight:600">${n.vehiculos?.placa||'—'}</td>
-            <td style="font-size:12px">${rNombre(n.regional_id)}</td>
-            <td><span class="badge b-amber" style="font-size:11px">${NOV_LABELS[n.tipo]||n.tipo}</span></td>
-            <td style="font-size:12px;color:var(--text2);max-width:200px">${n.descripcion||'—'}</td>
+            <td style="font-weight:600">${esc(n.vehiculos?.placa||'—')}</td>
+            <td style="font-size:12px">${esc(rNombre(n.regional_id))}</td>
+            <td><span class="badge b-amber" style="font-size:11px">${esc(NOV_LABELS[n.tipo]||n.tipo)}</span></td>
+            <td style="font-size:12px;color:var(--text2);max-width:200px">${esc(n.descripcion||'—')}</td>
             <td style="font-size:12px">${fechaStr}</td>
             <td style="text-align:center;font-weight:700;color:${tColor}">${tiempoStr}</td>
           </tr>`;
@@ -5108,14 +5230,14 @@ async function cargarNovedades(){
         const h=Math.round((new Date()-new Date(n.fecha_inicio))/36000)/100;
         const hColor=h>48?'var(--red)':h>24?'var(--amber)':'var(--text)';
         return`<tr style="background:rgba(245,124,0,0.04)">
-          <td style="font-weight:600">${n.vehiculos?.placa||'—'}</td>
-          <td style="font-size:12px">${rNombre(n.regional_id)}</td>
-          <td><span class="badge b-amber">${NOV_LABELS[n.tipo]||n.tipo}</span></td>
-          <td style="font-size:12px;color:var(--text2)">${n.descripcion||'—'}</td>
-          <td style="font-size:12px">${n.autorizado_por||'—'}</td>
+          <td style="font-weight:600">${esc(n.vehiculos?.placa||'—')}</td>
+          <td style="font-size:12px">${esc(rNombre(n.regional_id))}</td>
+          <td><span class="badge b-amber">${esc(NOV_LABELS[n.tipo]||n.tipo)}</span></td>
+          <td style="font-size:12px;color:var(--text2)">${esc(n.descripcion||'—')}</td>
+          <td style="font-size:12px">${esc(n.autorizado_por||'—')}</td>
           <td style="font-size:12px">${n.fecha_inicio?new Date(n.fecha_inicio).toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—'}</td>
           <td style="text-align:center;font-weight:700;color:${hColor}">${h}h</td>
-          <td><button class="btn btn-sm btn-green" onclick="abrirCierreNovedad('${n.id}','${(n.vehiculos?.placa||'')+" - "+(NOV_LABELS[n.tipo]||"")}')">Cerrar</button></td>
+          <td><button class="btn btn-sm btn-green" onclick="abrirCierreNovedad('${n.id}','${escJs((n.vehiculos?.placa||'')+" - "+(NOV_LABELS[n.tipo]||""))}')">Cerrar</button></td>
         </tr>`;
       }).join('');
     }
@@ -5151,10 +5273,10 @@ async function cargarNovedades(){
       tbH.innerHTML='<tr><td colspan="7" class="empty">Sin novedades cerradas</td></tr>';
     } else {
       tbH.innerHTML=(hist||[]).map(n=>`<tr>
-        <td style="font-weight:600">${n.vehiculos?.placa||'—'}</td>
-        <td style="font-size:12px">${rNombre(n.regional_id)}</td>
-        <td><span class="badge b-gray">${NOV_LABELS[n.tipo]||n.tipo}</span></td>
-        <td style="font-size:12px;color:var(--text2)">${n.descripcion||'—'}</td>
+        <td style="font-weight:600">${esc(n.vehiculos?.placa||'—')}</td>
+        <td style="font-size:12px">${esc(rNombre(n.regional_id))}</td>
+        <td><span class="badge b-gray">${esc(NOV_LABELS[n.tipo]||n.tipo)}</span></td>
+        <td style="font-size:12px;color:var(--text2)">${esc(n.descripcion||'—')}</td>
         <td style="font-size:12px">${n.fecha_inicio?new Date(n.fecha_inicio).toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—'}</td>
         <td style="font-size:12px">${n.fecha_cierre?new Date(n.fecha_cierre).toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—'}</td>
         <td style="text-align:center;font-weight:600">${n.tiempo_horas?n.tiempo_horas+'h':'—'}</td>
@@ -5169,7 +5291,7 @@ async function abrirNovedad(){
   if(REGIONAL_ID)qv=qv.eq('regional_id',REGIONAL_ID);
   const{data:vhs}=await qv;
   document.getElementById('nov-vh').innerHTML='<option value="">Seleccionar...</option>'
-    +(vhs||[]).map(v=>`<option value="${v.id}" data-reg="${v.regional_id}">${v.placa} [${rNombre(v.regional_id)}]</option>`).join('');
+    +(vhs||[]).map(v=>`<option value="${v.id}" data-reg="${v.regional_id}">${esc(v.placa)} [${esc(rNombre(v.regional_id))}]</option>`).join('');
   document.getElementById('nov-id').value='';
   document.getElementById('nov-desc').value='';
   document.getElementById('nov-autorizado').value='';
@@ -5340,7 +5462,7 @@ async function cargarPanelGerencial(){
       }).length;
 
       return`<tr>
-        <td style="font-weight:600">${r.nombre}</td>
+        <td style="font-weight:600">${esc(r.nombre)}</td>
         <td style="text-align:center">
           <span style="font-weight:700;color:${colR}">${pctR}%</span>
           <div style="height:4px;background:var(--bg2);border-radius:2px;margin-top:3px;overflow:hidden">
@@ -5370,9 +5492,9 @@ async function cargarPanelGerencial(){
         const tCol=dias>=7?'var(--red)':dias>=3?'var(--amber)':'var(--text)';
         const reem=reempMap.get(e.vehiculo_id);
         return`<tr>
-          <td style="font-weight:600">${e.vehiculos?.placa||'—'}</td>
-          <td style="font-size:12px">${rNombre(e.regional_id)}</td>
-          <td style="font-size:12px">${e.talleres?.nombre||'—'}</td>
+          <td style="font-weight:600">${esc(e.vehiculos?.placa||'—')}</td>
+          <td style="font-size:12px">${esc(rNombre(e.regional_id))}</td>
+          <td style="font-size:12px">${esc(e.talleres?.nombre||'—')}</td>
           <td style="text-align:center;font-weight:700;color:${tCol}">${tStr}</td>
           <td>${reem?`<span class="badge b-purple">🔄 ${reem}</span>`:'<span class="badge b-red">Sin reemplazo</span>'}</td>
         </tr>`;
@@ -5387,9 +5509,9 @@ async function cargarPanelGerencial(){
     } else {
       elAl.innerHTML=alAlta.map(a=>`
         <div class="row-item">
-          <span style="font-size:12px;color:var(--text2);width:80px">${rNombre(a.regional_id)}</span>
-          <span style="flex:1;font-size:12px">${a.origen==='checklist'?'📋 Checklist':'🔧 Mantenimiento'}</span>
-          <span class="badge ${a.prioridad==='alta'?'b-red':'b-amber'}">${a.prioridad||'—'}</span>
+          <span style="font-size:12px;color:var(--text2);width:80px">${esc(rNombre(a.regional_id))}</span>
+          <span style="flex:1;font-size:12px">${esc(a.origen==='checklist'?'📋 Checklist':'🔧 Mantenimiento')}</span>
+          <span class="badge ${esc(a.prioridad==='alta'?'b-red':'b-amber')}">${esc(a.prioridad||'—')}</span>
         </div>`).join('');
     }
 
@@ -5406,7 +5528,7 @@ async function cargarGraficaDisp(vhs, regsActivas){
     let d=new Date();
     while(dias.length<7){
       if(d.getDay()!==0){ // excluir domingos
-        dias.unshift(d.toISOString().split('T')[0]);
+        dias.unshift(fechaLocal(d));
       }
       d.setDate(d.getDate()-1);
     }
