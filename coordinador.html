@@ -2384,7 +2384,8 @@ function abrirNuevoVh(){
   document.getElementById('mvh-title').textContent='Agregar vehículo';
   const sel=document.getElementById('mvh-reg');
   while(sel.options.length)sel.remove(0);
-  regionales.forEach(r=>sel.add(new Option(r.nombre,r.id)));
+  regionales.forEach(r=>{const o=new Option(r.nombre,r.id);if(r.id===REGIONAL_ID)o.selected=true;sel.add(o);});
+  sel.disabled=USER_ROL!=='gerente';
   // Camiones para asociar remolque
   cargarCamionesModal();
   document.getElementById('modal-vh').classList.add('open');
@@ -2431,15 +2432,33 @@ function editarVh(v){
   const sel=document.getElementById('mvh-reg');
   while(sel.options.length)sel.remove(0);
   regionales.forEach(r=>{const o=new Option(r.nombre,r.id);if(r.id===v.regional_id)o.selected=true;sel.add(o);});
+  sel.disabled=USER_ROL!=='gerente'; // solo el gerente cambia la regional
   cargarCamionesModal();
   document.getElementById('modal-vh').classList.add('open');
+}
+
+// Guarda los datos del vehículo y, si cambió la regional (solo el gerente), lo traslada con la función
+// trasladar_vehiculo (mueve también alertas, criticidad, documentos, lavados del mes, etc.)
+async function guardarConTraslado(id,datos){
+  const{data:actual,error:e0}=await db.from('vehiculos').select('regional_id').eq('id',id).single();
+  if(e0)throw e0;
+  const destino=datos.regional_id||actual.regional_id;
+  const cambia=destino!==actual.regional_id;
+  if(cambia&&USER_ROL!=='gerente')throw new Error('Solo el gerente puede cambiar la regional de un vehículo.');
+  const{error}=await db.from('vehiculos').update({...datos,regional_id:actual.regional_id}).eq('id',id);
+  if(error)throw error;
+  if(cambia){
+    const{error:e2}=await db.rpc('trasladar_vehiculo',{p_vehiculo:id,p_regional_destino:destino,p_motivo:null});
+    if(e2)throw e2;
+  }
+  return cambia;
 }
 
 async function guardarVh(){
   const id=document.getElementById('mvh-id').value;
   const datos={placa:document.getElementById('mvh-placa').value.trim().toUpperCase(),tipo:document.getElementById('mvh-tipo').value,figura:document.getElementById('mvh-figura').value,regional_id:document.getElementById('mvh-reg').value,km_actuales:parseInt(document.getElementById('mvh-km').value)||0,estado:document.getElementById('mvh-estado').value,observaciones:document.getElementById('mvh-obs').value,camion_asociado_id:document.getElementById('mvh-camion').value||null,activo:true,updated_at:new Date().toISOString()};
   try{
-    if(id){const{error}=await db.from('vehiculos').update(datos).eq('id',id);if(error)throw error;toast('Vehículo actualizado ✓');}
+    if(id){const t=await guardarConTraslado(id,datos);toast(t?`Vehículo trasladado a ${rNombre(datos.regional_id)} ✓`:'Vehículo actualizado ✓');}
     else{const{error}=await db.from('vehiculos').insert(datos);if(error)throw error;toast('Vehículo agregado ✓');}
     cerrarModal('modal-vh');cargarFlota();cargarKPIs();
   }catch(e){toast('Error: '+e.message,true);}
@@ -3099,6 +3118,7 @@ async function abrirFicha(vhId){
   const selR=document.getElementById('fv-reg');
   while(selR.options.length)selR.remove(0);
   regionales.forEach(r=>{const o=new Option(r.nombre,r.id);if(r.id===v.regional_id)o.selected=true;selR.add(o);});
+  selR.disabled=USER_ROL!=='gerente'; // solo el gerente cambia la regional
   document.getElementById('ficha-title').textContent = `Ficha — ${v.placa}`;
   switchFichaTab('info');
   document.getElementById('modal-ficha').classList.add('open');
@@ -3119,6 +3139,7 @@ function abrirNuevaFicha(){
   const selR=document.getElementById('fv-reg');
   while(selR.options.length)selR.remove(0);
   regionales.forEach(r=>{const o=new Option(r.nombre,r.id);if(r.id===REGIONAL_ID)o.selected=true;selR.add(o);});
+  selR.disabled=USER_ROL!=='gerente';
   document.getElementById('ficha-title').textContent='Nuevo vehículo';
   switchFichaTab('info');
   document.getElementById('modal-ficha').classList.add('open');
@@ -3168,9 +3189,8 @@ async function guardarFicha(){
   };
   try{
     if(id){
-      const{error}=await db.from('vehiculos').update(datos).eq('id',id);
-      if(error)throw error;
-      toast('Vehículo actualizado ✓');
+      const t=await guardarConTraslado(id,datos);
+      toast(t?`Vehículo trasladado a ${rNombre(datos.regional_id)} ✓`:'Vehículo actualizado ✓');
     }else{
       const{error}=await db.from('vehiculos').insert(datos);
       if(error)throw error;
@@ -3885,6 +3905,7 @@ async function editarTercero(tcId){
   const selR=document.getElementById('etc-reg');
   while(selR.options.length)selR.remove(0);
   regionales.forEach(r=>{const o=new Option(r.nombre,r.id);if(r.id===t.regional_id)o.selected=true;selR.add(o);});
+  selR.disabled=USER_ROL!=='gerente'; // solo el gerente cambia la regional
 
   // Titulares para reemplazo
   let qt=db.from('vehiculos').select('id,placa,regional_id').eq('activo',true).eq('figura','titular').neq('tipo','remolque').order('placa');
@@ -3908,21 +3929,38 @@ async function guardarTerceroEdit(){
   const inicio=document.getElementById('etc-inicio').value||null;
   const fin=document.getElementById('etc-fin').value||null;
   try{
-    // 1. Actualizar vehiculos_terceros
-    const{data:tcOld}=await db.from('vehiculos_terceros').select('placa').eq('id',id).single();
+    // 1. Actualizar vehiculos_terceros (la regional se cambia aparte, con el traslado)
+    const{data:tcOld,error:e0}=await db.from('vehiculos_terceros').select('placa,regional_id').eq('id',id).single();
+    if(e0)throw e0;
     const{error:e1}=await db.from('vehiculos_terceros').update({
-      placa,empresa,tipo,regional_id:regId,figura,
+      placa,empresa,tipo,regional_id:tcOld.regional_id,figura,
       titular_reemplazado_id:figura==='backup'?titularId:null,
       fecha_inicio:inicio,fecha_fin:fin,observaciones:obs,
     }).eq('id',id);
     if(e1)throw e1;
     // 2. Sincronizar en vehiculos (buscar por placa anterior)
     const placaAnterior=tcOld?.placa||placa;
-    await db.from('vehiculos').update({
-      placa,tipo,figura,regional_id:regId,
+    const{data:vhTc,error:e2}=await db.from('vehiculos').update({
+      placa,tipo,figura,
       empresa_tercero:empresa,observaciones:obs,
-    }).eq('placa',placaAnterior).eq('es_tercero',true);
-    toast('Tercero actualizado ✓');
+    }).eq('placa',placaAnterior).eq('es_tercero',true).select('id');
+    if(e2)throw e2;
+    // 3. Traslado de regional
+    const cambia=regId&&regId!==tcOld.regional_id;
+    if(cambia&&USER_ROL!=='gerente')throw new Error('Solo el gerente puede cambiar la regional de un vehículo.');
+    if(cambia){
+      if(vhTc?.length){
+        for(const v of vhTc){
+          const{error:e3}=await db.rpc('trasladar_vehiculo',{p_vehiculo:v.id,p_regional_destino:regId,p_motivo:'Traslado de tercero'});
+          if(e3)throw e3;
+        }
+      }else{
+        // Tercero que solo existe en vehiculos_terceros
+        const{error:e4}=await db.from('vehiculos_terceros').update({regional_id:regId}).eq('id',id);
+        if(e4)throw new Error('No se pudo trasladar el tercero. Pide al gerente que haga el cambio.');
+      }
+    }
+    toast(cambia?`Tercero trasladado a ${rNombre(regId)} ✓`:'Tercero actualizado ✓');
     cerrarModal('modal-edit-tc');
     cargarTerceros();cargarKPIs();
   }catch(e){toast('Error: '+e.message,true);}
