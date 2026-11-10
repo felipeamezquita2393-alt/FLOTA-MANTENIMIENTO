@@ -288,11 +288,12 @@ tr:hover td{background:var(--bg2)}
 <div class="modal-overlay" id="modal-aud">
   <div class="modal" style="max-width:560px">
     <div class="modal-title" id="aud-modal-titulo">Cargar documento de auditoría</div>
-    <input type="hidden" id="aud-reemplaza">
+    <input type="hidden" id="aud-reemplaza"><input type="hidden" id="aud-completa"><input type="hidden" id="aud-prog-id">
     <div class="form2">
       <div class="field full" style="grid-column:1/-1"><label>Requisito *</label><select id="aud-req" onchange="onAudReq()"></select></div>
       <div class="field" style="grid-column:1/-1"><label>Regional *</label><select id="aud-reg-sel" onchange="onAudReq()"></select></div>
       <div class="field" id="aud-wrap-vh" style="grid-column:1/-1;display:none"><label>Vehículo *</label><select id="aud-vh"></select></div>
+      <div class="field" id="aud-wrap-cond" style="grid-column:1/-1;display:none"><label>Conductor *</label><select id="aud-cond"></select></div>
       <div class="field" id="aud-wrap-pn" style="display:none"><label>Nombre de la persona *</label><input type="text" id="aud-p-nombre" maxlength="120" list="aud-personas" onchange="autollenarPersonaAud()"><datalist id="aud-personas"></datalist></div>
       <div class="field" id="aud-wrap-pc" style="display:none"><label>Cédula</label><input type="text" id="aud-p-cedula" maxlength="20" inputmode="numeric"></div>
       <div class="field" id="aud-wrap-pg" style="display:none;grid-column:1/-1"><label>Cargo</label><input type="text" id="aud-p-cargo" maxlength="80" placeholder="Conductor, auxiliar, técnico fumigador…"></div>
@@ -301,13 +302,92 @@ tr:hover td{background:var(--bg2)}
       <div class="field"><label>Fecha de expedición</label><input type="date" id="aud-exp" onchange="sugerirVencAud()"></div>
       <div class="field"><label id="aud-venc-lbl">Fecha de vencimiento *</label><input type="date" id="aud-venc"></div>
       <div class="field"><label>&nbsp;</label><div style="font-size:11px;color:var(--text3)" id="aud-venc-hint"></div></div>
-      <div class="field" style="grid-column:1/-1"><label>Archivo * <span style="font-size:11px;color:var(--text3)">(PDF o imagen, máx. 10 MB)</span></label>
-        <input type="file" id="aud-archivo" accept=".pdf,.jpg,.jpeg,.png" style="border:1px solid var(--border);border-radius:var(--r);padding:8px;font-size:12px;width:100%"></div>
+      <div class="field" style="grid-column:1/-1"><label>Archivo * <span style="font-size:11px;color:var(--text3)">(PDF, imagen, Excel o Word, máx. 10 MB)</span></label>
+        <input type="file" id="aud-archivo" accept=".pdf,.jpg,.jpeg,.png,.xlsx,.docx" style="border:1px solid var(--border);border-radius:var(--r);padding:8px;font-size:12px;width:100%"></div>
       <div class="field" style="grid-column:1/-1"><label>Observaciones</label><input type="text" id="aud-obs" maxlength="300"></div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="cerrarModal('modal-aud')">Cancelar</button>
       <button class="btn btn-primary" id="aud-btn-guardar" onclick="guardarDocAud()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal conductores (listado para auditoría) -->
+<div class="modal-overlay" id="modal-cond">
+  <div class="modal" style="max-width:820px">
+    <div class="modal-title">Conductores · <span id="cond-reg-nombre"></span></div>
+    <div style="background:var(--bg2);border-radius:var(--r);padding:14px;margin-bottom:14px">
+      <input type="hidden" id="cond-id">
+      <div style="display:grid;grid-template-columns:minmax(0,2fr) repeat(3,minmax(0,1fr)) auto;gap:8px;align-items:end">
+        <div class="field" style="margin:0"><label>Nombre *</label><input type="text" id="cond-nombre" maxlength="120"></div>
+        <div class="field" style="margin:0"><label>Cédula *</label><input type="text" id="cond-cedula" maxlength="20" inputmode="numeric"></div>
+        <div class="field" style="margin:0"><label>Cargo</label><input type="text" id="cond-cargo" maxlength="60" list="cond-cargos" value="Conductor">
+          <datalist id="cond-cargos"><option value="Conductor"><option value="Auxiliar"></datalist></div>
+        <div class="field" style="margin:0"><label>Teléfono</label><input type="text" id="cond-tel" maxlength="20" inputmode="tel"></div>
+        <button class="btn btn-primary" id="cond-btn" onclick="guardarConductor()">Agregar</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+      <input type="text" id="cond-buscar" placeholder="Buscar por nombre o cédula…" oninput="pintarListaCond()" style="flex:1;min-width:180px;padding:7px 10px;font-size:13px;border:0.5px solid var(--border);border-radius:var(--r)">
+      <label class="btn btn-sm" style="cursor:pointer">⬆ Importar Excel o CSV<input type="file" id="cond-import" accept=".xlsx,.xls,.csv" hidden onchange="importarConductores(this)"></label>
+      <button class="btn btn-sm" onclick="plantillaConductores()">⬇ Plantilla</button>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">El archivo debe tener columnas <b>Nombre</b> y <b>Cédula</b>; opcionales <b>Cargo</b>, <b>Teléfono</b> y, para el gerente, <b>Regional</b>. Si la cédula ya existe, se actualiza.</div>
+    <div class="tbl-wrap" style="max-height:46vh;overflow-y:auto">
+      <table><thead><tr><th>Nombre</th><th>Cédula</th><th>Cargo</th><th>Teléfono</th><th>Estado</th><th></th></tr></thead>
+      <tbody id="cond-lista"></tbody></table>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="cerrarModal('modal-cond');cargarAuditorias()">Cerrar</button></div>
+  </div>
+</div>
+
+<!-- Modal actividad programada -->
+<div class="modal-overlay" id="modal-prog">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title" id="prog-titulo-modal">Programar actividad</div>
+    <input type="hidden" id="prog-id">
+    <div class="form2">
+      <div class="field" style="grid-column:1/-1"><label>Requisito *</label><select id="prog-req" onchange="onProgReq()"></select></div>
+      <div class="field" style="grid-column:1/-1"><label>Actividad o tema *</label><input type="text" id="prog-titulo" maxlength="200"></div>
+      <div class="field" id="prog-wrap-cond" style="grid-column:1/-1;display:none"><label>Conductor (opcional)</label><select id="prog-cond"></select></div>
+      <div class="field" id="prog-wrap-vh" style="grid-column:1/-1;display:none"><label>Vehículo (opcional)</label><select id="prog-vh"></select></div>
+      <div class="field"><label>Periodo del cronograma</label><input type="text" id="prog-periodo" maxlength="60" placeholder="Ej: Marzo - Abril 2027"></div>
+      <div class="field"><label>Fecha límite *</label><input type="date" id="prog-fecha"></div>
+      <div class="field"><label>Responsable</label><input type="text" id="prog-resp" maxlength="120"></div>
+      <div class="field"><label>Fecha de ejecución</label><input type="date" id="prog-ejec"></div>
+      <div class="field" style="grid-column:1/-1"><label>Objetivo / descripción</label><textarea id="prog-desc" rows="2" maxlength="600"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-prog')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarProg()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal carga masiva de documentos -->
+<div class="modal-overlay" id="modal-masiva">
+  <div class="modal" style="max-width:1100px;width:96vw">
+    <div class="modal-title">Carga masiva de documentos · <span id="mas-reg-nombre"></span></div>
+    <label id="mas-drop" for="mas-files" style="display:block;border:2px dashed var(--border);border-radius:var(--rl);padding:22px;text-align:center;cursor:pointer;background:var(--bg2);font-size:13px;color:var(--text2)">
+      <b>Arrastra aquí los archivos</b> o haz clic para seleccionarlos (PDF, imagen, Excel o Word)<br>
+      <span style="font-size:11px">Nombre sugerido: <code>REQUISITO_CEDULA-o-PLACA_AAAA-MM-DD.pdf</code> · ej. <code>CONCEPTO-MEDICO_1012345678_2026-11-01.pdf</code>, <code>FUMIGACION_WMK123_2026-10-15.pdf</code> · la fecha es la de expedición</span>
+      <input type="file" id="mas-files" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.docx" hidden onchange="agregarArchivosMasiva(this.files);this.value=''">
+    </label>
+    <div id="mas-barra" style="display:none;margin:12px 0;padding:10px;background:var(--bg2);border-radius:var(--r);gap:8px;align-items:end;flex-wrap:wrap">
+      <span style="font-size:12px;font-weight:600;color:var(--text2)">Aplicar a todos:</span>
+      <select id="mas-req-todos" style="font-size:12px;padding:6px;border:0.5px solid var(--border);border-radius:var(--r);max-width:340px"></select>
+      <label style="font-size:12px;color:var(--text2)">Expedición <input type="date" id="mas-exp-todos" style="font-size:12px;padding:5px;border:0.5px solid var(--border);border-radius:var(--r)"></label>
+      <button class="btn btn-sm" onclick="aplicarTodosMasiva()">Aplicar a los que estén vacíos</button>
+      <span id="mas-resumen" style="font-size:12px;color:var(--text2);margin-left:auto"></span>
+    </div>
+    <div class="tbl-wrap" style="max-height:52vh;overflow-y:auto;margin-top:8px">
+      <table><thead><tr><th>Archivo</th><th>Requisito</th><th>Conductor / vehículo / descripción</th><th>Expedición</th><th>Vencimiento</th><th>Estado</th><th></th></tr></thead>
+      <tbody id="mas-lista"><tr><td colspan="7" style="text-align:center;color:var(--text3);padding:18px">Aún no hay archivos</td></tr></tbody></table>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-masiva');if(_masHuboCambios)cargarAuditorias()">Cerrar</button>
+      <button class="btn btn-primary" id="mas-btn" onclick="guardarMasiva()">Guardar todos</button>
     </div>
   </div>
 </div>
@@ -1448,19 +1528,33 @@ tr:hover td{background:var(--bg2)}
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <select id="aud-reg" onchange="cargarAuditorias()" style="font-size:12px;padding:6px 8px;border:0.5px solid var(--border);border-radius:var(--r)"></select>
           <button class="btn btn-sm" onclick="exportarAuditoria()">⬇ Excel</button>
+          <button class="btn btn-sm" onclick="abrirConductores()">👥 Conductores</button>
+          <button class="btn btn-sm" onclick="abrirMasiva()">⬆ Carga masiva</button>
           <button class="btn btn-sm btn-primary" onclick="abrirDocAud()">+ Cargar documento</button>
         </div>
       </div>
     </div>
     <div class="metrics">
       <div class="metric"><div class="metric-label">Requisitos al día</div><div class="metric-val" id="aud-m-ok">—</div><div class="metric-sub" id="aud-m-ok-sub">de los requisitos</div></div>
-      <div class="metric" style="border-top-color:var(--red)"><div class="metric-label">Vencidos o faltantes</div><div class="metric-val" id="aud-m-venc" style="color:var(--red)">—</div><div class="metric-sub">Requieren acción</div></div>
-      <div class="metric" style="border-top-color:var(--amber)"><div class="metric-label">Por vencer</div><div class="metric-val" id="aud-m-prox" style="color:var(--amber)">—</div><div class="metric-sub">Dentro del plazo de aviso</div></div>
-      <div class="metric"><div class="metric-label">Documentos cargados</div><div class="metric-val" id="aud-m-docs">—</div><div class="metric-sub">Vigentes en el módulo</div></div>
+      <div class="metric" style="border-top-color:var(--red)"><div class="metric-label">Vencidos o faltantes</div><div class="metric-val" id="aud-m-venc" style="color:var(--red)">—</div><div class="metric-sub">Documentos o registros que requieren acción</div></div>
+      <div class="metric" style="border-top-color:var(--amber)"><div class="metric-label">Por vencer o sin soporte</div><div class="metric-val" id="aud-m-prox" style="color:var(--amber)">—</div><div class="metric-sub">Dentro del aviso o falta el archivo</div></div>
+      <div class="metric"><div class="metric-label">Documentos con archivo</div><div class="metric-val" id="aud-m-docs">—</div><div class="metric-sub">Soportes cargados en el módulo</div></div>
     </div>
     <div class="card">
       <div class="card-hdr"><span class="card-title">Próximos vencimientos y pendientes</span><span id="aud-prox-count" style="font-size:12px;color:var(--text2)"></span></div>
       <div id="aud-proximos"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><span class="card-title">Programación (cronogramas)</span>
+        <div style="display:flex;gap:8px;align-items:center"><span id="aud-prog-res" style="font-size:12px;color:var(--text2)"></span>
+          <button class="btn btn-sm btn-primary" onclick="abrirProg()">+ Programar</button></div></div>
+      <div id="aud-prog"></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><span class="card-title">Documentos por conductor</span>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span id="aud-matriz-res" style="font-size:12px;color:var(--text2)"></span>
+          <input type="text" id="aud-cond-buscar" placeholder="Buscar conductor…" oninput="pintarMatrizCond()" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--r)"></div></div>
+      <div id="aud-matriz"></div>
     </div>
     <div id="aud-cats"></div>
   </div>
@@ -4960,17 +5054,17 @@ const AUD_REQ=[
   {k:'registro_lavado',cat:'limpieza',nombre:'Registro de ejecución y verificación del lavado',alcance:'sistema',ir:'lavados'},
   {k:'verificacion_vehiculo',cat:'limpieza',nombre:'Verificación periódica de condiciones del vehículo',alcance:'sistema',ir:'checklists'},
   {k:'ft_hds_limpieza',cat:'limpieza',nombre:'Fichas técnicas y hojas de seguridad de las sustancias de limpieza',alcance:'general',vig:null,multi:true,tituloLbl:'Sustancia'},
-  {k:'fumigacion',cat:'plagas',nombre:'Certificado de fumigación cada 3 meses (sustancia, dosis y técnico aplicador)',alcance:'vehiculo',docTipo:'fumigacion',aviso:15},
+  {k:'fumigacion',cat:'plagas',nombre:'Certificado de fumigación cada 3 meses (sustancia, dosis y técnico aplicador)',alcance:'vehiculo',docTipo:'fumigacion',vig:3,aviso:15},
   {k:'concepto_sanitario_proveedor',cat:'plagas',nombre:'Concepto sanitario del proveedor de fumigación',alcance:'general',vig:12,aviso:30,tituloLbl:'Proveedor'},
   {k:'mip_tecnico',cat:'plagas',nombre:'Certificados MIP y curso de manipulación de alimentos del técnico',alcance:'persona',vig:12,aviso:30},
   {k:'ft_hds_plagas',cat:'plagas',nombre:'Fichas técnicas y hojas de seguridad de las sustancias (según manual de aliados)',alcance:'general',vig:null,multi:true,tituloLbl:'Sustancia'},
-  {k:'concepto_sanitario_vehiculo',cat:'vehiculo',nombre:'Certificado de concepto sanitario del vehículo',alcance:'vehiculo',docTipo:'acta_sanitaria',aviso:30},
+  {k:'concepto_sanitario_vehiculo',cat:'vehiculo',nombre:'Certificado de concepto sanitario del vehículo',alcance:'vehiculo',docTipo:'acta_sanitaria',vig:12,aviso:30},
   {k:'mantenimiento_frio',cat:'vehiculo',nombre:'Certificado de mantenimiento de la unidad de frío',alcance:'vehiculo',soloRefrigerado:true,vig:6,aviso:30},
-  {k:'concepto_medico',cat:'personal',nombre:'Concepto médico apto para manipulación de alimentos',alcance:'persona',vig:12,aviso:30},
-  {k:'curso_manipulacion',cat:'personal',nombre:'Curso de manipulación de alimentos',alcance:'persona',vig:12,aviso:30},
-  {k:'verificacion_bpm',cat:'personal',nombre:'Verificación de BPM a conductores',alcance:'persona',vig:1,aviso:7,tituloLbl:'Periodo verificado',cargo:'Conductor'},
+  {k:'concepto_medico',cat:'personal',nombre:'Concepto médico apto para manipulación de alimentos',alcance:'persona',roster:true,vig:12,aviso:30},
+  {k:'curso_manipulacion',cat:'personal',nombre:'Curso de manipulación de alimentos',alcance:'persona',roster:true,vig:12,aviso:30},
+  {k:'verificacion_bpm',cat:'personal',nombre:'Verificación de BPM a conductores',alcance:'persona',roster:true,vig:1,aviso:7,tituloLbl:'Periodo verificado',cargo:'Conductor'},
   {k:'cronograma_capacitacion',cat:'personal',nombre:'Cronograma de capacitación enfocado en BPM',alcance:'general',vig:12,aviso:30},
-  {k:'soporte_capacitacion',cat:'personal',nombre:'Soportes de ejecución de las capacitaciones en BPM',alcance:'general',vig:null,multi:true,tituloLbl:'Tema de la capacitación'},
+  {k:'soporte_capacitacion',cat:'personal',nombre:'Soportes de ejecución de las capacitaciones en BPM',alcance:'general',vig:null,multi:true,prog:true,tituloLbl:'Tema de la capacitación'},
 ];
 const AUD_EST={
   vigente:{t:'Al día',c:'b-green',n:0},
@@ -4980,7 +5074,16 @@ const AUD_EST={
   vencido:{t:'Vencido',c:'b-red',n:3},
   atrasado:{t:'Atrasado',c:'b-red',n:3},      // registros del aplicativo atrasados
   faltante:{t:'Falta',c:'b-red',n:4},
+  soporte:{t:'Falta soporte',c:'b-amber',n:2},  // fecha registrada, archivo pendiente
+  programada:{t:'Programada',c:'b-gray',n:1},   // actividad futura del cronograma
 };
+// Estado de un documento: si tiene fecha pero no archivo, queda "Falta soporte" (salvo que ya esté vencido)
+function estadoDocAud(d,aviso){
+  const st=audEstadoFecha(d.fecha_vencimiento,aviso);
+  if(!d.archivo_path&&st.estado!=='vencido')st.estado='soporte';
+  return st;
+}
+function detDocAud(d,st){return(d.fecha_vencimiento?`${fmtF(d.fecha_vencimiento)} · ${diasTxt(st.dias)}`:'No vence')+(d.archivo_path?'':' · falta cargar el soporte');}
 let _aud=null; // datos de la última carga
 
 function audReq(k){return AUD_REQ.find(r=>r.k===k);}
@@ -5014,17 +5117,20 @@ async function cargarAuditorias(){
     const hoyD=new Date();
     const mesIni=fechaLocal(new Date(hoyD.getFullYear(),hoyD.getMonth(),1));
     const hace7=fechaLocal(new Date(Date.now()-6*86400000));
-    const [rDocs,rVhs,rDv,rLav,rCl]=await Promise.all([
+    const [rDocs,rVhs,rDv,rLav,rCl,rCond]=await Promise.all([
       db.from('auditoria_documentos').select('*').eq('activo',true).eq('regional_id',reg).order('fecha_vencimiento',{ascending:false,nullsFirst:true}),
       db.from('vehiculos').select('id,placa,tipo,ambiente').eq('activo',true).neq('tipo','remolque').eq('regional_id',reg).order('placa'),
       db.from('documentos_vehiculo').select('id,tipo,vehiculo_id,fecha_vencimiento,numero_documento').in('tipo',['fumigacion','acta_sanitaria']).eq('regional_id',reg),
       db.from('lavados').select('vehiculo_id,tipo,estado,recibe_nombre').eq('regional_id',reg).gte('fecha',mesIni).eq('estado','ejecutado'),
       db.from('checklists').select('vehiculo_id').eq('regional_id',reg).gte('fecha',hace7),
+      db.from('conductores').select('id,nombre,cedula,cargo,telefono,activo').eq('regional_id',reg).order('nombre'),
     ]);
-    for(const r of [rDocs,rVhs,rDv,rLav,rCl])if(r.error)throw r.error;
-    const docs=rDocs.data||[],vhs=rVhs.data||[],dv=rDv.data||[],lavs=rLav.data||[],cls=rCl.data||[];
-    const res=AUD_REQ.map(req=>evaluarReqAud(req,{docs,vhs,dv,lavs,cls,hoyD}));
-    _aud={reg,docs,vhs,res};
+    for(const r of [rDocs,rVhs,rDv,rLav,rCl,rCond])if(r.error)throw r.error;
+    const docs=rDocs.data||[],vhs=rVhs.data||[],dv=rDv.data||[],lavs=rLav.data||[],cls=rCl.data||[],conds=rCond.data||[];
+    const rProg=await db.from('auditoria_programacion').select('*').eq('regional_id',reg).eq('activo',true).order('fecha_programada');
+    const prog=rProg.error?null:(rProg.data||[]);
+    const res=AUD_REQ.map(req=>evaluarReqAud(req,{docs,vhs,dv,lavs,cls,conds,prog,hoyD}));
+    _aud={reg,docs,vhs,conds,prog,res};
     pintarAuditorias();
   }catch(e){
     const msg=/auditoria_documentos/.test(e.message||'')?'Falta ejecutar auditorias.sql en Supabase.':e.message;
@@ -5033,7 +5139,13 @@ async function cargarAuditorias(){
 }
 
 // Calcula el estado de un requisito y la lista de elementos que lo componen
-function evaluarReqAud(req,{docs,vhs,dv,lavs,cls,hoyD}){
+function docsDeProg(p,docs){return docs.filter(d=>d.programacion_id===p.id||(!d.programacion_id&&d.requisito===p.requisito&&d.titulo&&normTxt(d.titulo)===normTxt(p.titulo)));}
+function estadoProg(p,nSoportes){
+  if(p.ejecutada_en)return nSoportes>0?'vigente':'soporte';
+  const{dias}=calcEstadoDoc(p.fecha_programada);
+  return dias<0?'atrasado':dias<=30?'proximo':'programada';
+}
+function evaluarReqAud(req,{docs,vhs,dv,lavs,cls,conds,prog,hoyD}){
   const out={req,estado:'faltante',detalle:'',items:[]};
   const aviso=req.aviso??30;
   if(req.alcance==='sistema'){
@@ -5076,39 +5188,74 @@ function evaluarReqAud(req,{docs,vhs,dv,lavs,cls,hoyD}){
       }else{
         ult=docs.filter(d=>d.requisito===req.k&&d.vehiculo_id===v.id)[0]||null; // ya vienen ordenados por vencimiento desc
       }
-      if(!ult){out.items.push({etiqueta:v.placa,detalle:'Sin documento',estado:'faltante'});return;}
-      const st=audEstadoFecha(ult.fecha_vencimiento,aviso);
-      out.items.push({etiqueta:v.placa,detalle:`${fmtF(ult.fecha_vencimiento)} · ${diasTxt(st.dias)}`,estado:st.estado,dias:st.dias,venc:ult.fecha_vencimiento,doc:req.docTipo?null:ult});
+      if(!ult){out.items.push({etiqueta:v.placa,detalle:'Sin documento',estado:'faltante',vehiculo:v});return;}
+      const st=req.docTipo?audEstadoFecha(ult.fecha_vencimiento,aviso):estadoDocAud(ult,aviso);
+      out.items.push({etiqueta:v.placa,detalle:req.docTipo?`${fmtF(ult.fecha_vencimiento)} · ${diasTxt(st.dias)}`:detDocAud(ult,st),estado:st.estado,dias:st.dias,venc:ult.fecha_vencimiento,doc:req.docTipo?null:ult,vehiculo:v});
     });
     out.estado=peor(out.items.map(i=>i.estado));
     const c=e=>out.items.filter(i=>i.estado===e).length;
     const partes=[`${c('vigente')} de ${aplica.length} al día`];
     if(c('proximo'))partes.push(`${c('proximo')} por vencer`);
     if(c('vencido'))partes.push(`${c('vencido')} vencido(s)`);
+    if(c('soporte'))partes.push(`${c('soporte')} sin soporte`);
     if(c('faltante'))partes.push(`${c('faltante')} sin documento`);
     out.detalle=partes.join(' · ');
     return out;
   }
   const propios=docs.filter(d=>d.requisito===req.k);
+  const activos=(conds||[]).filter(c=>c.activo!==false);
+  if(req.roster&&activos.length){
+    // Cada conductor activo debe tener su documento vigente
+    const usados=new Set();
+    activos.forEach(c=>{
+      const nom=normTxt(c.nombre);
+      const d=propios.find(x=>x.conductor_id===c.id)||propios.find(x=>!x.conductor_id&&((c.cedula&&soloDigitos(x.persona_cedula)===c.cedula)||normTxt(x.persona_nombre)===nom));
+      const etiqueta=c.nombre+(c.cargo&&c.cargo!=='Conductor'?` (${c.cargo})`:'');
+      if(!d){out.items.push({etiqueta,detalle:'Sin documento',estado:'faltante',conductor:c});return;}
+      usados.add(d.id);
+      const st=estadoDocAud(d,aviso);
+      out.items.push({etiqueta,detalle:detDocAud(d,st),estado:st.estado,dias:st.dias,venc:d.fecha_vencimiento,doc:d,conductor:c});
+    });
+    out.estado=peor(out.items.map(i=>i.estado));
+    const c=e=>out.items.filter(i=>i.estado===e).length;
+    out.detalle=`${c('vigente')} de ${activos.length} conductores al día`+(c('proximo')?` · ${c('proximo')} por vencer`:'')+(c('vencido')?` · ${c('vencido')} vencido(s)`:'')+(c('soporte')?` · ${c('soporte')} sin soporte`:'')+(c('faltante')?` · ${c('faltante')} sin documento`:'');
+    return out;
+  }
   if(req.alcance==='persona'){
-    if(!propios.length){out.detalle='No hay documentos cargados';return out;}
+    if(!propios.length){out.detalle=req.roster?'Registra los conductores para revisar uno por uno':'No hay documentos cargados';return out;}
     const porPersona={};
     propios.forEach(d=>{const key=(d.persona_cedula||d.persona_nombre||'').trim().toUpperCase();if(!porPersona[key])porPersona[key]=d;});
     Object.values(porPersona).forEach(d=>{
-      const st=audEstadoFecha(d.fecha_vencimiento,aviso);
-      out.items.push({etiqueta:d.persona_nombre+(d.persona_cargo?` (${d.persona_cargo})`:''),detalle:`${fmtF(d.fecha_vencimiento)} · ${diasTxt(st.dias)}`,estado:st.estado,dias:st.dias,venc:d.fecha_vencimiento,doc:d});
+      const st=estadoDocAud(d,aviso);
+      out.items.push({etiqueta:d.persona_nombre+(d.persona_cargo?` (${d.persona_cargo})`:''),detalle:detDocAud(d,st),estado:st.estado,dias:st.dias,venc:d.fecha_vencimiento,doc:d});
     });
     out.estado=peor(out.items.map(i=>i.estado));
     const c=e=>out.items.filter(i=>i.estado===e).length;
     out.detalle=`${out.items.length} persona(s) · ${c('vigente')} al día`+(c('proximo')?` · ${c('proximo')} por vencer`:'')+(c('vencido')?` · ${c('vencido')} vencido(s)`:'');
     return out;
   }
+  // Requisitos con programación (p. ej. capacitaciones): se evalúa lo programado contra lo ejecutado
+  const progs=(prog||[]).filter(p=>p.requisito===req.k);
+  if(req.prog&&progs.length){
+    progs.forEach(p=>{
+      const sop=docsDeProg(p,propios);
+      const est=estadoProg(p,sop.length);
+      const cuando=p.ejecutada_en?`Ejecutada el ${fmtF(p.ejecutada_en)}`:`Programada para ${fmtF(p.fecha_programada)}`;
+      out.items.push({etiqueta:p.titulo,detalle:`${p.periodo?p.periodo+' · ':''}${cuando}`+(sop.length?` · ${sop.length} soporte(s)`:p.ejecutada_en?' · falta cargar el soporte':''),
+        estado:est,dias:calcEstadoDoc(p.fecha_programada).dias,venc:p.fecha_programada,prog:p,soportes:sop});
+    });
+    const relevantes=out.items.map(i=>i.estado).filter(e=>e!=='programada');
+    out.estado=relevantes.length?peor(relevantes):'vigente';
+    const ej=progs.filter(p=>p.ejecutada_en).length,cs=out.items.filter(i=>i.estado==='vigente').length;
+    out.detalle=`${ej} de ${progs.length} actividades ejecutadas · ${cs} con soporte`+(out.items.some(i=>i.estado==='atrasado')?` · ${out.items.filter(i=>i.estado==='atrasado').length} atrasada(s)`:'');
+    return out;
+  }
   // general
   if(!propios.length){out.detalle='No hay documentos cargados';return out;}
   const lista=req.multi?propios:[propios[0]];
   lista.forEach(d=>{
-    const st=audEstadoFecha(d.fecha_vencimiento,aviso);
-    out.items.push({etiqueta:d.titulo||audReq(d.requisito).nombre,detalle:d.fecha_vencimiento?`${fmtF(d.fecha_vencimiento)} · ${diasTxt(st.dias)}`:'No vence',estado:st.estado,dias:st.dias,venc:d.fecha_vencimiento,doc:d});
+    const st=estadoDocAud(d,aviso);
+    out.items.push({etiqueta:d.titulo||audReq(d.requisito).nombre,detalle:detDocAud(d,st),estado:st.estado,dias:st.dias,venc:d.fecha_vencimiento,doc:d});
   });
   // Documentos periódicos (p. ej. verificación BPM): cuenta el más reciente
   out.estado=req.multi&&req.vig?out.items[0].estado:peor(out.items.map(i=>i.estado));
@@ -5119,25 +5266,39 @@ function evaluarReqAud(req,{docs,vhs,dv,lavs,cls,hoyD}){
 function pintarAuditorias(){
   const{res,docs}=_aud;
   const ok=res.filter(r=>r.estado==='vigente').length;
-  const venc=res.filter(r=>['vencido','faltante','atrasado'].includes(r.estado)).length;
-  const prox=res.filter(r=>['proximo','parcial'].includes(r.estado)).length;
+  // Conteo por elemento (cada conductor, vehículo o documento), no por requisito
+  const elems=[];res.forEach(r=>{if(r.items.length)r.items.forEach(i=>elems.push(i.estado));else elems.push(r.estado);});
+  const venc=elems.filter(e=>['vencido','faltante','atrasado'].includes(e)).length;
+  const prox=elems.filter(e=>['proximo','parcial','soporte'].includes(e)).length;
   document.getElementById('aud-m-ok').textContent=`${ok}/${res.length}`;
   document.getElementById('aud-m-venc').textContent=venc;
   document.getElementById('aud-m-prox').textContent=prox;
-  document.getElementById('aud-m-docs').textContent=docs.length;
+  document.getElementById('aud-m-docs').textContent=docs.filter(d=>d.archivo_path).length;
 
   // Pendientes: elementos vencidos, faltantes o por vencer (los de sistema van en su requisito)
   const pend=[];
   res.forEach(r=>{
     if(r.req.alcance==='sistema')return;
     if(!r.items.length&&r.estado==='faltante')pend.push({req:r.req,etiqueta:'Sin documento cargado',estado:'faltante',dias:-99999});
-    r.items.forEach(i=>{if(i.estado!=='vigente')pend.push({req:r.req,etiqueta:i.etiqueta,estado:i.estado,dias:i.dias??-99999,detalle:i.detalle});});
+    r.items.forEach(i=>{if(i.estado!=='vigente'&&i.estado!=='programada')pend.push({req:r.req,etiqueta:i.etiqueta,estado:i.estado,dias:i.dias??-99999,detalle:i.detalle,item:i});});
   });
-  pend.sort((a,b)=>a.dias-b.dias);
-  document.getElementById('aud-prox-count').textContent=pend.length?`${pend.length} pendiente(s)`:'';
+  // Agrupar: si un requisito tiene más de 3 elementos con el mismo estado, se muestran en una sola fila
+  const grupos={};pend.forEach(p=>{const k=p.req.k+'|'+p.estado;(grupos[k]=grupos[k]||[]).push(p);});
+  const filasPend=[];
+  Object.values(grupos).forEach(g=>{
+    if(g.length<=3){filasPend.push(...g);return;}
+    const unidad=g[0].item?.conductor?'conductores':g[0].item?.vehiculo?'vehículos':'elementos';
+    const minD=Math.min(...g.map(x=>x.dias));
+    filasPend.push({req:g[0].req,estado:g[0].estado,dias:minD,grupo:true,
+      etiqueta:`${g.length} ${unidad}`,detalle:g.slice(0,4).map(x=>x.etiqueta).join(', ')+(g.length>4?'…':'')});
+  });
+  const orden={vencido:0,atrasado:0,proximo:1,soporte:2,parcial:2,faltante:3};
+  filasPend.sort((a,b)=>(orden[a.estado]??4)-(orden[b.estado]??4)||a.dias-b.dias);
+  pend.length=0;pend.push(...filasPend);
+  document.getElementById('aud-prox-count').textContent=elems.filter(e=>!['vigente','info','programada'].includes(e)).length+' pendiente(s)';
   document.getElementById('aud-proximos').innerHTML=pend.length?`<div class="tbl-wrap"><table><thead><tr><th>Requisito</th><th>Elemento</th><th>Estado</th><th>Detalle</th><th></th></tr></thead><tbody>
     ${pend.slice(0,30).map(p=>`<tr><td style="font-size:12px">${esc(p.req.nombre)}</td><td><b>${esc(p.etiqueta)}</b></td><td>${badgeAud(p.estado)}</td><td style="font-size:12px;color:var(--text2)">${esc(p.detalle||'')}</td>
-      <td style="white-space:nowrap;text-align:right">${accionCargarAud(p.req)}</td></tr>`).join('')}
+      <td style="white-space:nowrap;text-align:right">${p.grupo?(p.req.roster?`<button class="btn btn-sm" onclick="document.getElementById('aud-matriz').scrollIntoView({behavior:'smooth'})">Ver por conductor</button>`:`<button class="btn btn-sm" onclick="verReqAud('${p.req.k}')">Ver</button>`):accionItemAud(p.req,p.item)}</td></tr>`).join('')}
     </tbody></table></div>${pend.length>30?`<div style="font-size:12px;color:var(--text2);margin-top:8px">Y ${pend.length-30} más en cada requisito.</div>`:''}`
     :'<div style="font-size:13px;color:var(--green-dark);padding:6px 0">Todo al día: no hay documentos vencidos, faltantes ni por vencer.</div>';
 
@@ -5147,8 +5308,20 @@ function pintarAuditorias(){
     return`<div class="card"><div class="card-hdr"><span class="card-title">${esc(cat.nombre)}</span><span style="font-size:12px;color:var(--text2)">${okc} de ${filas.length} al día</span></div>
       <div class="tbl-wrap"><table><tbody>${filas.map(r=>filaReqAud(r)).join('')}</tbody></table></div></div>`;
   }).join('');
+  pintarMatrizCond();
+  pintarProgramacion();
 }
 
+// Acción directa para un elemento pendiente (cargar el soporte que falta en ese mismo registro)
+function accionItemAud(req,i){
+  if(!i||req.docTipo||req.alcance==='sistema')return accionCargarAud(req);
+  if(i.prog)return`<button class="btn btn-sm btn-primary" onclick="abrirDocAud('${req.k}',null,null,{progId:'${i.prog.id}'})">Cargar soporte</button>`;
+  if(i.doc&&!i.doc.archivo_path)return`<button class="btn btn-sm btn-primary" onclick="abrirDocAud('${req.k}',null,null,{completaId:'${i.doc.id}'})">Cargar soporte</button>`;
+  if(i.doc)return`<button class="btn btn-sm btn-primary" onclick="abrirDocAud('${req.k}','${i.doc.id}')">Renovar</button>`;
+  if(i.conductor)return`<button class="btn btn-sm btn-primary" onclick="abrirDocAud('${req.k}',null,'${i.conductor.id}')">+ Cargar</button>`;
+  if(i.vehiculo)return`<button class="btn btn-sm btn-primary" onclick="abrirDocAud('${req.k}',null,null,{vehiculoId:'${i.vehiculo.id}'})">+ Cargar</button>`;
+  return accionCargarAud(req);
+}
 function accionCargarAud(req){
   if(req.alcance==='sistema')return`<button class="btn btn-sm" onclick="ir('${req.ir}')">Abrir</button>`;
   if(req.docTipo)return`<button class="btn btn-sm" onclick="ir('documentos')" title="Se carga en Documentos del vehículo">Ir a documentos</button>`;
@@ -5167,15 +5340,23 @@ function filaReqAud(r){
   </tr>
   ${hayDet?`<tr id="${id}" style="display:none"><td colspan="4" style="background:var(--bg2);padding:8px 12px">${detalleReqAud(r)}</td></tr>`:''}`;
 }
+function verReqAud(k){const el=document.getElementById('aud-det-'+k);if(!el)return;el.style.display='';el.scrollIntoView({behavior:'smooth',block:'center'});}
 function toggleDetAud(id){const el=document.getElementById(id);if(el)el.style.display=el.style.display==='none'?'':'none';}
 
 function detalleReqAud(r){
   const items=[...r.items].sort((a,b)=>AUD_EST[b.estado].n-AUD_EST[a.estado].n||(a.dias??99999)-(b.dias??99999));
   return`<table style="width:100%"><tbody>${items.map(i=>{
     const d=i.doc;
-    const acc=d?`${d.archivo_path?`<button class="btn btn-sm" onclick="abrirArchivoAud('${escJs(d.archivo_path)}')">Ver archivo</button> `:''}
-      <button class="btn btn-sm" onclick="abrirDocAud('${r.req.k}','${d.id}')">Renovar</button>
-      <button class="btn btn-sm btn-red" onclick="retirarDocAud('${d.id}')">Retirar</button>`:'';
+    let acc='';
+    if(i.prog){
+      acc=`${(i.soportes||[]).filter(x=>x.archivo_path).map((x,n)=>`<button class="btn btn-sm" onclick="abrirArchivoAud('${escJs(x.archivo_path)}')" title="${esc(x.archivo_nombre||'')}">Soporte ${n+1}</button>`).join(' ')}
+        <button class="btn btn-sm btn-primary" onclick="abrirDocAud('${r.req.k}',null,null,{progId:'${i.prog.id}'})">+ Soporte</button>`;
+    }else if(d){
+      acc=`${d.archivo_path?`<button class="btn btn-sm" onclick="abrirArchivoAud('${escJs(d.archivo_path)}')">Ver archivo</button>
+      <button class="btn btn-sm" onclick="abrirDocAud('${r.req.k}','${d.id}')">Renovar</button>`
+      :`<button class="btn btn-sm btn-primary" onclick="abrirDocAud('${r.req.k}',null,null,{completaId:'${d.id}'})">Cargar soporte</button>`}
+      <button class="btn btn-sm btn-red" onclick="retirarDocAud('${d.id}')">Retirar</button>`;
+    }else if(i.estado==='faltante')acc=accionItemAud(r.req,i);
     return`<tr><td style="font-size:12px"><b>${esc(i.etiqueta)}</b>${d?.numero_documento?` <span style="color:var(--text3)">· N.° ${esc(d.numero_documento)}</span>`:''}${d?.observaciones?`<div style="color:var(--text3);font-size:11px">${esc(d.observaciones)}</div>`:''}</td>
       <td>${badgeAud(i.estado)}</td><td style="font-size:12px;color:var(--text2)">${esc(i.detalle||'')}</td><td style="white-space:nowrap;text-align:right">${acc}</td></tr>`;
   }).join('')}</tbody></table>`;
@@ -5196,7 +5377,9 @@ async function retirarDocAud(id){
 }
 
 // ── Modal: cargar / renovar documento ──
-function abrirDocAud(reqK,reemplazaId){
+function abrirDocAud(reqK,reemplazaId,conductorId,opts={}){
+  const completa=opts.completaId?_aud?.docs.find(d=>d.id===opts.completaId):null;
+  const prog=opts.progId?(_aud?.prog||[]).find(p=>p.id===opts.progId):null;
   prepSelectRegAud();
   const sel=document.getElementById('aud-req');
   sel.innerHTML=AUD_CATS.map(c=>`<optgroup label="${esc(c.nombre)}">${AUD_REQ.filter(r=>r.cat===c.k&&r.alcance!=='sistema'&&!r.docTipo).map(r=>`<option value="${r.k}">${esc(r.nombre)}</option>`).join('')}</optgroup>`).join('');
@@ -5210,10 +5393,12 @@ function abrirDocAud(reqK,reemplazaId){
   ['aud-p-nombre','aud-p-cedula','aud-p-cargo','aud-titulo','aud-numero','aud-exp','aud-venc','aud-obs'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('aud-archivo').value='';
   document.getElementById('aud-reemplaza').value=reemplazaId||'';
-  document.getElementById('aud-modal-titulo').textContent=reemplazaId?'Renovar documento':'Cargar documento de auditoría';
-  sel.disabled=!!reemplazaId;
-  // Al renovar, se precargan los datos de la persona, vehículo o descripción
-  const prev=reemplazaId?_aud?.docs.find(d=>d.id===reemplazaId):null;
+  document.getElementById('aud-completa').value=completa?.id||'';
+  document.getElementById('aud-prog-id').value=prog?.id||'';
+  document.getElementById('aud-modal-titulo').textContent=completa?'Cargar soporte':prog?'Soporte de la actividad programada':reemplazaId?'Renovar documento':'Cargar documento de auditoría';
+  sel.disabled=!!(reemplazaId||completa||prog);
+  // Al renovar o completar, se precargan los datos de la persona, vehículo o descripción
+  const prev=completa||(reemplazaId?_aud?.docs.find(d=>d.id===reemplazaId):null);
   if(prev){
     if(prev.regional_id)sr.value=prev.regional_id;
     document.getElementById('aud-p-nombre').value=prev.persona_nombre||'';
@@ -5221,13 +5406,32 @@ function abrirDocAud(reqK,reemplazaId){
     document.getElementById('aud-p-cargo').value=prev.persona_cargo||'';
     document.getElementById('aud-titulo').value=prev.titulo||'';
   }
-  onAudReq(prev?.vehiculo_id);
+  if(completa){ // el registro ya tiene fechas: solo falta el archivo
+    document.getElementById('aud-numero').value=completa.numero_documento||'';
+    document.getElementById('aud-exp').value=completa.fecha_expedicion||'';
+    document.getElementById('aud-venc').value=completa.fecha_vencimiento||'';
+    document.getElementById('aud-obs').value=completa.observaciones||'';
+  }
+  if(prog){
+    sel.value=prog.requisito;
+    document.getElementById('aud-titulo').value=prog.titulo||'';
+    document.getElementById('aud-exp').value=prog.ejecutada_en||'';
+  }
+  // Selector de conductores del listado
+  const sc=document.getElementById('aud-cond');
+  const cs=(_aud?.conds||[]).filter(c=>c.activo!==false);
+  sc.innerHTML='<option value="">— Conductor —</option>'+cs.map(c=>`<option value="${c.id}">${esc(c.nombre)} · ${esc(c.cedula||'')}</option>`).join('');
+  sc.value=conductorId||prev?.conductor_id||prog?.conductor_id||'';
+  onAudReq(prev?.vehiculo_id||prog?.vehiculo_id||opts.vehiculoId);
   document.getElementById('modal-aud').classList.add('open');
 }
 function onAudReq(vhSel){
   const req=audReq(document.getElementById('aud-req').value);if(!req)return;
-  const esVh=req.alcance==='vehiculo',esP=req.alcance==='persona';
+  const esVh=req.alcance==='vehiculo';
+  const usaListado=req.roster&&(_aud?.conds||[]).some(c=>c.activo!==false);
+  const esP=req.alcance==='persona'&&!usaListado;
   document.getElementById('aud-wrap-vh').style.display=esVh?'':'none';
+  document.getElementById('aud-wrap-cond').style.display=usaListado?'':'none';
   ['aud-wrap-pn','aud-wrap-pc','aud-wrap-pg'].forEach(i=>document.getElementById(i).style.display=esP?'':'none');
   const cargo=document.getElementById('aud-p-cargo');
   if(esP&&req.cargo&&!cargo.value)cargo.value=req.cargo;
@@ -5266,11 +5470,18 @@ function sugerirVencAud(){
   document.getElementById('aud-venc').value=fechaLocal(new Date(y,m-1+req.vig,d));
 }
 
+// Tipos de archivo admitidos en el módulo (Excel y Word para formularios y piezas de capacitación)
+const AUD_MIME={pdf:'application/pdf',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',
+  xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'};
+function tipoArchivoAud(f){const ext=(f.name.split('.').pop()||'').toLowerCase();return AUD_MIME[ext]||f.type;}
+function tipoArchivoAudOk(f){return Object.values(AUD_MIME).includes(tipoArchivoAud(f))&&!!AUD_MIME[(f.name.split('.').pop()||'').toLowerCase()];}
 async function guardarDocAud(){
   const req=audReq(document.getElementById('aud-req').value);
   const regional=document.getElementById('aud-reg-sel').value||null;
   const vh=document.getElementById('aud-vh').value||null;
-  const pn=document.getElementById('aud-p-nombre').value.trim();
+  const usaListado=req?.roster&&(_aud?.conds||[]).some(c=>c.activo!==false);
+  const cond=usaListado?(_aud.conds||[]).find(c=>c.id===document.getElementById('aud-cond').value):null;
+  const pn=cond?cond.nombre:document.getElementById('aud-p-nombre').value.trim();
   const titulo=document.getElementById('aud-titulo').value.trim();
   const venc=document.getElementById('aud-venc').value||null;
   const file=document.getElementById('aud-archivo').files[0];
@@ -5278,33 +5489,60 @@ async function guardarDocAud(){
   if(!req)faltan.push('requisito');
   if(req?.alcance==='vehiculo'&&!vh)faltan.push('vehículo');
   if(!regional)faltan.push('regional');
-  if(req?.alcance==='persona'&&!pn)faltan.push('nombre de la persona');
+  if(usaListado&&!cond)faltan.push('conductor');
+  else if(req?.alcance==='persona'&&!pn)faltan.push('nombre de la persona');
   if(req?.multi&&req?.tituloLbl&&!titulo)faltan.push(req.tituloLbl.toLowerCase());
   if(req?.vig&&!venc)faltan.push('fecha de vencimiento');
   if(!file)faltan.push('archivo');
   if(faltan.length){toast('Falta: '+faltan.join(', '),true);return;}
   if(file.size>10*1024*1024){toast('El archivo supera 10 MB',true);return;}
-  if(!/^(application\/pdf|image\/jpeg|image\/png)$/.test(file.type)){toast('El archivo debe ser PDF, JPG o PNG',true);return;}
+  if(!tipoArchivoAudOk(file)){toast('El archivo debe ser PDF, JPG, PNG, Excel (.xlsx) o Word (.docx)',true);return;}
+  const completaId=document.getElementById('aud-completa').value;
+  const progId=document.getElementById('aud-prog-id').value||null;
   const btn=document.getElementById('aud-btn-guardar');btn.disabled=true;btn.textContent='Guardando...';
   try{
     const ext=(file.name.split('.').pop()||'pdf').toLowerCase().replace(/[^a-z0-9]/g,'');
     const uid=crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2);
     const path=`${regional}/${req.k}/${uid}.${ext}`;
-    const{error:eUp}=await db.storage.from('auditoria-docs').upload(path,file,{contentType:file.type,upsert:false});
+    const{error:eUp}=await db.storage.from('auditoria-docs').upload(path,file,{contentType:tipoArchivoAud(file),upsert:false});
     if(eUp)throw eUp;
-    const{error}=await db.from('auditoria_documentos').insert({
+    if(completaId){
+      // Completar el registro que ya tenía la fecha (p. ej. importado del listado de conductores)
+      const{error}=await db.from('auditoria_documentos').update({
+        archivo_path:path,archivo_nombre:file.name.slice(0,200),
+        numero_documento:document.getElementById('aud-numero').value.trim()||null,
+        fecha_expedicion:document.getElementById('aud-exp').value||null,fecha_vencimiento:venc,
+        observaciones:document.getElementById('aud-obs').value.trim()||null,titulo:titulo||null,
+      }).eq('id',completaId);
+      if(error)throw error;
+      toast('Soporte cargado ✓');cerrarModal('modal-aud');cargarAuditorias();actualizarBadgeAuditorias();return;
+    }
+    const{data:nuevo,error}=await db.from('auditoria_documentos').insert({
+      programacion_id:progId,
       requisito:req.k,regional_id:regional,vehiculo_id:req.alcance==='vehiculo'?vh:null,
+      conductor_id:cond?.id||null,
       persona_nombre:req.alcance==='persona'?pn:null,
-      persona_cedula:req.alcance==='persona'?(document.getElementById('aud-p-cedula').value.trim()||null):null,
-      persona_cargo:req.alcance==='persona'?(document.getElementById('aud-p-cargo').value.trim()||null):null,
+      persona_cedula:req.alcance==='persona'?(cond?cond.cedula:(document.getElementById('aud-p-cedula').value.trim()||null)):null,
+      persona_cargo:req.alcance==='persona'?(cond?(cond.cargo||'Conductor'):(document.getElementById('aud-p-cargo').value.trim()||null)):null,
       titulo:titulo||null,numero_documento:document.getElementById('aud-numero').value.trim()||null,
       fecha_expedicion:document.getElementById('aud-exp').value||null,fecha_vencimiento:venc,
       archivo_path:path,archivo_nombre:file.name.slice(0,200),
       observaciones:document.getElementById('aud-obs').value.trim()||null,
-    });
+    }).select('id').single();
     if(error)throw error;
     const reemplaza=document.getElementById('aud-reemplaza').value;
     if(reemplaza)await db.from('auditoria_documentos').update({activo:false}).eq('id',reemplaza);
+    // Un documento nuevo de un conductor o vehículo reemplaza al anterior del mismo requisito
+    else if(!req.multi&&(cond||(req.alcance==='vehiculo'&&vh))){
+      let q=db.from('auditoria_documentos').update({activo:false}).eq('requisito',req.k).eq('regional_id',regional).eq('activo',true).neq('id',nuevo.id);
+      q=cond?q.eq('conductor_id',cond.id):q.eq('vehiculo_id',vh);
+      await q;
+    }
+    // Soporte de una actividad programada: queda ejecutada
+    if(progId){
+      const p=(_aud?.prog||[]).find(x=>x.id===progId);
+      if(p&&!p.ejecutada_en)await db.from('auditoria_programacion').update({ejecutada_en:document.getElementById('aud-exp').value||hoy()}).eq('id',progId);
+    }
     toast('Documento guardado ✓');
     cerrarModal('modal-aud');
     if(USER_ROL==='gerente')document.getElementById('aud-reg').value=regional;
@@ -5336,6 +5574,522 @@ function exportarAuditoria(){
   XLSX.utils.book_append_sheet(wb,ws1,'Resumen');
   XLSX.utils.book_append_sheet(wb,ws2,'Detalle');
   XLSX.writeFile(wb,`Auditoria_${reg.replace(/[^A-Za-z0-9]+/g,'_')}_${hoy()}.xlsx`);
+}
+
+// ── AUDITORÍAS · Conductores ──────────────────────────────────
+function normTxt(s){return String(s??'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().trim();}
+function soloDigitos(s){return String(s??'').replace(/\D/g,'');}
+let _conds=[]; // conductores de la regional abierta en el modal
+
+async function abrirConductores(){
+  prepSelectRegAud();
+  const reg=document.getElementById('aud-reg').value;
+  document.getElementById('cond-reg-nombre').textContent=rNombre(reg);
+  limpiarFormCond();
+  document.getElementById('cond-buscar').value='';
+  document.getElementById('modal-cond').classList.add('open');
+  await cargarListaCond();
+}
+async function cargarListaCond(){
+  const reg=document.getElementById('aud-reg').value;
+  document.getElementById('cond-lista').innerHTML='<tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr>';
+  const{data,error}=await db.from('conductores').select('id,nombre,cedula,cargo,telefono,activo,regional_id').eq('regional_id',reg).order('nombre');
+  if(error){document.getElementById('cond-lista').innerHTML=`<tr><td colspan="6" style="color:var(--red-dark)">${esc(error.message)}</td></tr>`;return;}
+  _conds=data||[];pintarListaCond();
+}
+function pintarListaCond(){
+  const q=normTxt(document.getElementById('cond-buscar').value);
+  const lista=_conds.filter(c=>!q||normTxt(c.nombre).includes(q)||(c.cedula||'').includes(q));
+  document.getElementById('cond-lista').innerHTML=lista.length?lista.map(c=>`<tr style="${c.activo===false?'opacity:.55':''}">
+    <td><b>${esc(c.nombre)}</b></td><td>${esc(c.cedula||'—')}</td><td>${esc(c.cargo||'—')}</td><td>${esc(c.telefono||'—')}</td>
+    <td>${c.activo===false?'<span class="badge b-gray">Inactivo</span>':'<span class="badge b-green">Activo</span>'}</td>
+    <td style="white-space:nowrap;text-align:right"><button class="btn btn-sm" onclick="editarConductor('${c.id}')">Editar</button>
+      <button class="btn btn-sm" onclick="toggleActivoCond('${c.id}',${c.activo===false})">${c.activo===false?'Activar':'Desactivar'}</button></td></tr>`).join('')
+    :`<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:16px">${_conds.length?'Sin resultados':'No hay conductores. Agrégalos arriba o importa el listado en Excel.'}</td></tr>`;
+}
+function limpiarFormCond(){
+  ['cond-id','cond-nombre','cond-cedula','cond-tel'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('cond-cargo').value='Conductor';
+  document.getElementById('cond-btn').textContent='Agregar';
+}
+function editarConductor(id){
+  const c=_conds.find(x=>x.id===id);if(!c)return;
+  document.getElementById('cond-id').value=c.id;
+  document.getElementById('cond-nombre').value=c.nombre||'';
+  document.getElementById('cond-cedula').value=c.cedula||'';
+  document.getElementById('cond-cargo').value=c.cargo||'';
+  document.getElementById('cond-tel').value=c.telefono||'';
+  document.getElementById('cond-btn').textContent='Guardar cambios';
+  document.getElementById('cond-nombre').focus();
+}
+async function guardarConductor(){
+  const id=document.getElementById('cond-id').value;
+  const reg=document.getElementById('aud-reg').value;
+  const datos={nombre:document.getElementById('cond-nombre').value.trim(),cedula:soloDigitos(document.getElementById('cond-cedula').value)||null,
+    cargo:document.getElementById('cond-cargo').value.trim()||'Conductor',telefono:document.getElementById('cond-tel').value.trim()||null};
+  if(!datos.nombre||!datos.cedula){toast('Nombre y cédula son obligatorios',true);return;}
+  const dup=_conds.find(c=>c.cedula===datos.cedula&&c.id!==id);
+  if(dup){toast(`La cédula ya está registrada para ${dup.nombre}`,true);return;}
+  const{error}=id?await db.from('conductores').update(datos).eq('id',id)
+                 :await db.from('conductores').insert({...datos,regional_id:reg,activo:true});
+  if(error){toast('Error: '+error.message,true);return;}
+  toast(id?'Conductor actualizado ✓':'Conductor agregado ✓');
+  limpiarFormCond();cargarListaCond();
+}
+async function toggleActivoCond(id,activar){
+  const{error}=await db.from('conductores').update({activo:activar}).eq('id',id);
+  if(error){toast('Error: '+error.message,true);return;}
+  cargarListaCond();
+}
+function plantillaConductores(){
+  const filas=[{'Nombre':'Carlos Gómez','Cédula':'1012345678','Cargo':'Conductor','Teléfono':'3001234567'}];
+  if(USER_ROL==='gerente')filas[0]['Regional']=rNombre(document.getElementById('aud-reg').value);
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(filas),'Conductores');
+  XLSX.writeFile(wb,'Plantilla_conductores.xlsx');
+}
+async function importarConductores(input){
+  const f=input.files[0];input.value='';if(!f)return;
+  try{
+    const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true});
+    const filas=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+    if(!filas.length){toast('El archivo no tiene filas',true);return;}
+    // Reconocer columnas por nombre, sin importar tildes ni mayúsculas
+    const col=(fila,opciones)=>{for(const k of Object.keys(fila)){const n=normTxt(k).replace(/[^A-Z]/g,'');if(opciones.some(o=>n===o||n.startsWith(o)))return fila[k];}return'';};
+    // Columnas cuyo nombre CONTIENE la palabra (p. ej. "Fecha de vencimiento Carnet manipulación")
+    const colIncl=(fila,palabras)=>{for(const k of Object.keys(fila)){const n=normTxt(k).replace(/[^A-Z]/g,'');if(palabras.some(p=>n.includes(p)))return fila[k];}return'';};
+    const aFecha=v=>{
+      if(v instanceof Date&&!isNaN(v))return fechaLocal(new Date(v.getTime()+12*3600000));
+      const m=String(v||'').trim().match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+      if(m){const d=new Date(+m[3],+m[2]-1,+m[1]);if(d.getMonth()===+m[2]-1)return fechaLocal(d);}
+      const m2=String(v||'').trim().match(/^(\d{4})-(\d{2})-(\d{2})/);if(m2)return m2[0].slice(0,10);
+      return null;
+    };
+    const fechasMalas=[];
+    const regDefecto=document.getElementById('aud-reg').value;
+    const regPorNombre={};regionales.forEach(r=>regPorNombre[normTxt(r.nombre)]=r.id);
+    const items=[];let omitidos=0;
+    for(const fila of filas){
+      const nombre=String(col(fila,['NOMBRE','NOMBRES','CONDUCTOR','NOMBRECOMPLETO'])).trim();
+      const cedula=soloDigitos(col(fila,['CEDULA','CC','DOCUMENTO','IDENTIFICACION','NUMERODOCUMENTO']));
+      if(!nombre||!cedula){omitidos++;continue;}
+      let reg=regDefecto;
+      if(USER_ROL==='gerente'){const rn=normTxt(col(fila,['REGIONAL','SEDE']));if(rn&&regPorNombre[rn])reg=regPorNombre[rn];}
+      const tel=String(col(fila,['CELULAR'])||col(fila,['TELEFONO','MOVIL'])).trim()||null;
+      const it={nombre,cedula,cargo:String(col(fila,['CARGO','ROL'])).trim()||'Conductor',telefono:tel,regional_id:reg};
+      // Fechas de vencimiento que trae el listado (quedan registradas; solo falta subir el soporte)
+      const fechas={};
+      for(const [req,palabras] of [['curso_manipulacion',['CARNET','MANIPULACION']],['concepto_medico',['EXAMEN','CONCEPTOMEDICO']]]){
+        const v=colIncl(fila,palabras);
+        if(v===''||v==null)continue;
+        const fv=aFecha(v);
+        if(fv)fechas[req]=fv;else fechasMalas.push(`${nombre}: "${v}"`);
+      }
+      items.push(it);it._fechas=fechas;
+    }
+    if(!items.length){toast('No se encontraron filas con nombre y cédula',true);return;}
+    const nFechas=items.reduce((n,i)=>n+Object.keys(i._fechas).length,0);
+    if(!confirm(`Se importarán ${items.length} conductor(es)${nFechas?` y ${nFechas} fecha(s) de vencimiento (carnet de manipulación y examen)`:''}${omitidos?`. ${omitidos} fila(s) sin nombre o cédula se omiten`:''}${fechasMalas.length?`. ${fechasMalas.length} fecha(s) no válida(s) se omiten`:''}. ¿Continuar?`))return;
+    // Buscar cédulas existentes (en lotes) para actualizar en lugar de duplicar
+    const existentes={};
+    const ceds=[...new Set(items.map(i=>i.cedula))];
+    for(let i=0;i<ceds.length;i+=100){
+      const{data}=await db.from('conductores').select('id,cedula').in('cedula',ceds.slice(i,i+100));
+      (data||[]).forEach(c=>existentes[c.cedula]=c.id);
+    }
+    let nuevos=0,actualizados=0,errores=0;
+    const limpio=({_fechas,...x})=>x;
+    const insertar=items.filter(i=>!existentes[i.cedula]).map(i=>({...limpio(i),activo:true}));
+    for(let i=0;i<insertar.length;i+=100){
+      const{error}=await db.from('conductores').insert(insertar.slice(i,i+100));
+      if(error)errores+=Math.min(100,insertar.length-i);else nuevos+=Math.min(100,insertar.length-i);
+    }
+    for(const it of items.filter(i=>existentes[i.cedula])){
+      const{error}=await db.from('conductores').update({...limpio(it),activo:true}).eq('id',existentes[it.cedula]);
+      if(error)errores++;else actualizados++;
+    }
+    const nf=await registrarFechasImportadas(items);
+    toast(`Importación: ${nuevos} nuevo(s), ${actualizados} actualizado(s), ${nf} fecha(s) registrada(s)${errores?`, ${errores} con error`:''}`,errores>0);
+    if(fechasMalas.length)setTimeout(()=>alertaFechasMalas(fechasMalas),300);
+    cargarListaCond();
+  }catch(e){toast('No se pudo leer el archivo: '+e.message,true);}
+}
+
+// Crea (o actualiza) el registro con la fecha de vencimiento de cada conductor, sin archivo.
+// No toca los documentos que ya tienen archivo cargado.
+async function registrarFechasImportadas(items){
+  const conFechas=items.filter(i=>Object.keys(i._fechas||{}).length);
+  if(!conFechas.length)return 0;
+  const ids={};const ceds=conFechas.map(i=>i.cedula);
+  for(let i=0;i<ceds.length;i+=100){
+    const{data}=await db.from('conductores').select('id,cedula,regional_id,nombre,cargo').in('cedula',ceds.slice(i,i+100));
+    (data||[]).forEach(c=>ids[c.cedula]=c);
+  }
+  const condIds=Object.values(ids).map(c=>c.id);
+  const existentes=[];
+  for(let i=0;i<condIds.length;i+=100){
+    const{data}=await db.from('auditoria_documentos').select('id,requisito,conductor_id,archivo_path,fecha_vencimiento').eq('activo',true)
+      .in('requisito',['curso_manipulacion','concepto_medico']).in('conductor_id',condIds.slice(i,i+100));
+    existentes.push(...(data||[]));
+  }
+  let n=0;const nuevos=[];
+  for(const it of conFechas){
+    const c=ids[it.cedula];if(!c)continue;
+    for(const [req,fv] of Object.entries(it._fechas)){
+      const ex=existentes.filter(d=>d.conductor_id===c.id&&d.requisito===req);
+      if(ex.some(d=>d.archivo_path))continue; // ya tiene documento real
+      const ph=ex[0];
+      if(ph){if(ph.fecha_vencimiento!==fv){await db.from('auditoria_documentos').update({fecha_vencimiento:fv}).eq('id',ph.id);n++;}continue;}
+      nuevos.push({requisito:req,regional_id:c.regional_id,conductor_id:c.id,persona_nombre:c.nombre,persona_cedula:it.cedula,
+        persona_cargo:c.cargo||'Conductor',fecha_vencimiento:fv,observaciones:'Fecha tomada del listado de conductores'});
+    }
+  }
+  for(let i=0;i<nuevos.length;i+=100){const{error}=await db.from('auditoria_documentos').insert(nuevos.slice(i,i+100));if(!error)n+=Math.min(100,nuevos.length-i);}
+  return n;
+}
+function alertaFechasMalas(lista){
+  alert('Estas fechas del archivo no se pudieron leer y no se registraron. Corríjalas en el Excel o cárguelas a mano:\n\n'+lista.join('\n'));
+}
+
+// ── AUDITORÍAS · Programación (cronogramas) ───────────────────
+function pintarProgramacion(){
+  const box=document.getElementById('aud-prog');if(!box||!_aud)return;
+  if(_aud.prog===null){box.innerHTML='<div style="font-size:13px;color:var(--text2)">Para usar la programación, ejecuten <b>programacion_auditoria.sql</b> en Supabase.</div>';return;}
+  const lista=_aud.prog||[];
+  document.getElementById('aud-prog-res').textContent=lista.length?`${lista.filter(p=>p.ejecutada_en).length} de ${lista.length} ejecutadas`:'';
+  if(!lista.length){box.innerHTML='<div style="font-size:13px;color:var(--text2);padding:6px 0">No hay actividades programadas. Usa <b>+ Programar</b> para agregar las del cronograma (capacitaciones, verificaciones, fumigaciones…).</div>';return;}
+  const docs=_aud.docs||[];
+  box.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Actividad</th><th>Fecha</th><th>Estado</th><th>Soportes</th><th></th></tr></thead><tbody>
+    ${lista.map(p=>{
+      const req=audReq(p.requisito);
+      const sop=docsDeProg(p,docs.filter(d=>d.requisito===p.requisito));
+      const est=estadoProg(p,sop.length);
+      const quien=p.conductor_id?(_aud.conds||[]).find(c=>c.id===p.conductor_id)?.nombre:p.vehiculo_id?(_aud.vhs||[]).find(v=>v.id===p.vehiculo_id)?.placa:'';
+      return`<tr><td><b style="font-size:13px">${esc(p.titulo)}</b><div style="font-size:11px;color:var(--text3)">${esc(req?.nombre||p.requisito)}${quien?' · '+esc(quien):''}${p.responsable?' · Resp.: '+esc(p.responsable):''}</div></td>
+        <td style="font-size:12px;white-space:nowrap">${esc(p.periodo||'')}<div style="color:var(--text3)">${p.ejecutada_en?'Ejecutada '+fmtF(p.ejecutada_en):'Límite '+fmtF(p.fecha_programada)}</div></td>
+        <td>${badgeAud(est)}</td>
+        <td style="font-size:12px">${sop.filter(x=>x.archivo_path).map((x,n)=>`<a href="#" onclick="abrirArchivoAud('${escJs(x.archivo_path)}');return false" title="${esc(x.archivo_nombre||'')}">${n+1}</a>`).join(' · ')||'—'}</td>
+        <td style="white-space:nowrap;text-align:right">
+          <button class="btn btn-sm btn-primary" onclick="abrirDocAud('${p.requisito}',null,null,{progId:'${p.id}'})">+ Soporte</button>
+          ${p.ejecutada_en?'':`<button class="btn btn-sm" onclick="marcarEjecutadaProg('${p.id}')">Ejecutada</button>`}
+          <button class="btn btn-sm" onclick="abrirProg('${p.id}')">Editar</button>
+          <button class="btn btn-sm btn-red" onclick="quitarProg('${p.id}')" title="Quitar del cronograma">✕</button></td></tr>`;
+    }).join('')}</tbody></table></div>`;
+}
+function abrirProg(id){
+  if(_aud?.prog===null){toast('Primero ejecuten programacion_auditoria.sql',true);return;}
+  const p=id?(_aud.prog||[]).find(x=>x.id===id):null;
+  const sel=document.getElementById('prog-req');
+  sel.innerHTML=AUD_CATS.map(c=>`<optgroup label="${esc(c.nombre)}">${AUD_REQ.filter(r=>r.cat===c.k&&r.alcance!=='sistema'&&!r.docTipo).map(r=>`<option value="${r.k}">${esc(r.nombre)}</option>`).join('')}</optgroup>`).join('');
+  sel.value=p?.requisito||'soporte_capacitacion';
+  document.getElementById('prog-id').value=p?.id||'';
+  document.getElementById('prog-titulo').value=p?.titulo||'';
+  document.getElementById('prog-periodo').value=p?.periodo||'';
+  document.getElementById('prog-fecha').value=p?.fecha_programada||'';
+  document.getElementById('prog-ejec').value=p?.ejecutada_en||'';
+  document.getElementById('prog-resp').value=p?.responsable||'';
+  document.getElementById('prog-desc').value=p?.descripcion||'';
+  const sc=document.getElementById('prog-cond');
+  sc.innerHTML='<option value="">— Ninguno —</option>'+(_aud.conds||[]).filter(c=>c.activo!==false).map(c=>`<option value="${c.id}">${esc(c.nombre)}</option>`).join('');
+  sc.value=p?.conductor_id||'';
+  const sv=document.getElementById('prog-vh');
+  sv.innerHTML='<option value="">— Ninguno —</option>'+(_aud.vhs||[]).map(v=>`<option value="${v.id}">${esc(v.placa)}</option>`).join('');
+  sv.value=p?.vehiculo_id||'';
+  document.getElementById('prog-titulo-modal').textContent=p?'Editar actividad programada':'Programar actividad';
+  onProgReq();
+  document.getElementById('modal-prog').classList.add('open');
+}
+function onProgReq(){
+  const req=audReq(document.getElementById('prog-req').value);
+  document.getElementById('prog-wrap-cond').style.display=req?.alcance==='persona'?'':'none';
+  document.getElementById('prog-wrap-vh').style.display=req?.alcance==='vehiculo'?'':'none';
+}
+async function guardarProg(){
+  const id=document.getElementById('prog-id').value;
+  const req=audReq(document.getElementById('prog-req').value);
+  const datos={requisito:req?.k,titulo:document.getElementById('prog-titulo').value.trim(),
+    periodo:document.getElementById('prog-periodo').value.trim()||null,fecha_programada:document.getElementById('prog-fecha').value||null,
+    ejecutada_en:document.getElementById('prog-ejec').value||null,responsable:document.getElementById('prog-resp').value.trim()||null,
+    descripcion:document.getElementById('prog-desc').value.trim()||null,
+    conductor_id:req?.alcance==='persona'?(document.getElementById('prog-cond').value||null):null,
+    vehiculo_id:req?.alcance==='vehiculo'?(document.getElementById('prog-vh').value||null):null};
+  if(!datos.requisito||!datos.titulo||!datos.fecha_programada){toast('Requisito, actividad y fecha son obligatorios',true);return;}
+  const{error}=id?await db.from('auditoria_programacion').update(datos).eq('id',id)
+                 :await db.from('auditoria_programacion').insert({...datos,regional_id:_aud.reg});
+  if(error){toast('Error: '+error.message,true);return;}
+  toast(id?'Actividad actualizada ✓':'Actividad programada ✓');cerrarModal('modal-prog');cargarAuditorias();
+}
+async function marcarEjecutadaProg(id){
+  const{error}=await db.from('auditoria_programacion').update({ejecutada_en:hoy()}).eq('id',id);
+  if(error){toast('Error: '+error.message,true);return;}
+  toast('Marcada como ejecutada hoy. Si fue otro día, cámbialo en Editar.');cargarAuditorias();
+}
+async function quitarProg(id){
+  if(!confirm('¿Quitar esta actividad del cronograma? Los soportes ya cargados se conservan.'))return;
+  const{error}=await db.from('auditoria_programacion').update({activo:false}).eq('id',id);
+  if(error){toast('Error: '+error.message,true);return;}
+  cargarAuditorias();
+}
+
+// ── AUDITORÍAS · Tabla por conductor ──────────────────────────
+function pintarMatrizCond(){
+  const box=document.getElementById('aud-matriz');if(!box||!_aud)return;
+  const reqs=AUD_REQ.filter(r=>r.roster);
+  const activos=(_aud.conds||[]).filter(c=>c.activo!==false);
+  const q=normTxt(document.getElementById('aud-cond-buscar')?.value||'');
+  if(!activos.length){
+    box.innerHTML=`<div style="font-size:13px;color:var(--text2);padding:6px 0">No hay conductores registrados en esta regional. Usa <b>Conductores</b> para agregarlos o importar el listado.</div>`;return;
+  }
+  const porReq={};
+  _aud.res.filter(r=>r.req.roster).forEach(r=>{porReq[r.req.k]={};r.items.forEach(i=>{if(i.conductor)porReq[r.req.k][i.conductor.id]=i;});});
+  const filas=activos.filter(c=>!q||normTxt(c.nombre).includes(q)||(c.cedula||'').includes(q));
+  const celda=(req,c)=>{
+    const i=porReq[req.k]?.[c.id];
+    if(!i||!i.doc)return`<td style="text-align:center"><button class="btn btn-sm btn-red" onclick="abrirDocAud('${req.k}',null,'${c.id}')" title="Cargar">Falta · Cargar</button></td>`;
+    const f=i.venc?fmtF(i.venc):'';
+    return`<td style="text-align:center"><div style="display:flex;flex-direction:column;align-items:center;gap:3px">${badgeAud(i.estado)}<span style="font-size:11px;color:var(--text3)">${esc(f)}</span>
+      <span style="white-space:nowrap">${i.doc.archivo_path?`<a href="#" style="font-size:11px" onclick="abrirArchivoAud('${escJs(i.doc.archivo_path)}');return false">Ver</a> · <a href="#" style="font-size:11px" onclick="abrirDocAud('${req.k}','${i.doc.id}');return false">Renovar</a>`
+        :`<a href="#" style="font-size:11px;font-weight:600" onclick="abrirDocAud('${req.k}',null,null,{completaId:'${i.doc.id}'});return false">Cargar soporte</a>`}</span></div></td>`;
+  };
+  const completos=activos.filter(c=>reqs.every(r=>porReq[r.k]?.[c.id]?.estado==='vigente')).length;
+  document.getElementById('aud-matriz-res').textContent=`${completos} de ${activos.length} conductores con todo al día`;
+  box.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Conductor</th>${reqs.map(r=>`<th style="text-align:center">${esc(r.nombre)}</th>`).join('')}</tr></thead><tbody>
+    ${filas.map(c=>`<tr><td><b>${esc(c.nombre)}</b><div style="font-size:11px;color:var(--text3)">C.C. ${esc(c.cedula||'—')} · ${esc(c.cargo||'Conductor')}</div></td>${reqs.map(r=>celda(r,c)).join('')}</tr>`).join('')
+      ||`<tr><td colspan="${reqs.length+1}" style="text-align:center;color:var(--text3)">Sin resultados</td></tr>`}
+  </tbody></table></div>`;
+}
+
+// ── AUDITORÍAS · Carga masiva ─────────────────────────────────
+// Palabras del nombre del archivo que identifican cada requisito (de la más específica a la más general)
+const AUD_ALIAS=[
+  ['CONCEPTO_SANITARIO_PROVEEDOR','concepto_sanitario_proveedor'],['PROVEEDOR','concepto_sanitario_proveedor'],
+  ['CONCEPTO_SANITARIO_VEHICULO','concepto_sanitario_vehiculo'],['ACTA_SANITARIA','concepto_sanitario_vehiculo'],['CONCEPTO_SANITARIO','concepto_sanitario_vehiculo'],
+  ['CONCEPTO_MEDICO','concepto_medico'],['MEDICO','concepto_medico'],['APTITUD','concepto_medico'],
+  ['CURSO_MANIPULACION','curso_manipulacion'],['MANIPULACION','curso_manipulacion'],
+  ['VERIFICACION_BPM','verificacion_bpm'],['BPM','verificacion_bpm'],
+  ['MANTENIMIENTO_FRIO','mantenimiento_frio'],['UNIDAD_FRIO','mantenimiento_frio'],['FRIO','mantenimiento_frio'],['THERMO','mantenimiento_frio'],['TERMO','mantenimiento_frio'],
+  ['FUMIGACION','fumigacion'],
+  ['MIP','mip_tecnico'],
+  ['FICHA_TECNICA_PLAGAS','ft_hds_plagas'],['HDS_PLAGAS','ft_hds_plagas'],
+  ['FICHA_TECNICA','ft_hds_limpieza'],['HDS','ft_hds_limpieza'],['HOJA_SEGURIDAD','ft_hds_limpieza'],
+  ['PROGRAMA','programa_limpieza'],
+  ['CRONOGRAMA_CAPACITACION','cronograma_capacitacion'],['CAPACITACION','soporte_capacitacion'],
+];
+let _mas=[],_masHuboCambios=false,_masSeq=0;
+function reqsCargables(){return AUD_REQ.filter(r=>r.alcance!=='sistema');}
+function opcionesReqMasiva(sel){
+  return'<option value="">— Elegir —</option>'+AUD_CATS.map(c=>`<optgroup label="${esc(c.nombre)}">${reqsCargables().filter(r=>r.cat===c.k).map(r=>`<option value="${r.k}"${r.k===sel?' selected':''}>${esc(r.nombre)}</option>`).join('')}</optgroup>`).join('');
+}
+async function abrirMasiva(){
+  prepSelectRegAud();
+  const reg=document.getElementById('aud-reg').value;
+  if(!_aud||_aud.reg!==reg)await cargarAuditorias();
+  document.getElementById('mas-reg-nombre').textContent=rNombre(reg);
+  _mas=[];_masHuboCambios=false;
+  document.getElementById('mas-req-todos').innerHTML=opcionesReqMasiva('');
+  document.getElementById('mas-exp-todos').value='';
+  pintarMasiva();
+  document.getElementById('modal-masiva').classList.add('open');
+}
+// Arrastrar y soltar
+document.addEventListener('DOMContentLoaded',()=>{
+  const d=document.getElementById('mas-drop');if(!d)return;
+  ['dragenter','dragover'].forEach(t=>d.addEventListener(t,e=>{e.preventDefault();d.style.borderColor='var(--accent)';}));
+  ['dragleave','drop'].forEach(t=>d.addEventListener(t,e=>{e.preventDefault();d.style.borderColor='var(--border)';}));
+  d.addEventListener('drop',e=>agregarArchivosMasiva(e.dataTransfer.files));
+});
+function leerNombreArchivo(nombre){
+  const base=nombre.replace(/\.[^.]+$/,'');
+  const out={req:'',destino:'',exp:''};
+  // Fecha: AAAA-MM-DD, AAAA.MM.DD o DD-MM-AAAA
+  let m=base.match(/(20\d{2})[-.](\d{1,2})[-.](\d{1,2})/);
+  if(m)out.exp=`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  else if((m=base.match(/(\d{1,2})[-.](\d{1,2})[-.](20\d{2})/)))out.exp=`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  const sinFecha=m?base.replace(m[0],' '):base;
+  const N='_'+normTxt(sinFecha).replace(/[^A-Z0-9]+/g,'_')+'_';
+  for(const [alias,k] of AUD_ALIAS){if(N.includes('_'+alias+'_')||N.includes('_'+alias)){out.req=k;break;}}
+  const tokens=N.split('_').filter(Boolean);
+  // Placa (ABC123) o cédula (6 a 11 dígitos)
+  const vhs=_aud?.vhs||[],conds=(_aud?.conds||[]).filter(c=>c.activo!==false);
+  const placa=tokens.find(t=>/^[A-Z]{3}\d{2}[A-Z0-9]$/.test(t)&&vhs.some(v=>normTxt(v.placa)===t));
+  if(placa)out.destino='v:'+vhs.find(v=>normTxt(v.placa)===placa).id;
+  if(!out.destino){
+    const ced=tokens.find(t=>/^\d{6,11}$/.test(t)&&conds.some(c=>c.cedula===t));
+    if(ced)out.destino='c:'+conds.find(c=>c.cedula===ced).id;
+  }
+  if(!out.destino){ // por nombre del conductor
+    const c=conds.find(c=>{const p=normTxt(c.nombre).split(/\s+/).filter(x=>x.length>2);return p.length>=2&&p.slice(0,2).every(x=>tokens.includes(x));});
+    if(c)out.destino='c:'+c.id;
+  }
+  return out;
+}
+function venceDesde(req,exp){
+  if(!req?.vig||!exp)return'';
+  const[y,mm,d]=exp.split('-').map(Number);return fechaLocal(new Date(y,mm-1+req.vig,d));
+}
+function agregarArchivosMasiva(files){
+  for(const f of files){
+    if(!tipoArchivoAudOk(f)){toast(`${f.name}: solo PDF, JPG, PNG, Excel o Word`,true);continue;}
+    const p=leerNombreArchivo(f.name);
+    const req=audReq(p.req);
+    const r={id:++_masSeq,file:f,req:p.req,destino:p.destino,titulo:'',exp:p.exp,venc:venceDesde(req,p.exp),estado:'pendiente',msg:''};
+    vincularRegistroMas(r);_mas.push(r);
+  }
+  pintarMasiva();
+}
+// Si el conductor o vehículo ya tiene el registro con fecha (sin archivo), el archivo lo completa
+function vincularRegistroMas(r){
+  r.completaId=null;
+  const req=audReq(r.req);if(!req||req.docTipo||!r.destino)return;
+  const id=r.destino.slice(2),campo=r.destino.startsWith('c:')?'conductor_id':'vehiculo_id';
+  const d=(_aud?.docs||[]).find(x=>x.requisito===req.k&&x[campo]===id&&!x.archivo_path);
+  if(d){r.completaId=d.id;if(!r.venc)r.venc=d.fecha_vencimiento||'';if(!r.exp)r.exp=d.fecha_expedicion||'';}
+}
+function destinoCelda(r){
+  const req=audReq(r.req);
+  if(!req)return'<span style="font-size:12px;color:var(--text3)">Elige el requisito</span>';
+  const st='font-size:12px;padding:5px;border:0.5px solid var(--border);border-radius:var(--r);width:100%';
+  if(req.alcance==='vehiculo'){
+    const vhs=(_aud?.vhs||[]).filter(v=>!req.soloRefrigerado||v.ambiente==='refrigerado');
+    return`<select style="${st}" onchange="setMas(${r.id},'destino',this.value)"><option value="">— Vehículo —</option>${vhs.map(v=>`<option value="v:${v.id}"${r.destino==='v:'+v.id?' selected':''}>${esc(v.placa)}</option>`).join('')}</select>`;
+  }
+  const progs=(_aud?.prog||[]).filter(p=>p.requisito===req.k);
+  if(req.prog&&progs.length){
+    // Soporte de una actividad del cronograma
+    return`<select style="${st}" onchange="setMas(${r.id},'destino',this.value)"><option value="">— Actividad del cronograma —</option>${progs.map(p=>`<option value="p:${p.id}"${r.destino==='p:'+p.id?' selected':''}>${esc((p.periodo?p.periodo+' · ':'')+p.titulo)}</option>`).join('')}</select>`;
+  }
+  if(req.roster){
+    const cs=(_aud?.conds||[]).filter(c=>c.activo!==false);
+    if(!cs.length)return'<span style="font-size:12px;color:var(--red-dark)">Primero registra los conductores</span>';
+    return`<select style="${st}" onchange="setMas(${r.id},'destino',this.value)"><option value="">— Conductor —</option>${cs.map(c=>`<option value="c:${c.id}"${r.destino==='c:'+c.id?' selected':''}>${esc(c.nombre)} · ${esc(c.cedula||'')}</option>`).join('')}</select>`;
+  }
+  const ph=req.alcance==='persona'?'Nombre de la persona *':(req.tituloLbl||'Descripción')+(req.multi&&req.tituloLbl?' *':'');
+  return`<input type="text" style="${st}" placeholder="${esc(ph)}" value="${esc(r.titulo)}" oninput="setMas(${r.id},'titulo',this.value,true)">`;
+}
+function pintarMasiva(){
+  const tb=document.getElementById('mas-lista');
+  document.getElementById('mas-barra').style.display=_mas.length?'flex':'none';
+  if(!_mas.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:18px">Aún no hay archivos</td></tr>';document.getElementById('mas-resumen').textContent='';return;}
+  const st='font-size:12px;padding:5px;border:0.5px solid var(--border);border-radius:var(--r)';
+  tb.innerHTML=_mas.map(r=>{
+    const est={pendiente:'<span class="badge b-gray">Pendiente</span>',ok:'<span class="badge b-green">Guardado</span>',error:`<span class="badge b-red" title="${esc(r.msg)}">Error</span><div style="font-size:11px;color:var(--red-dark);max-width:180px">${esc(r.msg)}</div>`,subiendo:'<span class="badge b-amber">Guardando…</span>'}[r.estado];
+    const bloq=r.estado==='ok'||r.estado==='subiendo'?' disabled':'';
+    return`<tr>
+      <td style="font-size:12px;max-width:200px;word-break:break-all">${esc(r.file.name)}</td>
+      <td><select style="${st};max-width:240px" onchange="setMas(${r.id},'req',this.value)"${bloq}>${opcionesReqMasiva(r.req)}</select></td>
+      <td style="min-width:180px">${destinoCelda(r)}</td>
+      <td><input type="date" style="${st}" value="${r.exp}" onchange="setMas(${r.id},'exp',this.value)"${bloq}></td>
+      <td><input type="date" style="${st}" value="${r.venc}" onchange="setMas(${r.id},'venc',this.value)"${bloq}></td>
+      <td>${est}${r.completaId&&r.estado!=='ok'?'<div style="font-size:10px;color:var(--text3)">Completa el registro existente</div>':''}</td>
+      <td>${r.estado!=='ok'?`<button class="btn btn-sm" onclick="quitarMas(${r.id})" title="Quitar">✕</button>`:''}</td></tr>`;
+  }).join('');
+  const ok=_mas.filter(r=>r.estado==='ok').length,err=_mas.filter(r=>r.estado==='error').length;
+  document.getElementById('mas-resumen').textContent=`${_mas.length} archivo(s)`+(ok?` · ${ok} guardado(s)`:'')+(err?` · ${err} con error`:'');
+}
+function setMas(id,campo,valor,sinRepintar){
+  const r=_mas.find(x=>x.id===id);if(!r)return;
+  r[campo]=valor;
+  if(campo==='req'){r.destino='';r.venc=venceDesde(audReq(valor),r.exp)||r.venc;}
+  if(campo==='exp'){const v=venceDesde(audReq(r.req),valor);if(v)r.venc=v;}
+  if(campo==='destino'||campo==='req')vincularRegistroMas(r);
+  if(r.estado==='error')r.estado='pendiente';
+  if(!sinRepintar)pintarMasiva();
+}
+function quitarMas(id){_mas=_mas.filter(x=>x.id!==id);pintarMasiva();}
+function aplicarTodosMasiva(){
+  const k=document.getElementById('mas-req-todos').value,exp=document.getElementById('mas-exp-todos').value;
+  _mas.filter(r=>r.estado!=='ok').forEach(r=>{
+    if(k&&!r.req){r.req=k;r.destino='';}
+    if(exp&&!r.exp)r.exp=exp;
+    if(!r.venc)r.venc=venceDesde(audReq(r.req),r.exp);
+  });
+  pintarMasiva();
+}
+function validarFilaMasiva(r){
+  const req=audReq(r.req);
+  if(!req)return'Falta el requisito';
+  if(req.alcance==='vehiculo'&&!r.destino.startsWith('v:'))return'Falta el vehículo';
+  if(req.roster&&!r.destino.startsWith('c:'))return'Falta el conductor';
+  if(req.alcance==='persona'&&!req.roster&&!r.titulo.trim())return'Falta el nombre de la persona';
+  const conProg=req.prog&&(_aud?.prog||[]).some(p=>p.requisito===req.k);
+  if(conProg&&!r.destino.startsWith('p:'))return'Elige la actividad del cronograma';
+  if(!conProg&&req.multi&&req.tituloLbl&&!r.titulo.trim())return`Falta: ${req.tituloLbl.toLowerCase()}`;
+  if((req.vig||req.docTipo)&&!r.venc)return'Falta la fecha de vencimiento';
+  if(r.file.size>10*1024*1024)return'El archivo supera 10 MB';
+  if(req.docTipo&&r.file.size>5*1024*1024)return'Los documentos del vehículo admiten máx. 5 MB';
+  if(req.docTipo&&!/^(application\/pdf|image\/jpeg|image\/png)$/.test(tipoArchivoAud(r.file)))return'Los documentos del vehículo deben ser PDF o imagen';
+  return'';
+}
+// Fumigación y concepto sanitario del vehículo se guardan en Documentos del vehículo (igual que en la ficha)
+async function guardarDocVehiculoMasivo(vhId,tipo,file,exp,venc){
+  const vh=(_aud?.vhs||[]).find(v=>v.id===vhId);
+  const ext=(file.name.split('.').pop()||'pdf').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const filename=`${vhId}_${tipo}_${Date.now()}.${ext}`;
+  const up=await fetch(`${SUPABASE_URL}/storage/v1/object/documentos-vehiculos/${filename}`,{method:'POST',headers:await storageHeaders({'x-upsert':'true','Content-Type':file.type}),body:file});
+  if(!up.ok){const e=await up.json().catch(()=>({}));throw new Error(e.message||'No se pudo subir el archivo');}
+  const sg=await fetch(`${SUPABASE_URL}/storage/v1/object/sign/documentos-vehiculos/${filename}`,{method:'POST',headers:await storageHeaders({'Content-Type':'application/json'}),body:JSON.stringify({expiresIn:31536000})});
+  const sd=await sg.json();
+  const docData={fecha_expedicion:exp||null,fecha_vencimiento:venc,archivo_url:`${SUPABASE_URL}/storage/v1${sd.signedURL}`,archivo_nombre:file.name,updated_at:new Date().toISOString()};
+  const{data:ex}=await db.from('documentos_vehiculo').select('id').eq('vehiculo_id',vhId).eq('tipo',tipo).maybeSingle();
+  const{error}=ex?await db.from('documentos_vehiculo').update(docData).eq('id',ex.id)
+                 :await db.from('documentos_vehiculo').insert({vehiculo_id:vhId,regional_id:_aud.reg,tipo,...docData});
+  if(error)throw error;
+}
+async function guardarMasiva(){
+  const pend=_mas.filter(r=>r.estado!=='ok');
+  if(!pend.length){toast('No hay archivos pendientes');return;}
+  pend.forEach(r=>{const m=validarFilaMasiva(r);if(m){r.estado='error';r.msg=m;}else{r.estado='pendiente';r.msg='';}});
+  const listos=pend.filter(r=>r.estado==='pendiente');
+  pintarMasiva();
+  if(!listos.length){toast('Revisa los archivos marcados con error',true);return;}
+  const btn=document.getElementById('mas-btn');btn.disabled=true;
+  const reg=_aud.reg;
+  for(const r of listos){
+    r.estado='subiendo';pintarMasiva();btn.textContent=`Guardando ${listos.indexOf(r)+1} de ${listos.length}…`;
+    try{
+      const req=audReq(r.req);
+      if(req.docTipo){
+        await guardarDocVehiculoMasivo(r.destino.slice(2),req.docTipo,r.file,r.exp,r.venc);
+      }else{
+        const ext=(r.file.name.split('.').pop()||'pdf').toLowerCase().replace(/[^a-z0-9]/g,'');
+        const uid=crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2);
+        const path=`${reg}/${req.k}/${uid}.${ext}`;
+        const{error:eUp}=await db.storage.from('auditoria-docs').upload(path,r.file,{contentType:tipoArchivoAud(r.file),upsert:false});
+        if(eUp)throw eUp;
+        if(r.completaId){
+          const{error}=await db.from('auditoria_documentos').update({archivo_path:path,archivo_nombre:r.file.name.slice(0,200),
+            fecha_expedicion:r.exp||null,fecha_vencimiento:r.venc||null}).eq('id',r.completaId);
+          if(error)throw error;
+          r.estado='ok';_masHuboCambios=true;pintarMasiva();continue;
+        }
+        const c=r.destino.startsWith('c:')?(_aud.conds||[]).find(x=>x.id===r.destino.slice(2)):null;
+        const pg=r.destino.startsWith('p:')?(_aud.prog||[]).find(x=>x.id===r.destino.slice(2)):null;
+        if(pg)r.titulo=pg.titulo;
+        const fila={requisito:req.k,regional_id:reg,programacion_id:pg?.id||null,
+          vehiculo_id:r.destino.startsWith('v:')?r.destino.slice(2):null,
+          conductor_id:c?.id||null,
+          persona_nombre:c?c.nombre:(req.alcance==='persona'?r.titulo.trim():null),
+          persona_cedula:c?.cedula||null,persona_cargo:c?(c.cargo||'Conductor'):(req.cargo||null),
+          titulo:req.alcance==='persona'&&!c?null:(r.titulo.trim()||null),
+          fecha_expedicion:r.exp||null,fecha_vencimiento:r.venc||null,
+          archivo_path:path,archivo_nombre:r.file.name.slice(0,200)};
+        const{data:nuevo,error}=await db.from('auditoria_documentos').insert(fila).select('id').single();
+        if(error)throw error;
+        if(pg&&!pg.ejecutada_en){await db.from('auditoria_programacion').update({ejecutada_en:r.exp||hoy()}).eq('id',pg.id);pg.ejecutada_en=r.exp||hoy();}
+        // El documento nuevo reemplaza al anterior del mismo conductor/vehículo (si no es de los que admiten varios)
+        if(!req.multi&&(fila.conductor_id||fila.vehiculo_id)){
+          let q=db.from('auditoria_documentos').update({activo:false}).eq('requisito',req.k).eq('regional_id',reg).eq('activo',true).neq('id',nuevo.id);
+          q=fila.conductor_id?q.eq('conductor_id',fila.conductor_id):q.eq('vehiculo_id',fila.vehiculo_id);
+          await q;
+        }
+      }
+      r.estado='ok';_masHuboCambios=true;
+    }catch(e){r.estado='error';r.msg=e.message||'Error al guardar';}
+    pintarMasiva();
+  }
+  btn.disabled=false;btn.textContent='Guardar todos';
+  const err=_mas.filter(r=>r.estado==='error').length;
+  toast(err?`Terminado con ${err} error(es): revísalos en la tabla`:'Todos los documentos se guardaron ✓',err>0);
+  if(_masHuboCambios)actualizarBadgeAuditorias();
 }
 
 // ── SOPORTE SEMANAL GENERADO (reemplaza imprimir, firmar y escanear) ──
