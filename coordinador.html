@@ -284,6 +284,34 @@ tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
+<!-- Modal documento de auditoría -->
+<div class="modal-overlay" id="modal-aud">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title" id="aud-modal-titulo">Cargar documento de auditoría</div>
+    <input type="hidden" id="aud-reemplaza">
+    <div class="form2">
+      <div class="field full" style="grid-column:1/-1"><label>Requisito *</label><select id="aud-req" onchange="onAudReq()"></select></div>
+      <div class="field" style="grid-column:1/-1"><label>Aplica a *</label><select id="aud-reg-sel" onchange="onAudReq()"></select></div>
+      <div class="field" id="aud-wrap-vh" style="grid-column:1/-1;display:none"><label>Vehículo *</label><select id="aud-vh"></select></div>
+      <div class="field" id="aud-wrap-pn" style="display:none"><label>Nombre de la persona *</label><input type="text" id="aud-p-nombre" maxlength="120"></div>
+      <div class="field" id="aud-wrap-pc" style="display:none"><label>Cédula</label><input type="text" id="aud-p-cedula" maxlength="20" inputmode="numeric"></div>
+      <div class="field" id="aud-wrap-pg" style="display:none;grid-column:1/-1"><label>Cargo</label><input type="text" id="aud-p-cargo" maxlength="80" placeholder="Conductor, auxiliar, técnico fumigador…"></div>
+      <div class="field" style="grid-column:1/-1"><label id="aud-titulo-lbl">Descripción</label><input type="text" id="aud-titulo" maxlength="160"></div>
+      <div class="field"><label>N.° documento</label><input type="text" id="aud-numero" maxlength="60"></div>
+      <div class="field"><label>Fecha de expedición</label><input type="date" id="aud-exp" onchange="sugerirVencAud()"></div>
+      <div class="field"><label id="aud-venc-lbl">Fecha de vencimiento *</label><input type="date" id="aud-venc"></div>
+      <div class="field"><label>&nbsp;</label><div style="font-size:11px;color:var(--text3)" id="aud-venc-hint"></div></div>
+      <div class="field" style="grid-column:1/-1"><label>Archivo * <span style="font-size:11px;color:var(--text3)">(PDF o imagen, máx. 10 MB)</span></label>
+        <input type="file" id="aud-archivo" accept=".pdf,.jpg,.jpeg,.png" style="border:1px solid var(--border);border-radius:var(--r);padding:8px;font-size:12px;width:100%"></div>
+      <div class="field" style="grid-column:1/-1"><label>Observaciones</label><input type="text" id="aud-obs" maxlength="300"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-aud')">Cancelar</button>
+      <button class="btn btn-primary" id="aud-btn-guardar" onclick="guardarDocAud()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal celda lavado -->
 <div class="modal-overlay" id="modal-lav-celda">
   <div class="modal" style="max-width:460px;max-height:92vh;overflow-y:auto">
@@ -606,6 +634,8 @@ tr:hover td{background:var(--bg2)}
     <div class="snav-item" data-page="disp-operativa" onclick="ir('disp-operativa')"><span>Disponibilidad op.</span></div>
     <div class="snav-item" data-page="reportes" onclick="ir('reportes')"><span>Reportes</span></div>
     <div class="snav-item" data-page="lavados" onclick="ir('lavados')"><span>Lavados</span></div>
+    <div class="snav-sec">Calidad</div>
+    <div class="snav-item" data-page="auditorias" onclick="ir('auditorias')"><span>Auditorías</span><span class="badge b-red" id="badge-aud" style="display:none"></span></div>
   </nav>
 
   <main class="main">
@@ -1407,6 +1437,34 @@ tr:hover td{background:var(--bg2)}
   </div>
 
   <!-- NOVEDADES OPERATIVAS -->
+  <!-- AUDITORÍAS (documentos de Calidad) -->
+  <div id="page-auditorias" class="page">
+    <div class="card" style="padding:14px 18px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:16px;font-weight:700">Auditoría de calidad</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px">Documentos y registros que exige Calidad, con alertas de vencimiento.</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="aud-reg" onchange="cargarAuditorias()" style="font-size:12px;padding:6px 8px;border:0.5px solid var(--border);border-radius:var(--r)"></select>
+          <button class="btn btn-sm" onclick="exportarAuditoria()">⬇ Excel</button>
+          <button class="btn btn-sm btn-primary" onclick="abrirDocAud()">+ Cargar documento</button>
+        </div>
+      </div>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">Requisitos al día</div><div class="metric-val" id="aud-m-ok">—</div><div class="metric-sub" id="aud-m-ok-sub">de los requisitos</div></div>
+      <div class="metric" style="border-top-color:var(--red)"><div class="metric-label">Vencidos o faltantes</div><div class="metric-val" id="aud-m-venc" style="color:var(--red)">—</div><div class="metric-sub">Requieren acción</div></div>
+      <div class="metric" style="border-top-color:var(--amber)"><div class="metric-label">Por vencer</div><div class="metric-val" id="aud-m-prox" style="color:var(--amber)">—</div><div class="metric-sub">Dentro del plazo de aviso</div></div>
+      <div class="metric"><div class="metric-label">Documentos cargados</div><div class="metric-val" id="aud-m-docs">—</div><div class="metric-sub">Vigentes en el módulo</div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><span class="card-title">Próximos vencimientos y pendientes</span><span id="aud-prox-count" style="font-size:12px;color:var(--text2)"></span></div>
+      <div id="aud-proximos"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+    <div id="aud-cats"></div>
+  </div>
+
   <div id="page-novedades" class="page">
 
     <!-- KPIs -->
@@ -1651,6 +1709,7 @@ function ir(page){
   if(page==='novedades')cargarNovedades();
   if(page==='gerencial')cargarPanelGerencial();
   if(page==='reportes')initReportes();
+  if(page==='auditorias')cargarAuditorias();
 }
 function onFiltro(){REGIONAL_ID=USER_ROL==='gerente'?(document.getElementById('filtro-regional').value||null):REGIONAL_ID;cargarDashboard();}
 
@@ -1678,6 +1737,7 @@ async function init(){
     });
   }
   await cargarDashboard();
+  actualizarBadgeAuditorias();
 }
 
 async function cargarDashboard(){
@@ -4882,6 +4942,388 @@ async function generarReporteLavados(){
   finally{btn.disabled=false;btn.textContent='⬇ Descargar Excel';}
 }
 
+
+// ── AUDITORÍAS (documentos que exige Calidad) ─────────────────
+// alcance: general = documento de la regional o nacional · persona = uno por persona
+//          vehiculo = uno por vehículo · sistema = se calcula con datos del aplicativo
+// vig = meses de vigencia sugeridos (null = no vence) · aviso = días antes del vencimiento para alertar
+const AUD_CATS=[
+  {k:'limpieza',nombre:'Limpieza y desinfección'},
+  {k:'plagas',nombre:'Control de plagas'},
+  {k:'vehiculo',nombre:'Vehículo'},
+  {k:'personal',nombre:'Personal'},
+];
+const AUD_REQ=[
+  {k:'programa_limpieza',cat:'limpieza',nombre:'Programa de limpieza y desinfección',alcance:'general',vig:12,aviso:30},
+  {k:'cronograma_lavado',cat:'limpieza',nombre:'Cronograma de lavado (3 enjuagues y 1 lavado general al mes)',alcance:'sistema',ir:'lavados'},
+  {k:'registro_lavado',cat:'limpieza',nombre:'Registro de ejecución y verificación del lavado',alcance:'sistema',ir:'lavados'},
+  {k:'verificacion_vehiculo',cat:'limpieza',nombre:'Verificación periódica de condiciones del vehículo',alcance:'sistema',ir:'checklists'},
+  {k:'ft_hds_limpieza',cat:'limpieza',nombre:'Fichas técnicas y hojas de seguridad de las sustancias de limpieza',alcance:'general',vig:null,multi:true,tituloLbl:'Sustancia'},
+  {k:'fumigacion',cat:'plagas',nombre:'Certificado de fumigación cada 3 meses (sustancia, dosis y técnico aplicador)',alcance:'vehiculo',docTipo:'fumigacion',aviso:15},
+  {k:'concepto_sanitario_proveedor',cat:'plagas',nombre:'Concepto sanitario del proveedor de fumigación',alcance:'general',vig:12,aviso:30,tituloLbl:'Proveedor'},
+  {k:'mip_tecnico',cat:'plagas',nombre:'Certificados MIP y curso de manipulación de alimentos del técnico',alcance:'persona',vig:12,aviso:30},
+  {k:'ft_hds_plagas',cat:'plagas',nombre:'Fichas técnicas y hojas de seguridad de las sustancias (según manual de aliados)',alcance:'general',vig:null,multi:true,tituloLbl:'Sustancia'},
+  {k:'concepto_sanitario_vehiculo',cat:'vehiculo',nombre:'Certificado de concepto sanitario del vehículo',alcance:'vehiculo',docTipo:'acta_sanitaria',aviso:30},
+  {k:'mantenimiento_frio',cat:'vehiculo',nombre:'Certificado de mantenimiento de la unidad de frío',alcance:'vehiculo',soloRefrigerado:true,vig:6,aviso:30},
+  {k:'concepto_medico',cat:'personal',nombre:'Concepto médico apto para manipulación de alimentos',alcance:'persona',vig:12,aviso:30},
+  {k:'curso_manipulacion',cat:'personal',nombre:'Curso de manipulación de alimentos',alcance:'persona',vig:12,aviso:30},
+  {k:'verificacion_bpm',cat:'personal',nombre:'Verificación de BPM',alcance:'general',vig:1,aviso:7,multi:true,tituloLbl:'Periodo verificado'},
+  {k:'cronograma_capacitacion',cat:'personal',nombre:'Cronograma de capacitación enfocado en BPM',alcance:'general',vig:12,aviso:30},
+  {k:'soporte_capacitacion',cat:'personal',nombre:'Soportes de ejecución de las capacitaciones en BPM',alcance:'general',vig:null,multi:true,tituloLbl:'Tema de la capacitación'},
+];
+const AUD_EST={
+  vigente:{t:'Al día',c:'b-green',n:0},
+  info:{t:'Sin datos aún',c:'b-gray',n:1},
+  proximo:{t:'Por vencer',c:'b-amber',n:2},
+  parcial:{t:'Parcial',c:'b-amber',n:2},      // registros del aplicativo incompletos
+  vencido:{t:'Vencido',c:'b-red',n:3},
+  atrasado:{t:'Atrasado',c:'b-red',n:3},      // registros del aplicativo atrasados
+  faltante:{t:'Falta',c:'b-red',n:4},
+};
+let _aud=null; // datos de la última carga
+
+function audReq(k){return AUD_REQ.find(r=>r.k===k);}
+function audEstadoFecha(fv,aviso=30){
+  if(!fv)return{estado:'vigente',dias:null};
+  const{dias}=calcEstadoDoc(fv);
+  return{estado:dias<0?'vencido':dias<=aviso?'proximo':'vigente',dias};
+}
+function peor(estados){return estados.reduce((a,b)=>AUD_EST[b].n>AUD_EST[a].n?b:a,'vigente');}
+function badgeAud(e){const x=AUD_EST[e]||AUD_EST.info;return`<span class="badge ${x.c}">${x.t}</span>`;}
+function diasTxt(d){if(d==null)return'No vence';if(d<0)return`Venció hace ${-d} día${d===-1?'':'s'}`;if(d===0)return'Vence hoy';return`Vence en ${d} día${d===1?'':'s'}`;}
+
+function prepSelectRegAud(){
+  const sel=document.getElementById('aud-reg');
+  if(sel.options.length)return;
+  if(USER_ROL==='gerente'){
+    regionales.forEach(r=>sel.add(new Option(r.nombre,r.id)));
+    sel.value=REGIONAL_ID||regionales[0]?.id||'';
+  }else{
+    sel.add(new Option(rNombre(REGIONAL_ID),REGIONAL_ID));sel.disabled=true;
+  }
+}
+
+async function cargarAuditorias(){
+  prepSelectRegAud();
+  const reg=document.getElementById('aud-reg').value;
+  const cont=document.getElementById('aud-cats');
+  cont.innerHTML='<div class="card"><div class="loading"><div class="spinner"></div></div></div>';
+  if(!reg){cont.innerHTML='<div class="card" style="color:var(--text2)">No hay regionales activas.</div>';return;}
+  try{
+    const hoyD=new Date();
+    const mesIni=fechaLocal(new Date(hoyD.getFullYear(),hoyD.getMonth(),1));
+    const hace7=fechaLocal(new Date(Date.now()-6*86400000));
+    const [rDocs,rVhs,rDv,rLav,rCl]=await Promise.all([
+      db.from('auditoria_documentos').select('*').eq('activo',true).or(`regional_id.is.null,regional_id.eq.${reg}`).order('fecha_vencimiento',{ascending:false,nullsFirst:true}),
+      db.from('vehiculos').select('id,placa,tipo,ambiente').eq('activo',true).neq('tipo','remolque').eq('regional_id',reg).order('placa'),
+      db.from('documentos_vehiculo').select('id,tipo,vehiculo_id,fecha_vencimiento,numero_documento').in('tipo',['fumigacion','acta_sanitaria']).eq('regional_id',reg),
+      db.from('lavados').select('vehiculo_id,tipo,estado,recibe_nombre').eq('regional_id',reg).gte('fecha',mesIni).eq('estado','ejecutado'),
+      db.from('checklists').select('vehiculo_id').eq('regional_id',reg).gte('fecha',hace7),
+    ]);
+    for(const r of [rDocs,rVhs,rDv,rLav,rCl])if(r.error)throw r.error;
+    const docs=rDocs.data||[],vhs=rVhs.data||[],dv=rDv.data||[],lavs=rLav.data||[],cls=rCl.data||[];
+    const res=AUD_REQ.map(req=>evaluarReqAud(req,{docs,vhs,dv,lavs,cls,hoyD}));
+    _aud={reg,docs,vhs,res};
+    pintarAuditorias();
+  }catch(e){
+    const msg=/auditoria_documentos/.test(e.message||'')?'Falta ejecutar auditorias.sql en Supabase.':e.message;
+    cont.innerHTML=`<div class="card" style="color:var(--red-dark)">No se pudo cargar la auditoría: ${esc(msg)}</div>`;
+  }
+}
+
+// Calcula el estado de un requisito y la lista de elementos que lo componen
+function evaluarReqAud(req,{docs,vhs,dv,lavs,cls,hoyD}){
+  const out={req,estado:'faltante',detalle:'',items:[]};
+  const aviso=req.aviso??30;
+  if(req.alcance==='sistema'){
+    const n=vhs.length;
+    if(!n){out.estado='info';out.detalle='Sin vehículos activos en la regional';return out;}
+    if(req.k==='cronograma_lavado'){
+      const dim=new Date(hoyD.getFullYear(),hoyD.getMonth()+1,0).getDate(),d=hoyD.getDate();
+      const esperado=Math.floor(4*d/dim);
+      const cnt={},gen={};
+      lavs.forEach(l=>{cnt[l.vehiculo_id]=(cnt[l.vehiculo_id]||0)+1;if(l.tipo==='general')gen[l.vehiculo_id]=(gen[l.vehiculo_id]||0)+1;});
+      const finMes=d>dim-7;
+      vhs.forEach(v=>{
+        const c=cnt[v.id]||0,g=gen[v.id]||0;
+        const atras=c<esperado||(finMes&&g<1);
+        out.items.push({etiqueta:v.placa,detalle:`${c} lavado(s) en el mes · ${g} general`,estado:atras?'atrasado':'vigente'});
+      });
+      const atrasados=out.items.filter(i=>i.estado!=='vigente').length;
+      out.estado=atrasados===0?'vigente':atrasados<=Math.ceil(n*0.2)?'parcial':'atrasado';
+      out.detalle=`${n-atrasados} de ${n} vehículos al día (a hoy se esperan ${esperado} lavado${esperado===1?'':'s'} por vehículo)`;
+    }else if(req.k==='registro_lavado'){
+      const total=lavs.length,firm=lavs.filter(l=>l.recibe_nombre).length;
+      out.estado=total===0?'info':firm===total?'vigente':'parcial';
+      out.detalle=total?`${firm} de ${total} lavados del mes con firma de quien recibe`:'Aún no hay lavados registrados este mes';
+    }else if(req.k==='verificacion_vehiculo'){
+      const con=new Set(cls.map(c=>c.vehiculo_id));
+      vhs.forEach(v=>out.items.push({etiqueta:v.placa,detalle:con.has(v.id)?'Con checklist en los últimos 7 días':'Sin checklist en los últimos 7 días',estado:con.has(v.id)?'vigente':'atrasado'}));
+      const ok=vhs.filter(v=>con.has(v.id)).length;
+      out.estado=ok===n?'vigente':ok>=n*0.8?'parcial':'atrasado';
+      out.detalle=`${ok} de ${n} vehículos con checklist en los últimos 7 días`;
+    }
+    return out;
+  }
+  if(req.alcance==='vehiculo'){
+    const aplica=req.soloRefrigerado?vhs.filter(v=>v.ambiente==='refrigerado'):vhs;
+    if(!aplica.length){out.estado='info';out.detalle=req.soloRefrigerado?'No hay vehículos refrigerados en la regional':'Sin vehículos activos';return out;}
+    aplica.forEach(v=>{
+      let ult=null;
+      if(req.docTipo){
+        ult=dv.filter(d=>d.tipo===req.docTipo&&d.vehiculo_id===v.id).sort((a,b)=>(b.fecha_vencimiento||'').localeCompare(a.fecha_vencimiento||''))[0]||null;
+      }else{
+        ult=docs.filter(d=>d.requisito===req.k&&d.vehiculo_id===v.id)[0]||null; // ya vienen ordenados por vencimiento desc
+      }
+      if(!ult){out.items.push({etiqueta:v.placa,detalle:'Sin documento',estado:'faltante'});return;}
+      const st=audEstadoFecha(ult.fecha_vencimiento,aviso);
+      out.items.push({etiqueta:v.placa,detalle:`${fmtF(ult.fecha_vencimiento)} · ${diasTxt(st.dias)}`,estado:st.estado,dias:st.dias,venc:ult.fecha_vencimiento,doc:req.docTipo?null:ult});
+    });
+    out.estado=peor(out.items.map(i=>i.estado));
+    const c=e=>out.items.filter(i=>i.estado===e).length;
+    const partes=[`${c('vigente')} de ${aplica.length} al día`];
+    if(c('proximo'))partes.push(`${c('proximo')} por vencer`);
+    if(c('vencido'))partes.push(`${c('vencido')} vencido(s)`);
+    if(c('faltante'))partes.push(`${c('faltante')} sin documento`);
+    out.detalle=partes.join(' · ');
+    return out;
+  }
+  const propios=docs.filter(d=>d.requisito===req.k);
+  if(req.alcance==='persona'){
+    if(!propios.length){out.detalle='No hay documentos cargados';return out;}
+    const porPersona={};
+    propios.forEach(d=>{const key=(d.persona_cedula||d.persona_nombre||'').trim().toUpperCase();if(!porPersona[key])porPersona[key]=d;});
+    Object.values(porPersona).forEach(d=>{
+      const st=audEstadoFecha(d.fecha_vencimiento,aviso);
+      out.items.push({etiqueta:d.persona_nombre+(d.persona_cargo?` (${d.persona_cargo})`:''),detalle:`${fmtF(d.fecha_vencimiento)} · ${diasTxt(st.dias)}`,estado:st.estado,dias:st.dias,venc:d.fecha_vencimiento,doc:d});
+    });
+    out.estado=peor(out.items.map(i=>i.estado));
+    const c=e=>out.items.filter(i=>i.estado===e).length;
+    out.detalle=`${out.items.length} persona(s) · ${c('vigente')} al día`+(c('proximo')?` · ${c('proximo')} por vencer`:'')+(c('vencido')?` · ${c('vencido')} vencido(s)`:'');
+    return out;
+  }
+  // general
+  if(!propios.length){out.detalle='No hay documentos cargados';return out;}
+  const lista=req.multi?propios:[propios[0]];
+  lista.forEach(d=>{
+    const st=audEstadoFecha(d.fecha_vencimiento,aviso);
+    out.items.push({etiqueta:(d.titulo||audReq(d.requisito).nombre)+(d.regional_id?'':' · Nacional'),detalle:d.fecha_vencimiento?`${fmtF(d.fecha_vencimiento)} · ${diasTxt(st.dias)}`:'No vence',estado:st.estado,dias:st.dias,venc:d.fecha_vencimiento,doc:d});
+  });
+  // Documentos periódicos (p. ej. verificación BPM): cuenta el más reciente
+  out.estado=req.multi&&req.vig?out.items[0].estado:peor(out.items.map(i=>i.estado));
+  out.detalle=req.multi?`${out.items.length} documento(s) cargado(s)`+(req.vig?` · último: ${out.items[0].detalle}`:''):out.items[0].detalle;
+  return out;
+}
+
+function pintarAuditorias(){
+  const{res,docs}=_aud;
+  const ok=res.filter(r=>r.estado==='vigente').length;
+  const venc=res.filter(r=>['vencido','faltante','atrasado'].includes(r.estado)).length;
+  const prox=res.filter(r=>['proximo','parcial'].includes(r.estado)).length;
+  document.getElementById('aud-m-ok').textContent=`${ok}/${res.length}`;
+  document.getElementById('aud-m-venc').textContent=venc;
+  document.getElementById('aud-m-prox').textContent=prox;
+  document.getElementById('aud-m-docs').textContent=docs.length;
+
+  // Pendientes: elementos vencidos, faltantes o por vencer (los de sistema van en su requisito)
+  const pend=[];
+  res.forEach(r=>{
+    if(r.req.alcance==='sistema')return;
+    if(!r.items.length&&r.estado==='faltante')pend.push({req:r.req,etiqueta:'Sin documento cargado',estado:'faltante',dias:-99999});
+    r.items.forEach(i=>{if(i.estado!=='vigente')pend.push({req:r.req,etiqueta:i.etiqueta,estado:i.estado,dias:i.dias??-99999,detalle:i.detalle});});
+  });
+  pend.sort((a,b)=>a.dias-b.dias);
+  document.getElementById('aud-prox-count').textContent=pend.length?`${pend.length} pendiente(s)`:'';
+  document.getElementById('aud-proximos').innerHTML=pend.length?`<div class="tbl-wrap"><table><thead><tr><th>Requisito</th><th>Elemento</th><th>Estado</th><th>Detalle</th><th></th></tr></thead><tbody>
+    ${pend.slice(0,30).map(p=>`<tr><td style="font-size:12px">${esc(p.req.nombre)}</td><td><b>${esc(p.etiqueta)}</b></td><td>${badgeAud(p.estado)}</td><td style="font-size:12px;color:var(--text2)">${esc(p.detalle||'')}</td>
+      <td style="white-space:nowrap;text-align:right">${accionCargarAud(p.req)}</td></tr>`).join('')}
+    </tbody></table></div>${pend.length>30?`<div style="font-size:12px;color:var(--text2);margin-top:8px">Y ${pend.length-30} más en cada requisito.</div>`:''}`
+    :'<div style="font-size:13px;color:var(--green-dark);padding:6px 0">Todo al día: no hay documentos vencidos, faltantes ni por vencer.</div>';
+
+  document.getElementById('aud-cats').innerHTML=AUD_CATS.map(cat=>{
+    const filas=res.filter(r=>r.req.cat===cat.k);
+    const okc=filas.filter(r=>r.estado==='vigente').length;
+    return`<div class="card"><div class="card-hdr"><span class="card-title">${esc(cat.nombre)}</span><span style="font-size:12px;color:var(--text2)">${okc} de ${filas.length} al día</span></div>
+      <div class="tbl-wrap"><table><tbody>${filas.map(r=>filaReqAud(r)).join('')}</tbody></table></div></div>`;
+  }).join('');
+}
+
+function accionCargarAud(req){
+  if(req.alcance==='sistema')return`<button class="btn btn-sm" onclick="ir('${req.ir}')">Abrir</button>`;
+  if(req.docTipo)return`<button class="btn btn-sm" onclick="ir('documentos')" title="Se carga en Documentos del vehículo">Ir a documentos</button>`;
+  return`<button class="btn btn-sm btn-primary" onclick="abrirDocAud('${req.k}')">+ Cargar</button>`;
+}
+
+function filaReqAud(r){
+  const id='aud-det-'+r.req.k;
+  const hayDet=r.items.length>0;
+  const alc={general:'Documento',persona:'Por persona',vehiculo:'Por vehículo',sistema:'Del aplicativo'}[r.req.alcance];
+  return`<tr>
+    <td style="width:46%"><div style="font-size:13px;font-weight:500">${esc(r.req.nombre)}</div><div style="font-size:11px;color:var(--text3)">${alc}${r.req.vig?` · vigencia ${r.req.vig} mes${r.req.vig===1?'':'es'}`:r.req.alcance==='general'&&r.req.vig===null?' · sin vencimiento':''}</div></td>
+    <td>${badgeAud(r.estado)}</td>
+    <td style="font-size:12px;color:var(--text2)">${esc(r.detalle)}</td>
+    <td style="white-space:nowrap;text-align:right">${hayDet?`<button class="btn btn-sm" onclick="toggleDetAud('${id}')">Ver</button> `:''}${accionCargarAud(r.req)}</td>
+  </tr>
+  ${hayDet?`<tr id="${id}" style="display:none"><td colspan="4" style="background:var(--bg2);padding:8px 12px">${detalleReqAud(r)}</td></tr>`:''}`;
+}
+function toggleDetAud(id){const el=document.getElementById(id);if(el)el.style.display=el.style.display==='none'?'':'none';}
+
+function detalleReqAud(r){
+  const items=[...r.items].sort((a,b)=>AUD_EST[b.estado].n-AUD_EST[a.estado].n||(a.dias??99999)-(b.dias??99999));
+  return`<table style="width:100%"><tbody>${items.map(i=>{
+    const d=i.doc;
+    const acc=d?`${d.archivo_path?`<button class="btn btn-sm" onclick="abrirArchivoAud('${escJs(d.archivo_path)}')">Ver archivo</button> `:''}
+      <button class="btn btn-sm" onclick="abrirDocAud('${r.req.k}','${d.id}')">Renovar</button>
+      <button class="btn btn-sm btn-red" onclick="retirarDocAud('${d.id}')">Retirar</button>`:'';
+    return`<tr><td style="font-size:12px"><b>${esc(i.etiqueta)}</b>${d?.numero_documento?` <span style="color:var(--text3)">· N.° ${esc(d.numero_documento)}</span>`:''}${d?.observaciones?`<div style="color:var(--text3);font-size:11px">${esc(d.observaciones)}</div>`:''}</td>
+      <td>${badgeAud(i.estado)}</td><td style="font-size:12px;color:var(--text2)">${esc(i.detalle||'')}</td><td style="white-space:nowrap;text-align:right">${acc}</td></tr>`;
+  }).join('')}</tbody></table>`;
+}
+
+async function abrirArchivoAud(path){
+  const w=window.open('','_blank');
+  const{data,error}=await db.storage.from('auditoria-docs').createSignedUrl(path,600);
+  if(error||!data?.signedUrl){w?.close();toast('No se pudo abrir el archivo',true);return;}
+  if(w)w.location=data.signedUrl;else window.location.href=data.signedUrl;
+}
+
+async function retirarDocAud(id){
+  if(!confirm('¿Retirar este documento? Dejará de contar para la auditoría (el archivo se conserva).'))return;
+  const{error}=await db.from('auditoria_documentos').update({activo:false}).eq('id',id);
+  if(error){toast('Error: '+error.message,true);return;}
+  toast('Documento retirado');cargarAuditorias();actualizarBadgeAuditorias();
+}
+
+// ── Modal: cargar / renovar documento ──
+function abrirDocAud(reqK,reemplazaId){
+  prepSelectRegAud();
+  const sel=document.getElementById('aud-req');
+  sel.innerHTML=AUD_CATS.map(c=>`<optgroup label="${esc(c.nombre)}">${AUD_REQ.filter(r=>r.cat===c.k&&r.alcance!=='sistema'&&!r.docTipo).map(r=>`<option value="${r.k}">${esc(r.nombre)}</option>`).join('')}</optgroup>`).join('');
+  if(reqK)sel.value=reqK;
+  const sr=document.getElementById('aud-reg-sel');sr.innerHTML='';
+  const regActual=document.getElementById('aud-reg').value;
+  if(USER_ROL==='gerente'){
+    sr.add(new Option('Nacional (todas las regionales)',''));
+    regionales.forEach(r=>sr.add(new Option(r.nombre,r.id)));
+    sr.value=regActual||'';sr.disabled=false;
+  }else{sr.add(new Option(rNombre(REGIONAL_ID),REGIONAL_ID));sr.disabled=true;}
+  ['aud-p-nombre','aud-p-cedula','aud-p-cargo','aud-titulo','aud-numero','aud-exp','aud-venc','aud-obs'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('aud-archivo').value='';
+  document.getElementById('aud-reemplaza').value=reemplazaId||'';
+  document.getElementById('aud-modal-titulo').textContent=reemplazaId?'Renovar documento':'Cargar documento de auditoría';
+  sel.disabled=!!reemplazaId;
+  // Al renovar, se precargan los datos de la persona, vehículo o descripción
+  const prev=reemplazaId?_aud?.docs.find(d=>d.id===reemplazaId):null;
+  if(prev){
+    sr.value=prev.regional_id||'';
+    document.getElementById('aud-p-nombre').value=prev.persona_nombre||'';
+    document.getElementById('aud-p-cedula').value=prev.persona_cedula||'';
+    document.getElementById('aud-p-cargo').value=prev.persona_cargo||'';
+    document.getElementById('aud-titulo').value=prev.titulo||'';
+  }
+  onAudReq(prev?.vehiculo_id);
+  document.getElementById('modal-aud').classList.add('open');
+}
+function onAudReq(vhSel){
+  const req=audReq(document.getElementById('aud-req').value);if(!req)return;
+  const esVh=req.alcance==='vehiculo',esP=req.alcance==='persona';
+  document.getElementById('aud-wrap-vh').style.display=esVh?'':'none';
+  ['aud-wrap-pn','aud-wrap-pc','aud-wrap-pg'].forEach(i=>document.getElementById(i).style.display=esP?'':'none');
+  document.getElementById('aud-titulo-lbl').textContent=req.tituloLbl?req.tituloLbl+(req.multi?' *':''):'Descripción';
+  document.getElementById('aud-venc-lbl').textContent=req.vig?'Fecha de vencimiento *':'Fecha de vencimiento (opcional)';
+  document.getElementById('aud-venc-hint').textContent=req.vig?`Vigencia sugerida: ${req.vig} mes${req.vig===1?'':'es'} desde la expedición`:'Este documento no tiene vencimiento';
+  const sr=document.getElementById('aud-reg-sel');
+  if(esVh){
+    // Documentos por vehículo: deben ser de una regional concreta
+    if(USER_ROL==='gerente'&&!sr.value)sr.value=document.getElementById('aud-reg').value;
+    const reg=sr.value;
+    const sv=document.getElementById('aud-vh');sv.innerHTML='';
+    const vhs=(_aud&&_aud.reg===reg?_aud.vhs:[]).filter(v=>!req.soloRefrigerado||v.ambiente==='refrigerado');
+    if(!vhs.length)sv.add(new Option('No hay vehículos que apliquen en esta regional',''));
+    vhs.forEach(v=>sv.add(new Option(v.placa,v.id)));
+    if(typeof vhSel==='string'&&vhSel)sv.value=vhSel;
+  }
+  sugerirVencAud();
+}
+function sugerirVencAud(){
+  const req=audReq(document.getElementById('aud-req').value);
+  const exp=document.getElementById('aud-exp').value;
+  if(!req?.vig||!exp||document.getElementById('aud-venc').value)return;
+  const[y,m,d]=exp.split('-').map(Number);
+  document.getElementById('aud-venc').value=fechaLocal(new Date(y,m-1+req.vig,d));
+}
+
+async function guardarDocAud(){
+  const req=audReq(document.getElementById('aud-req').value);
+  const regional=document.getElementById('aud-reg-sel').value||null;
+  const vh=document.getElementById('aud-vh').value||null;
+  const pn=document.getElementById('aud-p-nombre').value.trim();
+  const titulo=document.getElementById('aud-titulo').value.trim();
+  const venc=document.getElementById('aud-venc').value||null;
+  const file=document.getElementById('aud-archivo').files[0];
+  const faltan=[];
+  if(!req)faltan.push('requisito');
+  if(req?.alcance==='vehiculo'&&!vh)faltan.push('vehículo');
+  if(req?.alcance==='vehiculo'&&!regional)faltan.push('regional');
+  if(req?.alcance==='persona'&&!pn)faltan.push('nombre de la persona');
+  if(req?.multi&&req?.tituloLbl&&!titulo)faltan.push(req.tituloLbl.toLowerCase());
+  if(req?.vig&&!venc)faltan.push('fecha de vencimiento');
+  if(!file)faltan.push('archivo');
+  if(faltan.length){toast('Falta: '+faltan.join(', '),true);return;}
+  if(file.size>10*1024*1024){toast('El archivo supera 10 MB',true);return;}
+  if(!/^(application\/pdf|image\/jpeg|image\/png)$/.test(file.type)){toast('El archivo debe ser PDF, JPG o PNG',true);return;}
+  const btn=document.getElementById('aud-btn-guardar');btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    const ext=(file.name.split('.').pop()||'pdf').toLowerCase().replace(/[^a-z0-9]/g,'');
+    const uid=crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2);
+    const path=`${regional||'nacional'}/${req.k}/${uid}.${ext}`;
+    const{error:eUp}=await db.storage.from('auditoria-docs').upload(path,file,{contentType:file.type,upsert:false});
+    if(eUp)throw eUp;
+    const{error}=await db.from('auditoria_documentos').insert({
+      requisito:req.k,regional_id:regional,vehiculo_id:req.alcance==='vehiculo'?vh:null,
+      persona_nombre:req.alcance==='persona'?pn:null,
+      persona_cedula:req.alcance==='persona'?(document.getElementById('aud-p-cedula').value.trim()||null):null,
+      persona_cargo:req.alcance==='persona'?(document.getElementById('aud-p-cargo').value.trim()||null):null,
+      titulo:titulo||null,numero_documento:document.getElementById('aud-numero').value.trim()||null,
+      fecha_expedicion:document.getElementById('aud-exp').value||null,fecha_vencimiento:venc,
+      archivo_path:path,archivo_nombre:file.name.slice(0,200),
+      observaciones:document.getElementById('aud-obs').value.trim()||null,
+    });
+    if(error)throw error;
+    const reemplaza=document.getElementById('aud-reemplaza').value;
+    if(reemplaza)await db.from('auditoria_documentos').update({activo:false}).eq('id',reemplaza);
+    toast('Documento guardado ✓');
+    cerrarModal('modal-aud');
+    if(regional&&USER_ROL==='gerente')document.getElementById('aud-reg').value=regional;
+    cargarAuditorias();actualizarBadgeAuditorias();
+  }catch(e){toast('Error: '+e.message,true);}
+  finally{btn.disabled=false;btn.textContent='Guardar';}
+}
+
+// Insignia del menú: documentos del módulo vencidos o por vencer (próximos 30 días)
+async function actualizarBadgeAuditorias(){
+  try{
+    let q=db.from('auditoria_documentos').select('id',{count:'exact',head:true}).eq('activo',true).not('fecha_vencimiento','is',null).lte('fecha_vencimiento',fechaLocal(new Date(Date.now()+30*86400000)));
+    if(REGIONAL_ID)q=q.or(`regional_id.is.null,regional_id.eq.${REGIONAL_ID}`);
+    const{count}=await q;
+    const b=document.getElementById('badge-aud');
+    if(count){b.textContent=count;b.style.display='';}else b.style.display='none';
+  }catch(e){}
+}
+
+function exportarAuditoria(){
+  if(!_aud){toast('Primero carga la auditoría',true);return;}
+  const reg=rNombre(_aud.reg);
+  const resumen=_aud.res.map(r=>({'Categoría':AUD_CATS.find(c=>c.k===r.req.cat).nombre,'Requisito':r.req.nombre,'Estado':AUD_EST[r.estado].t,'Detalle':r.detalle}));
+  const detalle=[];
+  _aud.res.forEach(r=>r.items.forEach(i=>detalle.push({'Requisito':r.req.nombre,'Elemento':i.etiqueta,'Estado':AUD_EST[i.estado].t,'Vencimiento':i.venc||'','Detalle':i.detalle||'','N.° documento':i.doc?.numero_documento||''})));
+  const wb=XLSX.utils.book_new();
+  const ws1=XLSX.utils.json_to_sheet(resumen);ws1['!cols']=[{wch:24},{wch:70},{wch:14},{wch:70}];
+  const ws2=XLSX.utils.json_to_sheet(detalle);ws2['!cols']=[{wch:60},{wch:30},{wch:14},{wch:12},{wch:50},{wch:18}];
+  XLSX.utils.book_append_sheet(wb,ws1,'Resumen');
+  XLSX.utils.book_append_sheet(wb,ws2,'Detalle');
+  XLSX.writeFile(wb,`Auditoria_${reg.replace(/[^A-Za-z0-9]+/g,'_')}_${hoy()}.xlsx`);
+}
 
 // ── SOPORTE SEMANAL GENERADO (reemplaza imprimir, firmar y escanear) ──
 async function generarSoporteSemanal(){
