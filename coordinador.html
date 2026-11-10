@@ -5861,6 +5861,7 @@ function pintarMatrizCond(){
 // ── AUDITORÍAS · Carga masiva ─────────────────────────────────
 // Palabras del nombre del archivo que identifican cada requisito (de la más específica a la más general)
 const AUD_ALIAS=[
+  ['CRONOGRAMA_CAPACITACION','cronograma_capacitacion'],
   ['CONCEPTO_SANITARIO_PROVEEDOR','concepto_sanitario_proveedor'],['PROVEEDOR','concepto_sanitario_proveedor'],
   ['CONCEPTO_SANITARIO_VEHICULO','concepto_sanitario_vehiculo'],['ACTA_SANITARIA','concepto_sanitario_vehiculo'],['CONCEPTO_SANITARIO','concepto_sanitario_vehiculo'],
   ['CONCEPTO_MEDICO','concepto_medico'],['MEDICO','concepto_medico'],['APTITUD','concepto_medico'],
@@ -5872,7 +5873,7 @@ const AUD_ALIAS=[
   ['FICHA_TECNICA_PLAGAS','ft_hds_plagas'],['HDS_PLAGAS','ft_hds_plagas'],
   ['FICHA_TECNICA','ft_hds_limpieza'],['HDS','ft_hds_limpieza'],['HOJA_SEGURIDAD','ft_hds_limpieza'],
   ['PROGRAMA','programa_limpieza'],
-  ['CRONOGRAMA_CAPACITACION','cronograma_capacitacion'],['CAPACITACION','soporte_capacitacion'],
+  ['CAPACITACION','soporte_capacitacion'],
 ];
 let _mas=[],_masHuboCambios=false,_masSeq=0;
 function reqsCargables(){return AUD_REQ.filter(r=>r.alcance!=='sistema');}
@@ -5915,6 +5916,18 @@ function leerNombreArchivo(nombre){
   if(!out.destino){
     const ced=tokens.find(t=>/^\d{6,11}$/.test(t)&&conds.some(c=>c.cedula===t));
     if(ced)out.destino='c:'+conds.find(c=>c.cedula===ced).id;
+  }
+  // Soporte de una actividad del cronograma: se reconoce por las palabras del tema (p. ej. ALMACENAMIENTO)
+  const reqP=audReq(out.req);
+  if(!out.destino&&reqP?.prog){
+    const comunes=new Set(['TRANSPORTE','ALIMENTOS','REFUERZO','VEHICULOS','CONTROL','SEGURO','PERSONAL']);
+    let mejor=null,pts=0;
+    (_aud?.prog||[]).filter(p=>p.requisito===reqP.k).forEach(p=>{
+      const pal=normTxt(p.titulo).split(/[^A-Z0-9]+/).filter(w=>w.length>4&&!comunes.has(w));
+      const n=pal.filter(w=>tokens.includes(w)).length;
+      if(n>pts){pts=n;mejor=p;}
+    });
+    if(mejor)out.destino='p:'+mejor.id;
   }
   if(!out.destino){ // por nombre del conductor
     const c=conds.find(c=>{const p=normTxt(c.nombre).split(/\s+/).filter(x=>x.length>2);return p.length>=2&&p.slice(0,2).every(x=>tokens.includes(x));});
