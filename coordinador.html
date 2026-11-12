@@ -61,6 +61,8 @@ tr:hover td{background:var(--bg2)}
 .field input,.field select,.field textarea{padding:8px 10px;font-size:13px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text);outline:none;font-family:inherit}
 .field textarea{resize:vertical;min-height:72px}
 .form2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.rh-sel{font-size:12px;padding:6px 8px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text)}
+@media(max-width:900px){.rh-grid2{grid-template-columns:1fr!important}}
 .full{grid-column:1/-1}
 .btn{padding:8px 16px;font-size:13px;font-weight:500;border-radius:var(--r);cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit;transition:all .15s}
 .btn:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent)}
@@ -280,6 +282,125 @@ tr:hover td{background:var(--bg2)}
     <div class="modal-footer">
       <button class="btn" onclick="cerrarModal('modal-soporte-lav')">Cancelar</button>
       <button class="btn btn-primary" id="btn-sop-guardar" onclick="subirSoporte()">Subir soporte</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal requisición (rotación) -->
+<div class="modal-overlay" id="modal-req">
+  <div class="modal" style="max-width:720px;max-height:92vh;overflow-y:auto">
+    <div class="modal-title" id="rq-titulo">Nueva requisición</div>
+    <input type="hidden" id="rq-id">
+    <div class="form2">
+      <div class="field"><label>Consecutivo</label><input type="number" id="rq-consec"></div>
+      <div class="field"><label>Regional *</label><select id="rq-reg"></select></div>
+      <div class="field"><label>Ciudad / sede</label><input type="text" id="rq-ciudad" maxlength="60"></div>
+      <div class="field"><label>Cargo *</label><input type="text" id="rq-cargo" maxlength="80" list="rq-cargos"><datalist id="rq-cargos"></datalist></div>
+      <div class="field"><label>Tipo de cargo</label><input type="text" id="rq-tipo" maxlength="40" list="rq-tipos"><datalist id="rq-tipos"><option value="CONDUCTOR"><option value="OPERATIVO"><option value="ADMINISTRATIVO"><option value="AUXILIARES"></datalist></div>
+      <div class="field"><label>Empresa</label><input type="text" id="rq-empresa" maxlength="60" list="rq-empresas"><datalist id="rq-empresas"><option value="TRASLADAR"><option value="SOLITEMP"><option value="SERCARGA"></datalist></div>
+      <div class="field"><label>Motivo de la requisición *</label><select id="rq-motivo"><option>REEMPLAZO</option><option>MAYOR CUPO</option><option>TEMPORADA</option><option>TRASLADO A NOMINA</option></select></div>
+      <div class="field"><label>Fecha de requisición *</label><input type="date" id="rq-freq"></div>
+      <div class="field"><label>Estado de la requisición</label><select id="rq-estado"><option>VACANTE</option><option>CERRADO</option><option>ANULADO</option></select></div>
+      <div class="field"><label>Estado del proceso</label><input type="text" id="rq-proceso" maxlength="60" list="rq-procesos"><datalist id="rq-procesos"><option value="1. RECLUTAMIENTO"><option value="11. CERRADO"></datalist></div>
+      <div class="field"><label>Solicitante</label><input type="text" id="rq-solic" maxlength="80"></div>
+      <div class="field"><label>Responsable de selección</label><input type="text" id="rq-resp" maxlength="80"></div>
+      <div style="grid-column:1/-1;font-size:12px;font-weight:600;color:var(--text2);margin-top:6px;border-top:0.5px solid var(--border);padding-top:10px">Persona que sale</div>
+      <div class="field"><label>Nombre</label><input type="text" id="rq-snom" maxlength="120"></div>
+      <div class="field"><label>Cédula</label><input type="text" id="rq-sced" maxlength="20" inputmode="numeric"></div>
+      <div class="field"><label>Motivo de salida</label><input type="text" id="rq-smot" maxlength="60" list="rq-smots"><datalist id="rq-smots"><option value="RENUNCIA"><option value="SIN JUSTA CAUSA"><option value="CON JUSTA CAUSA"><option value="NO RENOVACIÓN DE CONTRATO"><option value="RESTRICCION MEDICA"><option value="PROMOCIÓN"><option value="TRASLADO DE CIUDAD"></datalist></div>
+      <div class="field"><label>Promoción</label><select id="rq-promo"><option>NO PROMOCIÓN</option><option>PROMOCIÓN</option></select></div>
+      <div style="grid-column:1/-1;font-size:12px;font-weight:600;color:var(--text2);margin-top:6px;border-top:0.5px solid var(--border);padding-top:10px">Persona que ingresa</div>
+      <div class="field"><label>Nombre</label><input type="text" id="rq-inom" maxlength="120"></div>
+      <div class="field"><label>Cédula</label><input type="text" id="rq-iced" maxlength="20" inputmode="numeric"></div>
+      <div class="field"><label>Fecha de contratación</label><input type="date" id="rq-fcon"></div>
+      <div class="field"><label>Fuente</label><input type="text" id="rq-fuente" maxlength="60" list="rq-fuentes"><datalist id="rq-fuentes"><option value="CONSECUCIÓN EXTERNA"><option value="PROMOCION INTERNA"><option value="TRASLADO"></datalist></div>
+      <div class="field" style="grid-column:1/-1"><label>Observaciones</label><input type="text" id="rq-obs" maxlength="400"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-red" id="rq-borrar" onclick="borrarRequisicion()" style="margin-right:auto;display:none">Eliminar</button>
+      <button class="btn" onclick="cerrarModal('modal-req')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarRequisicion()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal ciudades → regionales (importación de rotación) -->
+<div class="modal-overlay" id="modal-mapeo">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">¿A qué regional corresponde cada ciudad?</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px" id="mp-info"></div>
+    <div id="mp-lista" style="display:grid;gap:8px"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-mapeo')">Cancelar</button>
+      <button class="btn btn-primary" id="mp-btn" onclick="confirmarImportRot()">Importar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal personal promedio por regional -->
+<div class="modal-overlay" id="modal-plantilla">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">Personal promedio por regional</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Es la base para calcular el % de rotación y de ausentismo (trabajadores promedio del periodo, todos los cargos). Si se deja vacío se usa el número de conductores activos.</div>
+    <div id="pt-lista" style="display:grid;gap:8px"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-plantilla')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarPlantillas()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal ausencia -->
+<div class="modal-overlay" id="modal-aus">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title" id="au-titulo">Registrar ausencia</div>
+    <input type="hidden" id="au-id">
+    <div class="form2">
+      <div class="field" style="grid-column:1/-1"><label>Regional *</label><select id="au-reg" onchange="llenarPersonasAus()"></select></div>
+      <div class="field" style="grid-column:1/-1"><label>Persona *</label><select id="au-cond" onchange="document.getElementById('au-wrap-otra').style.display=this.value==='otra'?'':'none'"></select></div>
+      <div class="field" id="au-wrap-otra" style="grid-column:1/-1;display:none;grid-template-columns:2fr 1fr;gap:8px">
+        <input type="text" id="au-nom" placeholder="Nombre completo" maxlength="120"><input type="text" id="au-ced" placeholder="Cédula" maxlength="20" inputmode="numeric"></div>
+      <div class="field" style="grid-column:1/-1"><label>Tipo de ausencia *</label><select id="au-tipo"></select></div>
+      <div class="field"><label>Desde *</label><input type="date" id="au-ini" onchange="calcDiasAus()"></div>
+      <div class="field"><label>Hasta *</label><input type="date" id="au-fin" onchange="calcDiasAus()"></div>
+      <div class="field"><label>Días de ausencia *</label><input type="number" id="au-dias" min="0" step="0.5"></div>
+      <div class="field"><label>&nbsp;</label><div style="font-size:11px;color:var(--text3)">Se calculan con las fechas; ajústelos si fue medio día.</div></div>
+      <div class="field" style="grid-column:1/-1"><label>Observación</label><input type="text" id="au-obs" maxlength="300"></div>
+      <div class="field" style="grid-column:1/-1"><label>Soporte (incapacidad, permiso…) <span style="font-size:11px;color:var(--text3)">PDF o imagen, opcional</span></label>
+        <input type="file" id="au-file" accept=".pdf,.jpg,.jpeg,.png" style="border:1px solid var(--border);border-radius:var(--r);padding:8px;font-size:12px;width:100%"><div id="au-file-actual" style="font-size:11px;color:var(--text3);margin-top:4px"></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-red" id="au-borrar" onclick="borrarAusencia()" style="margin-right:auto;display:none">Eliminar</button>
+      <button class="btn" onclick="cerrarModal('modal-aus')">Cancelar</button>
+      <button class="btn btn-primary" id="au-btn" onclick="guardarAusencia()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal tipos de ausencia -->
+<div class="modal-overlay" id="modal-tiposaus">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">Tipos de ausencia</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">"Cuenta en el %" indica si los días suman al porcentaje de ausentismo (por ejemplo, las vacaciones normalmente no).</div>
+    <div id="ta-lista" style="display:grid;gap:6px;max-height:50vh;overflow-y:auto"></div>
+    <div style="display:flex;gap:8px;margin-top:12px"><input type="text" id="ta-nuevo" placeholder="Nuevo tipo, p. ej. Cita médica" maxlength="80" class="rh-sel" style="flex:1">
+      <button class="btn btn-primary btn-sm" onclick="agregarTipoAus()">Agregar</button></div>
+    <div class="modal-footer"><button class="btn" onclick="cerrarModal('modal-tiposaus');cargarAusentismo()">Cerrar</button></div>
+  </div>
+</div>
+
+<!-- Modal accesos a módulos (solo gerente) -->
+<div class="modal-overlay" id="modal-accesos">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">Acceso de los coordinadores</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Mientras estén apagados, solo el gerente ve estos módulos. Al encenderlos, cada coordinador verá y editará únicamente los datos de su regional. La base de datos aplica esta regla, no solo la pantalla.</div>
+    <label class="chk" style="display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:0.5px solid var(--border);font-size:13px">
+      <input type="checkbox" id="acc-calidad"><span><b>Calidad</b><br><span style="font-size:12px;color:var(--text2)">Conductores, auditorías, documentos y cronogramas</span></span></label>
+    <label class="chk" style="display:flex;gap:10px;align-items:flex-start;padding:10px 0;font-size:13px">
+      <input type="checkbox" id="acc-personal"><span><b>Personal</b><br><span style="font-size:12px;color:var(--text2)">Rotación y ausentismo (incluye incapacidades: información sensible)</span></span></label>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-accesos')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarAccesos()">Guardar</button>
     </div>
   </div>
 </div>
@@ -773,9 +894,13 @@ tr:hover td{background:var(--bg2)}
     <div class="snav-item" data-page="disp-operativa" onclick="ir('disp-operativa')"><span>Disponibilidad op.</span></div>
     <div class="snav-item" data-page="reportes" onclick="ir('reportes')"><span>Reportes</span></div>
     <div class="snav-item" data-page="lavados" onclick="ir('lavados')"><span>Lavados</span></div>
-    <div class="snav-sec">Calidad</div>
-    <div class="snav-item" data-page="conductores" onclick="ir('conductores')"><span>Conductores</span></div>
-    <div class="snav-item" data-page="auditorias" onclick="ir('auditorias')"><span>Auditorías</span><span class="badge b-red" id="badge-aud" style="display:none"></span></div>
+    <div class="snav-sec" data-modulo="calidad" style="display:none">Calidad</div>
+    <div class="snav-item" data-modulo="calidad" style="display:none" data-page="conductores" onclick="ir('conductores')"><span>Conductores</span></div>
+    <div class="snav-item" data-modulo="calidad" style="display:none" data-page="auditorias" onclick="ir('auditorias')"><span>Auditorías</span><span class="badge b-red" id="badge-aud" style="display:none"></span></div>
+    <div class="snav-sec" data-modulo="personal" style="display:none">Personal</div>
+    <div class="snav-item" data-modulo="personal" style="display:none" data-page="rotacion" onclick="ir('rotacion')"><span>Rotación</span></div>
+    <div class="snav-item" data-modulo="personal" style="display:none" data-page="ausentismo" onclick="ir('ausentismo')"><span>Ausentismo</span></div>
+    <div class="snav-item" data-solo-gerente style="display:none" onclick="abrirAccesos()"><span>⚙ Accesos de coordinadores</span></div>
   </nav>
 
   <main class="main">
@@ -1615,7 +1740,78 @@ tr:hover td{background:var(--bg2)}
     <div id="cp-lista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px"></div>
   </div>
 
-  <!-- AUDITORÍAS (documentos de Calidad) -->
+    <!-- ROTACIÓN DE PERSONAL -->
+  <div id="page-rotacion" class="page">
+    <div class="card" style="padding:14px 18px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:16px;font-weight:700">Rotación de personal</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px">Quién salió, quién lo reemplazó, índice de rotación y tiempos de contratación.</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-sm" onclick="exportarRotacion()">⬇ Excel</button>
+          <button class="btn btn-sm" onclick="document.getElementById('rot-import').click()">⬆ Importar Excel</button>
+          <input type="file" id="rot-import" accept=".xlsx,.xls" hidden onchange="importarRotacion(this)">
+          <button class="btn btn-sm btn-primary" onclick="abrirRequisicion()">+ Nueva requisición</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+        <select id="rot-anio" class="rh-sel" onchange="pintarRotacion()"></select>
+        <select id="rot-mes" class="rh-sel" onchange="pintarRotacion()"></select>
+        <select id="rot-reg" class="rh-sel" onchange="pintarRotacion()"></select>
+        <select id="rot-tipo" class="rh-sel" onchange="pintarRotacion()"></select>
+        <select id="rot-emp" class="rh-sel" onchange="pintarRotacion()"></select>
+        <label style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:4px">Meta de contratación
+          <input type="number" id="rot-meta" min="1" max="120" value="15" style="width:60px" class="rh-sel" onchange="guardarMetaRot();pintarRotacion()"> días</label>
+      </div>
+    </div>
+    <div class="metrics" id="rot-metricas"></div>
+    <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px" class="rh-grid2">
+      <div class="card"><div class="card-hdr"><span class="card-title">Rotación por mes</span><span style="font-size:11px;color:var(--text2)" id="rot-graf-nota"></span></div><div id="rot-grafica"></div></div>
+      <div class="card"><div class="card-hdr"><span class="card-title">Motivos de salida</span></div><div id="rot-motivos"></div></div>
+    </div>
+    <div class="card"><div class="card-hdr"><span class="card-title">Vacantes abiertas</span><span id="rot-vac-count" style="font-size:12px;color:var(--text2)"></span></div><div id="rot-vacantes"></div></div>
+    <div class="card">
+      <div class="card-hdr"><span class="card-title">Quién salió y quién lo reemplazó</span>
+        <input type="text" id="rot-buscar" placeholder="Buscar nombre, cédula o cargo…" oninput="pintarRotacion()" class="rh-sel" style="min-width:220px"></div>
+      <div id="rot-tabla"></div>
+    </div>
+  </div>
+
+  <!-- AUSENTISMO -->
+  <div id="page-ausentismo" class="page">
+    <div class="card" style="padding:14px 18px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:16px;font-weight:700">Ausentismo</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px">Ausencias del personal por tipo y su porcentaje sobre los días programados.</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-sm" onclick="abrirTiposAus()">Tipos de ausencia</button>
+          <button class="btn btn-sm" onclick="exportarAusentismo()">⬇ Excel</button>
+          <button class="btn btn-sm btn-primary" onclick="abrirAusencia()">+ Registrar ausencia</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+        <select id="aus-anio" class="rh-sel" onchange="pintarAusentismo()"></select>
+        <select id="aus-mes" class="rh-sel" onchange="pintarAusentismo()"></select>
+        <select id="aus-reg" class="rh-sel" onchange="cargarAusentismo()"></select>
+        <select id="aus-tipo" class="rh-sel" onchange="pintarAusentismo()"></select>
+      </div>
+    </div>
+    <div class="metrics" id="aus-metricas"></div>
+    <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px" class="rh-grid2">
+      <div class="card"><div class="card-hdr"><span class="card-title">Ausentismo por mes</span></div><div id="aus-grafica"></div></div>
+      <div class="card"><div class="card-hdr"><span class="card-title">Días por tipo</span></div><div id="aus-tipos"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><span class="card-title">Registros</span>
+        <input type="text" id="aus-buscar" placeholder="Buscar persona o cédula…" oninput="pintarAusentismo()" class="rh-sel" style="min-width:220px"></div>
+      <div id="aus-tabla"></div>
+    </div>
+  </div>
+
+<!-- AUDITORÍAS (documentos de Calidad) -->
   <div id="page-auditorias" class="page">
     <div class="card" style="padding:14px 18px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
@@ -1876,12 +2072,14 @@ async function checkAuth(){
     if(perfil.regional_id){REGIONAL_ID=perfil.regional_id;}
     else{document.body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;flex-direction:column;gap:10px"><p>Regional no encontrada: ${esc(regNom)}</p><button onclick="db.auth.signOut().then(()=>location.href='login.html')" style="padding:8px 16px;cursor:pointer;border:1px solid #ccc;border-radius:6px">Cerrar sesión</button></div>`;return false;}
   }
+  await cargarAccesosModulos();
   return true;
 }
 async function cerrarSesion(){await db.auth.signOut();window.location.href='login.html';}
 
 // ── Nav ──
 function ir(page){
+  if(PAGINAS_MODULO[page]&&!puedeModulo(PAGINAS_MODULO[page])){toast('Este módulo aún no está habilitado para tu usuario',true);return;}
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.snav-item').forEach(a=>a.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
@@ -1903,6 +2101,8 @@ function ir(page){
   if(page==='reportes')initReportes();
   if(page==='auditorias')cargarAuditorias();
   if(page==='conductores')cargarConductoresPage();
+  if(page==='rotacion')cargarRotacion();
+  if(page==='ausentismo')cargarAusentismo();
 }
 function onFiltro(){REGIONAL_ID=USER_ROL==='gerente'?(document.getElementById('filtro-regional').value||null):REGIONAL_ID;cargarDashboard();}
 
@@ -1930,7 +2130,7 @@ async function init(){
     });
   }
   await cargarDashboard();
-  actualizarBadgeAuditorias();
+  if(puedeModulo('calidad'))actualizarBadgeAuditorias();
 }
 
 async function cargarDashboard(){
@@ -6303,6 +6503,511 @@ function exportarConductores(){
   });
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(filas),'Conductores');
   XLSX.writeFile(wb,`Conductores_${rNombre(_cp.reg).replace(/[^A-Za-z0-9]+/g,'_')}_${hoy()}.xlsx`);
+}
+
+// ── ACCESO A MÓDULOS (Calidad y Personal) ─────────────────────
+// Hoy solo el gerente. La base de datos aplica la misma regla (puede_ver_modulo).
+let MOD_VISIBLE={calidad:false,personal:false};
+async function cargarAccesosModulos(){
+  try{
+    const{data}=await db.from('config_modulos').select('modulo,visible_coordinadores');
+    (data||[]).forEach(r=>MOD_VISIBLE[r.modulo]=!!r.visible_coordinadores);
+  }catch(e){}
+  aplicarAccesosMenu();
+}
+function puedeModulo(m){return USER_ROL==='gerente'||!!MOD_VISIBLE[m];}
+function aplicarAccesosMenu(){
+  const cal=puedeModulo('calidad'),per=puedeModulo('personal');
+  document.querySelectorAll('[data-modulo="calidad"]').forEach(e=>e.style.display=cal?'':'none');
+  document.querySelectorAll('[data-modulo="personal"]').forEach(e=>e.style.display=per?'':'none');
+  document.querySelectorAll('[data-solo-gerente]').forEach(e=>e.style.display=USER_ROL==='gerente'?'':'none');
+}
+const PAGINAS_MODULO={conductores:'calidad',auditorias:'calidad',rotacion:'personal',ausentismo:'personal'};
+function abrirAccesos(){
+  document.getElementById('acc-calidad').checked=!!MOD_VISIBLE.calidad;
+  document.getElementById('acc-personal').checked=!!MOD_VISIBLE.personal;
+  document.getElementById('modal-accesos').classList.add('open');
+}
+async function guardarAccesos(){
+  for(const m of ['calidad','personal']){
+    const v=document.getElementById('acc-'+m).checked;
+    const{error}=await db.from('config_modulos').update({visible_coordinadores:v,actualizado_en:new Date().toISOString()}).eq('modulo',m);
+    if(error){toast('Error: '+error.message,true);return;}
+    MOD_VISIBLE[m]=v;
+  }
+  toast('Accesos actualizados ✓');cerrarModal('modal-accesos');
+}
+// Cierre de sesión por inactividad (30 minutos): protege la información en equipos compartidos
+(function(){
+  let t=null;const MIN=30;
+  const reiniciar=()=>{clearTimeout(t);t=setTimeout(async()=>{try{await db.auth.signOut();}catch(e){}window.location.href='login.html';},MIN*60000);};
+  ['click','keydown','mousemove','touchstart','scroll'].forEach(ev=>document.addEventListener(ev,reiniciar,{passive:true}));
+  reiniciar();
+})();
+
+// ── PERSONAL · utilidades comunes ─────────────────────────────
+const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MESES_CORTOS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+function llenarSelect(id,opciones,valor){
+  const s=document.getElementById(id);const prev=valor??s.value;
+  s.innerHTML=opciones.map(([v,t])=>`<option value="${esc(v)}">${esc(t)}</option>`).join('');
+  if(opciones.some(([v])=>String(v)===String(prev)))s.value=prev;
+}
+function selRegionalesRH(id){
+  const ops=USER_ROL==='gerente'?[['','Todas las regionales'],...regionales.map(r=>[r.id,r.nombre])]:[[REGIONAL_ID,rNombre(REGIONAL_ID)]];
+  llenarSelect(id,ops);
+}
+function periodoRH(anio,mes){ // mes: '' = todo el año, o 1..12
+  if(!mes)return{desde:`${anio}-01-01`,hasta:`${anio}-12-31`};
+  const m=String(mes).padStart(2,'0');
+  return{desde:`${anio}-${m}-01`,hasta:fechaLocal(new Date(anio,+mes,0))};
+}
+function diasEntre(a,b){return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000);}
+function barrasMes(valores,{fmt=v=>v,etiqueta=()=>'',colorFn=()=>'var(--blue)',resaltar=-1}={}){
+  const max=Math.max(1,...valores.map(v=>v||0));
+  return`<div style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px;align-items:end;height:170px;padding-top:18px">
+    ${valores.map((v,i)=>`<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px" title="${esc(MESES[i])}: ${esc(String(etiqueta(i)||fmt(v)))}">
+      <div style="font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap">${v?fmt(v):''}</div>
+      <div style="width:100%;max-width:34px;height:${v?Math.max(3,Math.round(v/max*120)):0}px;background:${colorFn(v,i)};border-radius:4px 4px 0 0;${i===resaltar?'outline:2px solid var(--text);outline-offset:1px':''}"></div>
+      <div style="font-size:10px;color:var(--text3)">${MESES_CORTOS[i]}</div></div>`).join('')}
+  </div>`;
+}
+function metrica(label,valor,sub,color){
+  return`<div class="metric" style="${color?`border-top-color:${color}`:''}"><div class="metric-label">${label}</div><div class="metric-val" style="${color?`color:${color}`:''}">${valor}</div><div class="metric-sub">${sub||''}</div></div>`;
+}
+let _plantillas=null; // {regional_id:{plantilla_total, conductores_requeridos, activos}}
+async function cargarPlantillas(){
+  const[rR,rC]=await Promise.all([
+    db.from('regionales').select('id,nombre,plantilla_total,conductores_requeridos').eq('activa',true),
+    db.from('conductores').select('regional_id,activo'),
+  ]);
+  _plantillas={};
+  (rR.data||[]).forEach(r=>_plantillas[r.id]={plantilla:r.plantilla_total,requeridos:r.conductores_requeridos,activos:0,nombre:r.nombre});
+  (rC.data||[]).forEach(c=>{if(c.activo!==false&&_plantillas[c.regional_id])_plantillas[c.regional_id].activos++;});
+}
+// Base de personas para los porcentajes: personal promedio definido, si no los conductores activos
+function basePersonas(reg){
+  const ids=reg?[reg]:Object.keys(_plantillas||{});
+  let total=0,origen='plantilla';
+  ids.forEach(id=>{const p=_plantillas?.[id];if(!p)return;if(p.plantilla){total+=p.plantilla;}else{total+=p.activos;origen='activos';}});
+  return{total,origen};
+}
+function abrirPlantillas(){
+  if(USER_ROL!=='gerente')return;
+  document.getElementById('pt-lista').innerHTML=Object.entries(_plantillas||{}).map(([id,p])=>`<label style="display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px">
+    <span>${esc(p.nombre)} <span style="font-size:11px;color:var(--text3)">(${p.activos} conductores activos)</span></span>
+    <input type="number" min="0" data-reg="${id}" value="${p.plantilla??''}" style="width:90px" class="rh-sel"></label>`).join('');
+  document.getElementById('modal-plantilla').classList.add('open');
+}
+async function guardarPlantillas(){
+  for(const inp of document.querySelectorAll('#pt-lista input')){
+    const v=inp.value===''?null:Math.max(0,parseInt(inp.value,10));
+    const{error}=await db.from('regionales').update({plantilla_total:v}).eq('id',inp.dataset.reg);
+    if(error){toast('Error: '+error.message,true);return;}
+  }
+  toast('Personal promedio actualizado ✓');cerrarModal('modal-plantilla');
+  await cargarPlantillas();
+  if(document.getElementById('page-rotacion').classList.contains('active'))pintarRotacion();else pintarAusentismo();
+}
+
+// ── PERSONAL · Rotación ───────────────────────────────────────
+let _rot=null;
+// Salidas que cuentan para la rotación (excluye movimientos internos y cupos nuevos)
+const NO_ES_SALIDA=['PROMOCION','TRASLADO DE CIUDAD','MAYOR CUPO','TRASLADO A NOMINA'];
+function esSalida(r){
+  if(normTxt(r.estado_requisicion)==='ANULADO')return false;
+  if(normTxt(r.motivo_requisicion)!=='REEMPLAZO')return false;
+  const m=normTxt(r.motivo_salida);
+  return!NO_ES_SALIDA.some(x=>m.startsWith(x));
+}
+function fechaIngreso(r){return r.fecha_contratacion_real||r.fecha_contratacion;}
+function guardarMetaRot(){try{localStorage.setItem('rot_meta',document.getElementById('rot-meta').value);}catch(e){}}
+async function cargarRotacion(){
+  const box=document.getElementById('rot-tabla');
+  box.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  try{
+    const[rq]=await Promise.all([db.from('rrhh_requisiciones').select('*').order('fecha_requisicion',{ascending:false}),cargarPlantillas()]);
+    if(rq.error)throw rq.error;
+    _rot=rq.data||[];
+    try{const m=localStorage.getItem('rot_meta');if(m)document.getElementById('rot-meta').value=m;}catch(e){}
+    const anios=[...new Set(_rot.flatMap(r=>[r.fecha_requisicion,fechaIngreso(r)]).filter(Boolean).map(f=>+f.slice(0,4)).concat([new Date().getFullYear()]))].sort((a,b)=>b-a);
+    llenarSelect('rot-anio',anios.map(a=>[a,a]),document.getElementById('rot-anio').value||anios[0]);
+    llenarSelect('rot-mes',[['','Todo el año'],...MESES.map((m,i)=>[i+1,m])]);
+    selRegionalesRH('rot-reg');
+    if(USER_ROL==='gerente'&&_rot.some(r=>!r.regional_id)){const s=document.getElementById('rot-reg');s.add(new Option('Sin regional asignada','__sin'));}
+    llenarSelect('rot-tipo',[['','Todos los cargos'],...[...new Set(_rot.map(r=>r.tipo_cargo).filter(Boolean))].sort().map(t=>[t,t])]);
+    llenarSelect('rot-emp',[['','Todas las empresas'],...[...new Set(_rot.map(r=>r.empresa).filter(Boolean))].sort().map(t=>[t,t])]);
+    pintarRotacion();
+  }catch(e){
+    const msg=/rrhh_requisiciones/.test(e.message||'')?'Falta ejecutar rrhh_seguridad.sql en Supabase.':e.message;
+    box.innerHTML=`<div style="color:var(--red-dark)">${esc(msg)}</div>`;
+  }
+}
+function filtrarRot(){
+  const reg=document.getElementById('rot-reg').value,tipo=document.getElementById('rot-tipo').value,emp=document.getElementById('rot-emp').value;
+  return(_rot||[]).filter(r=>(!reg||(reg==='__sin'?!r.regional_id:r.regional_id===reg))&&(!tipo||r.tipo_cargo===tipo)&&(!emp||r.empresa===emp));
+}
+function pintarRotacion(){
+  if(!_rot)return;
+  const anio=+document.getElementById('rot-anio').value,mes=document.getElementById('rot-mes').value;
+  const reg=document.getElementById('rot-reg').value;
+  const meta=+document.getElementById('rot-meta').value||15;
+  const{desde,hasta}=periodoRH(anio,mes);
+  const base=basePersonas(reg&&reg!=='__sin'?reg:'');
+  const rows=filtrarRot();
+  const enP=f=>f&&f>=desde&&f<=hasta;
+  const salidas=rows.filter(r=>esSalida(r)&&enP(r.fecha_requisicion));
+  const ingresos=rows.filter(r=>r.ingresa_nombre&&normTxt(r.estado_requisicion)!=='ANULADO'&&enP(fechaIngreso(r)));
+  const tiempos=ingresos.filter(r=>r.fecha_requisicion&&fechaIngreso(r)).map(r=>Math.max(0,diasEntre(r.fecha_requisicion,fechaIngreso(r))));
+  const prom=tiempos.length?Math.round(tiempos.reduce((a,b)=>a+b,0)/tiempos.length):null;
+  const ord=[...tiempos].sort((a,b)=>a-b);const med=ord.length?ord[Math.floor((ord.length-1)/2)]:null;
+  const enMeta=tiempos.filter(t=>t<=meta).length;
+  // Rotación = retiros / personal promedio × 100 (mensual o del periodo elegido)
+  const rotPct=base.total?Math.round(salidas.length/base.total*1000)/10:null;
+  const indice=base.total?Math.round((salidas.length+ingresos.length)/2/base.total*1000)/10:null;
+  const abiertas=rows.filter(r=>{const e=normTxt(r.estado_requisicion),p=normTxt(r.estado_proceso);return e!=='ANULADO'&&(e==='VACANTE'||(!p.includes('CERRADO')&&!r.ingresa_nombre));});
+  const per=mes?`${MESES[mes-1]} ${anio}`:`${anio}`;
+  // Para el año se colorea con el promedio mensual (meses transcurridos), así el semáforo es comparable
+  const mesesTransc=mes?1:(anio<new Date().getFullYear()?12:anio>new Date().getFullYear()?1:new Date().getMonth()+1);
+  const rotMesProm=rotPct==null?null:Math.round(rotPct/mesesTransc*10)/10;
+  document.getElementById('rot-metricas').innerHTML=
+    metrica(`Rotación ${per}`,rotPct==null?'—':rotPct+'%',`${salidas.length} retiro(s) sobre ${base.total||'—'} personas${!mes&&rotPct!=null?` · promedio mensual ${rotMesProm}%`:''}${USER_ROL==='gerente'?` · <a href="#" onclick="abrirPlantillas();return false">${base.origen==='activos'?'definir base':'cambiar base'}</a>`:''}`,rotPct==null?null:rotMesProm<=3?'var(--green)':rotMesProm<=6?'var(--amber)':'var(--red)')+
+    metrica('Ingresos',ingresos.length,`Índice (ingresos+retiros)/2: ${indice==null?'—':indice+'%'}`,'var(--blue)')+
+    metrica('Tiempo de contratación',prom==null?'—':prom+' días',`Mediana ${med??'—'} días · desde la requisición`,prom==null?null:prom<=meta?'var(--green)':'var(--amber)')+
+    metrica(`Contratadas en ≤ ${meta} días`,tiempos.length?Math.round(enMeta/tiempos.length*100)+'%':'—',`${enMeta} de ${tiempos.length} contrataciones`,tiempos.length?(enMeta/tiempos.length>=0.8?'var(--green)':'var(--amber)'):null);
+  // Gráfica mensual del año
+  const sal=Array(12).fill(0),ing=Array(12).fill(0),tm=Array.from({length:12},()=>[]);
+  rows.forEach(r=>{
+    if(esSalida(r)&&r.fecha_requisicion?.startsWith(String(anio)))sal[+r.fecha_requisicion.slice(5,7)-1]++;
+    const fi=fechaIngreso(r);
+    if(r.ingresa_nombre&&fi?.startsWith(String(anio))&&normTxt(r.estado_requisicion)!=='ANULADO'){const m=+fi.slice(5,7)-1;ing[m]++;if(r.fecha_requisicion)tm[m].push(Math.max(0,diasEntre(r.fecha_requisicion,fi)));}
+  });
+  const pctMes=sal.map(s=>base.total?Math.round(s/base.total*1000)/10:0);
+  document.getElementById('rot-graf-nota').textContent=base.total?`% de rotación mensual sobre ${base.total} personas`:'Defina el personal promedio para ver el %';
+  document.getElementById('rot-grafica').innerHTML=barrasMes(base.total?pctMes:sal,{fmt:v=>base.total?v+'%':v,resaltar:mes?mes-1:-1,
+      colorFn:v=>!base.total?'var(--blue)':v<=3?'#66BB6A':v<=6?'#FFB300':'#E53935'})+
+    `<div class="tbl-wrap" style="margin-top:10px"><table style="font-size:11px"><tbody>
+      <tr><td style="color:var(--text2)">Retiros</td>${sal.map(v=>`<td style="text-align:center">${v||'·'}</td>`).join('')}<td style="text-align:center;font-weight:700">${sal.reduce((a,b)=>a+b,0)}</td></tr>
+      <tr><td style="color:var(--text2)">Ingresos</td>${ing.map(v=>`<td style="text-align:center">${v||'·'}</td>`).join('')}<td style="text-align:center;font-weight:700">${ing.reduce((a,b)=>a+b,0)}</td></tr>
+      <tr><td style="color:var(--text2)">Días contratación</td>${tm.map(a=>`<td style="text-align:center">${a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):'·'}</td>`).join('')}<td></td></tr>
+    </tbody></table></div>`;
+  // Motivos de salida
+  const mot={};salidas.forEach(r=>{const k=(r.motivo_salida||'Sin motivo').trim();mot[k]=(mot[k]||0)+1;});
+  const motOrd=Object.entries(mot).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('rot-motivos').innerHTML=motOrd.length?motOrd.map(([k,v])=>`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px"><span>${esc(k)}</span><b>${v} · ${Math.round(v/salidas.length*100)}%</b></div>
+    <div style="height:8px;background:var(--bg2);border-radius:4px;overflow:hidden;margin-top:3px"><div style="height:100%;width:${Math.round(v/motOrd[0][1]*100)}%;background:var(--blue)"></div></div></div>`).join('')
+    :'<div style="font-size:13px;color:var(--text2)">Sin retiros en el periodo.</div>';
+  // Vacantes abiertas
+  document.getElementById('rot-vac-count').textContent=abiertas.length?`${abiertas.length} abierta(s)`:'';
+  document.getElementById('rot-vacantes').innerHTML=abiertas.length?`<div class="tbl-wrap"><table><thead><tr><th>Requisición</th><th>Cargo</th><th>Regional / ciudad</th><th>Reemplaza a</th><th>Días abierta</th><th>Estado</th><th></th></tr></thead><tbody>
+    ${abiertas.map(r=>{const d=r.fecha_requisicion?diasEntre(r.fecha_requisicion,hoy()):null;
+      return`<tr><td>${r.consecutivo??'—'}<div style="font-size:11px;color:var(--text3)">${r.fecha_requisicion?fmtF(r.fecha_requisicion):''}</div></td><td>${esc(r.cargo||'')}</td>
+      <td style="font-size:12px">${esc(r.regional_id?rNombre(r.regional_id):'—')}<div style="color:var(--text3)">${esc(r.ciudad||'')}</div></td><td style="font-size:12px">${esc(r.sale_nombre||'—')}</td>
+      <td style="font-weight:700;color:${d>meta?'var(--red)':'inherit'}">${d??'—'}</td><td><span class="badge b-amber">${esc(r.estado_proceso||r.estado_requisicion||'Abierta')}</span></td>
+      <td><button class="btn btn-sm" onclick="abrirRequisicion('${r.id}')">Editar</button></td></tr>`;}).join('')}</tbody></table></div>`
+    :'<div style="font-size:13px;color:var(--green-dark)">No hay vacantes abiertas.</div>';
+  // Tabla: quién salió y quién lo reemplazó
+  const q=normTxt(document.getElementById('rot-buscar').value);
+  const lista=rows.filter(r=>enP(r.fecha_requisicion)||enP(fechaIngreso(r))).filter(r=>!q||[r.sale_nombre,r.ingresa_nombre,r.sale_cedula,r.ingresa_cedula,r.cargo].some(x=>normTxt(x).includes(q)));
+  document.getElementById('rot-tabla').innerHTML=lista.length?`<div class="tbl-wrap"><table><thead><tr><th>Requisición</th><th>Cargo</th><th>Regional</th><th>Sale</th><th>Motivo</th><th>Ingresa</th><th>Contratación</th><th>Días</th><th></th></tr></thead><tbody>
+    ${lista.map(r=>{const fi=fechaIngreso(r);const d=fi&&r.fecha_requisicion?Math.max(0,diasEntre(r.fecha_requisicion,fi)):null;
+      return`<tr><td>${r.consecutivo??'—'}<div style="font-size:11px;color:var(--text3)">${r.fecha_requisicion?fmtF(r.fecha_requisicion):''}</div></td>
+      <td style="font-size:12px">${esc(r.cargo||'')}<div style="color:var(--text3)">${esc([r.tipo_cargo,r.empresa].filter(Boolean).join(' · '))}</div></td>
+      <td style="font-size:12px">${esc(r.regional_id?rNombre(r.regional_id):'—')}<div style="color:var(--text3)">${esc(r.ciudad||'')}</div></td>
+      <td style="font-size:12px"><b>${esc(r.sale_nombre||'—')}</b>${r.sale_cedula?`<div style="color:var(--text3)">C.C. ${esc(r.sale_cedula)}</div>`:''}</td>
+      <td style="font-size:12px">${esc(normTxt(r.motivo_requisicion)==='REEMPLAZO'?(r.motivo_salida||''):(r.motivo_requisicion||''))}</td>
+      <td style="font-size:12px"><b>${esc(r.ingresa_nombre||'—')}</b>${r.ingresa_cedula?`<div style="color:var(--text3)">C.C. ${esc(r.ingresa_cedula)}</div>`:''}<div style="color:var(--text3)">${esc(r.fuente_ingreso||'')}</div></td>
+      <td style="font-size:12px">${fi?fmtF(fi):'—'}</td>
+      <td style="font-weight:700;color:${d==null?'inherit':d<=meta?'var(--green-dark)':'#B26A00'}">${d??'—'}</td>
+      <td><button class="btn btn-sm" onclick="abrirRequisicion('${r.id}')">Editar</button></td></tr>`;}).join('')}</tbody></table></div>`
+    :'<div style="font-size:13px;color:var(--text2)">No hay movimientos en el periodo. Usa <b>⬆ Importar Excel</b> para cargar el archivo de requisiciones.</div>';
+}
+const RQ_CAMPOS={consecutivo:'rq-consec',ciudad:'rq-ciudad',cargo:'rq-cargo',tipo_cargo:'rq-tipo',empresa:'rq-empresa',motivo_requisicion:'rq-motivo',
+  fecha_requisicion:'rq-freq',estado_requisicion:'rq-estado',estado_proceso:'rq-proceso',solicitante:'rq-solic',responsable:'rq-resp',
+  sale_nombre:'rq-snom',sale_cedula:'rq-sced',motivo_salida:'rq-smot',promocion:'rq-promo',ingresa_nombre:'rq-inom',ingresa_cedula:'rq-iced',
+  fecha_contratacion_real:'rq-fcon',fuente_ingreso:'rq-fuente',observaciones:'rq-obs'};
+function abrirRequisicion(id,preset){
+  const r=id?(_rot||[]).find(x=>x.id===id):(preset||{});
+  document.getElementById('rq-titulo').textContent=id?'Editar requisición':'Nueva requisición';
+  document.getElementById('rq-id').value=id||'';
+  const sr=document.getElementById('rq-reg');
+  sr.innerHTML=(USER_ROL==='gerente'?regionales:regionales.filter(x=>x.id===REGIONAL_ID)).map(x=>`<option value="${x.id}">${esc(x.nombre)}</option>`).join('');
+  sr.value=r.regional_id||REGIONAL_ID||regionales[0]?.id||'';
+  Object.entries(RQ_CAMPOS).forEach(([k,el])=>{const e=document.getElementById(el);e.value=r[k]??(e.tagName==='SELECT'?e.options[0].value:'');});
+  if(!id&&!preset){document.getElementById('rq-freq').value=hoy();document.getElementById('rq-estado').value='VACANTE';}
+  document.getElementById('rq-cargos').innerHTML=[...new Set((_rot||[]).map(x=>x.cargo).filter(Boolean))].map(c=>`<option value="${esc(c)}">`).join('');
+  document.getElementById('rq-borrar').style.display=id&&USER_ROL==='gerente'?'':'none';
+  document.getElementById('modal-req').classList.add('open');
+}
+async function guardarRequisicion(){
+  const id=document.getElementById('rq-id').value;
+  const d={regional_id:document.getElementById('rq-reg').value||null,updated_at:new Date().toISOString()};
+  Object.entries(RQ_CAMPOS).forEach(([k,el])=>{const v=document.getElementById(el).value.trim();d[k]=v===''?null:v;});
+  d.consecutivo=d.consecutivo==null?null:parseInt(d.consecutivo,10);
+  ['sale_cedula','ingresa_cedula'].forEach(k=>{if(d[k])d[k]=soloDigitos(d[k])||null;});
+  if(!d.regional_id||!d.cargo||!d.fecha_requisicion){toast('Regional, cargo y fecha de requisición son obligatorios',true);return;}
+  if(d.ingresa_nombre&&d.fecha_contratacion_real&&normTxt(d.estado_requisicion)==='VACANTE')d.estado_requisicion='CERRADO';
+  const{error}=id?await db.from('rrhh_requisiciones').update(d).eq('id',id):await db.from('rrhh_requisiciones').insert(d);
+  if(error){toast('Error: '+(error.code==='23505'?'ese consecutivo ya existe':error.message),true);return;}
+  toast('Requisición guardada ✓');cerrarModal('modal-req');cargarRotacion();
+}
+async function borrarRequisicion(){
+  const id=document.getElementById('rq-id').value;if(!id||!confirm('¿Eliminar esta requisición? Queda registrado en la bitácora.'))return;
+  const{error}=await db.from('rrhh_requisiciones').delete().eq('id',id);
+  if(error){toast('Error: '+error.message,true);return;}
+  toast('Requisición eliminada');cerrarModal('modal-req');cargarRotacion();
+}
+// Importar el Excel de requisiciones (mismo formato del archivo de Gestión Humana)
+let _rotImport=null;
+async function importarRotacion(input){
+  const f=input.files[0];input.value='';if(!f)return;
+  try{
+    const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true});
+    const hoja=wb.SheetNames.find(n=>/\d{4}/.test(n))||wb.SheetNames[0];
+    const filas=XLSX.utils.sheet_to_json(wb.Sheets[hoja],{defval:''});
+    const K=k=>normTxt(k).replace(/[^A-Z0-9]/g,'');
+    const MAP={CONSECUTIVO:'consecutivo',FECHAREQUISICION:'fecha_requisicion',FECHACONTRATACION:'fecha_contratacion',FECHACONTRATACIONREAL:'fecha_contratacion_real',
+      MESDEINDICADOR:'mes_indicador',SOLICITANTE:'solicitante',CARGO:'cargo',TIPO:'tipo_cargo',ESTADOREQUISICION:'estado_requisicion',RESPONSABLE:'responsable',
+      ESTADOPROCESO:'estado_proceso',OBSERVACIONESPROCESO:'observaciones',CIUDAD:'ciudad',EMPRESA:'empresa',DIVISION:'division',
+      REEMPLAZOMAYORCUPOTEMPORADATRASLADO:'motivo_requisicion',NOMBREREEMPLAZO:'sale_nombre',CCREEMPLAZO:'sale_cedula',ESTADO:'sale_estado',
+      PROMOCIONES:'promocion',INDOLEDELREEMPLAZO:'motivo_salida',NOMBREINGRESO:'ingresa_nombre',CCINGRESO:'ingresa_cedula',PROMOCIONES2:'fuente_ingreso'};
+    const aF=v=>{if(v instanceof Date&&!isNaN(v))return fechaLocal(new Date(v.getTime()+12*3600000));const m=String(v||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:null;};
+    const items=[];
+    filas.forEach(fila=>{
+      const r={};
+      Object.entries(fila).forEach(([k,v])=>{const c=MAP[K(k)];if(!c)return;
+        if(c.startsWith('fecha_'))r[c]=aF(v);
+        else if(c==='consecutivo')r[c]=parseInt(v,10)||null;
+        else if(c.endsWith('_cedula'))r[c]=soloDigitos(v)||null;
+        else{const t=String(v??'').replace(/\s+/g,' ').trim();r[c]=t||null;}});
+      if(!r.fecha_requisicion&&!r.cargo)return; // filas vacías del formato
+      items.push(r);
+    });
+    if(!items.length){toast('No se encontraron requisiciones en el archivo',true);return;}
+    // Asignar cada ciudad a una regional (se recuerda para la próxima importación)
+    let mem={};try{mem=JSON.parse(localStorage.getItem('rot_ciudades')||'{}');}catch(e){}
+    const ciudades=[...new Set(items.map(r=>r.ciudad||'(sin ciudad)'))].sort();
+    const SABANA=['BOGOTA','TENJO','FUNZA','MOSQUERA','SIBERIA','CHIA','MADRID','COTA'];
+    const adivinar=c=>{if(mem[c]!==undefined)return mem[c];let t=normTxt(c).split(/\s+/)[0];if(SABANA.includes(t)&&regionales.some(x=>normTxt(x.nombre).includes('COTA')))t='COTA';const r=regionales.find(x=>normTxt(x.nombre).includes(t)||t.includes(normTxt(x.nombre)));return r?r.id:'';};
+    _rotImport={items,ciudades};
+    document.getElementById('mp-info').textContent=`${items.length} requisiciones encontradas en la hoja "${hoja}". Si el consecutivo ya existe, se actualiza.`;
+    document.getElementById('mp-lista').innerHTML=ciudades.map((c,i)=>`<label style="display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px">
+      <span>${esc(c)} <span style="font-size:11px;color:var(--text3)">(${items.filter(r=>(r.ciudad||'(sin ciudad)')===c).length})</span></span>
+      <select data-ciudad="${i}" class="rh-sel"><option value="">— Sin regional —</option>${regionales.map(r=>`<option value="${r.id}"${adivinar(c)===r.id?' selected':''}>${esc(r.nombre)}</option>`).join('')}</select></label>`).join('');
+    document.getElementById('modal-mapeo').classList.add('open');
+  }catch(e){toast('No se pudo leer el archivo: '+e.message,true);}
+}
+async function confirmarImportRot(){
+  if(!_rotImport)return;
+  const mapa={},mem={};
+  document.querySelectorAll('#mp-lista select').forEach(s=>{const c=_rotImport.ciudades[+s.dataset.ciudad];mapa[c]=s.value||null;mem[c]=s.value||'';});
+  try{localStorage.setItem('rot_ciudades',JSON.stringify(mem));}catch(e){}
+  const btn=document.getElementById('mp-btn');btn.disabled=true;btn.textContent='Importando…';
+  try{
+    const items=_rotImport.items.map(r=>({...r,regional_id:mapa[r.ciudad||'(sin ciudad)']||null,updated_at:new Date().toISOString()}));
+    const{data:ex}=await db.from('rrhh_requisiciones').select('id,consecutivo');
+    const porCons={};(ex||[]).forEach(x=>{if(x.consecutivo!=null)porCons[x.consecutivo]=x.id;});
+    let nuevos=0,act=0,err=0;
+    const ins=items.filter(r=>r.consecutivo==null||!porCons[r.consecutivo]);
+    for(let i=0;i<ins.length;i+=100){const{error}=await db.from('rrhh_requisiciones').insert(ins.slice(i,i+100));if(error)err+=Math.min(100,ins.length-i);else nuevos+=Math.min(100,ins.length-i);}
+    for(const r of items.filter(r=>r.consecutivo!=null&&porCons[r.consecutivo])){const{error}=await db.from('rrhh_requisiciones').update(r).eq('id',porCons[r.consecutivo]);if(error)err++;else act++;}
+    toast(`Importación: ${nuevos} nueva(s), ${act} actualizada(s)${err?`, ${err} con error`:''}`,err>0);
+    cerrarModal('modal-mapeo');_rotImport=null;cargarRotacion();
+  }catch(e){toast('Error: '+e.message,true);}
+  finally{btn.disabled=false;btn.textContent='Importar';}
+}
+function exportarRotacion(){
+  if(!_rot)return;
+  const anio=+document.getElementById('rot-anio').value,mes=document.getElementById('rot-mes').value;const{desde,hasta}=periodoRH(anio,mes);
+  const enP=f=>f&&f>=desde&&f<=hasta;
+  const filas=filtrarRot().filter(r=>enP(r.fecha_requisicion)||enP(fechaIngreso(r))).map(r=>({'Consecutivo':r.consecutivo,'Regional':r.regional_id?rNombre(r.regional_id):'','Ciudad':r.ciudad||'',
+    'Fecha requisición':r.fecha_requisicion||'','Cargo':r.cargo||'','Tipo':r.tipo_cargo||'','Empresa':r.empresa||'','Motivo requisición':r.motivo_requisicion||'',
+    'Sale':r.sale_nombre||'','CC sale':r.sale_cedula||'','Motivo salida':r.motivo_salida||'','Cuenta como retiro':esSalida(r)?'Sí':'No',
+    'Ingresa':r.ingresa_nombre||'','CC ingresa':r.ingresa_cedula||'','Fecha contratación':fechaIngreso(r)||'',
+    'Días contratación':fechaIngreso(r)&&r.fecha_requisicion?Math.max(0,diasEntre(r.fecha_requisicion,fechaIngreso(r))):'','Estado':r.estado_requisicion||''}));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(filas),'Rotación');
+  XLSX.writeFile(wb,`Rotacion_${mes?MESES[mes-1]+'_':''}${anio}.xlsx`);
+}
+
+// ── PERSONAL · Ausentismo ─────────────────────────────────────
+let _aus=null,_tiposAus=[],_condsAus=[];
+async function cargarAusentismo(){
+  const box=document.getElementById('aus-tabla');
+  box.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  try{
+    if(!document.getElementById('aus-reg').options.length)selRegionalesRH('aus-reg');
+    const reg=document.getElementById('aus-reg').value;
+    let qa=db.from('rrhh_ausentismo').select('*').order('fecha_inicio',{ascending:false});
+    if(reg)qa=qa.eq('regional_id',reg);
+    const[ra,rt]=await Promise.all([qa,db.from('rrhh_tipos_ausencia').select('*').order('orden'),cargarPlantillas()]);
+    if(ra.error)throw ra.error;
+    _aus=ra.data||[];_tiposAus=rt.data||[];
+    const anios=[...new Set(_aus.map(a=>+a.fecha_inicio.slice(0,4)).concat([new Date().getFullYear()]))].sort((a,b)=>b-a);
+    llenarSelect('aus-anio',anios.map(a=>[a,a]),document.getElementById('aus-anio').value||anios[0]);
+    llenarSelect('aus-mes',[['','Todo el año'],...MESES.map((m,i)=>[i+1,m])],document.getElementById('aus-mes').value||(new Date().getMonth()+1));
+    llenarSelect('aus-tipo',[['','Todos los tipos'],..._tiposAus.map(t=>[t.nombre,t.nombre])]);
+    pintarAusentismo();
+  }catch(e){
+    const msg=/rrhh_/.test(e.message||'')?'Falta ejecutar rrhh_seguridad.sql en Supabase.':e.message;
+    box.innerHTML=`<div style="color:var(--red-dark)">${esc(msg)}</div>`;
+  }
+}
+function cuentaAus(tipo){const t=_tiposAus.find(x=>x.nombre===tipo);return t?t.cuenta_ausentismo!==false:true;}
+// Días de una ausencia que caen dentro del periodo (proporcional si cruza meses)
+function diasEnPeriodo(a,desde,hasta){
+  const ini=a.fecha_inicio>desde?a.fecha_inicio:desde,fin=a.fecha_fin<hasta?a.fecha_fin:hasta;
+  if(fin<ini)return 0;
+  const total=diasEntre(a.fecha_inicio,a.fecha_fin)+1,dentro=diasEntre(ini,fin)+1;
+  return Math.round(Number(a.dias)*dentro/total*10)/10;
+}
+function pintarAusentismo(){
+  if(!_aus)return;
+  const anio=+document.getElementById('aus-anio').value,mes=document.getElementById('aus-mes').value,tipo=document.getElementById('aus-tipo').value;
+  const reg=document.getElementById('aus-reg').value;
+  let{desde,hasta}=periodoRH(anio,mes);
+  if(hasta>hoy()&&desde<=hoy())hasta=hoy(); // periodo en curso: hasta hoy
+  const diasPer=desde<=hasta?diasEntre(desde,hasta)+1:0;
+  const base=basePersonas(reg);
+  const lista=_aus.filter(a=>(!tipo||a.tipo===tipo)&&a.fecha_fin>=desde&&a.fecha_inicio<=hasta);
+  const cuentan=lista.filter(a=>cuentaAus(a.tipo));
+  const dias=Math.round(cuentan.reduce((s,a)=>s+diasEnPeriodo(a,desde,hasta),0)*10)/10;
+  const programados=base.total*diasPer;
+  const pct=programados?Math.round(dias/programados*1000)/10:null;
+  const personas=new Set(cuentan.map(a=>a.conductor_id||normTxt(a.persona_nombre))).size;
+  const per=mes?`${MESES[mes-1]} ${anio}`:`${anio}`;
+  document.getElementById('aus-metricas').innerHTML=
+    metrica(`Ausentismo ${per}`,pct==null?'—':pct+'%',`${dias} días de ${programados.toLocaleString('es-CO')} programados (${base.total} personas × ${diasPer} días)${USER_ROL==='gerente'?` · <a href="#" onclick="abrirPlantillas();return false">${base.origen==='activos'?'definir base':'cambiar base'}</a>`:''}`,pct==null?null:pct<=2?'var(--green)':pct<=4?'var(--amber)':'var(--red)')+
+    metrica('Días perdidos',dias,`${cuentan.length} ausencia(s) que cuentan en el %`,'var(--red)')+
+    metrica('Personas con ausencias',personas,base.total?`${Math.round(personas/base.total*100)}% del personal`:'')+
+    metrica('Otras ausencias',Math.round(lista.filter(a=>!cuentaAus(a.tipo)).reduce((s,a)=>s+diasEnPeriodo(a,desde,hasta),0)*10)/10,'Días que no cuentan (p. ej. vacaciones)');
+  // Mensual del año
+  const porMes=Array(12).fill(0);
+  _aus.filter(a=>(!tipo||a.tipo===tipo)&&cuentaAus(a.tipo)).forEach(a=>{for(let m=0;m<12;m++){const p=periodoRH(anio,m+1);porMes[m]+=diasEnPeriodo(a,p.desde,p.hasta);}});
+  const pctMes=porMes.map((d,m)=>{const p=periodoRH(anio,m+1);let h=p.hasta;if(h>hoy())h=hoy();const dp=p.desde<=h?diasEntre(p.desde,h)+1:0;return base.total&&dp?Math.round(d/(base.total*dp)*1000)/10:0;});
+  document.getElementById('aus-grafica').innerHTML=barrasMes(base.total?pctMes:porMes.map(v=>Math.round(v)),{fmt:v=>base.total?v+'%':v,resaltar:mes?mes-1:-1,
+    colorFn:v=>!base.total?'var(--blue)':v<=2?'#66BB6A':v<=4?'#FFB300':'#E53935'})+`<div style="font-size:11px;color:var(--text3);margin-top:6px">% = días de ausencia ÷ (personas × días del mes). Vacaciones y tipos marcados como "no cuenta" se excluyen.</div>`;
+  // Por tipo
+  const pt={};lista.forEach(a=>{pt[a.tipo]=(pt[a.tipo]||0)+diasEnPeriodo(a,desde,hasta);});
+  const ptOrd=Object.entries(pt).sort((a,b)=>b[1]-a[1]);const maxT=ptOrd[0]?.[1]||1;
+  document.getElementById('aus-tipos').innerHTML=ptOrd.length?ptOrd.map(([k,v])=>`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px"><span>${esc(k)}${cuentaAus(k)?'':' <span style="color:var(--text3)">(no cuenta)</span>'}</span><b>${Math.round(v*10)/10} días</b></div>
+    <div style="height:8px;background:var(--bg2);border-radius:4px;overflow:hidden;margin-top:3px"><div style="height:100%;width:${Math.round(v/maxT*100)}%;background:${cuentaAus(k)?'#E53935':'#90A4AE'}"></div></div></div>`).join('')
+    :'<div style="font-size:13px;color:var(--text2)">Sin ausencias en el periodo.</div>';
+  // Registros
+  const q=normTxt(document.getElementById('aus-buscar').value);
+  const filas=lista.filter(a=>!q||normTxt(a.persona_nombre).includes(q)||(a.persona_cedula||'').includes(q));
+  document.getElementById('aus-tabla').innerHTML=filas.length?`<div class="tbl-wrap"><table><thead><tr><th>Persona</th><th>Tipo</th><th>Desde</th><th>Hasta</th><th>Días</th><th>Regional</th><th>Soporte</th><th></th></tr></thead><tbody>
+    ${filas.map(a=>`<tr><td><b>${esc(a.persona_nombre)}</b><div style="font-size:11px;color:var(--text3)">${a.persona_cedula?'C.C. '+esc(a.persona_cedula):''}${a.observacion?' · '+esc(a.observacion):''}</div></td>
+      <td style="font-size:12px">${esc(a.tipo)}</td><td style="font-size:12px">${fmtF(a.fecha_inicio)}</td><td style="font-size:12px">${fmtF(a.fecha_fin)}</td>
+      <td style="font-weight:700">${Number(a.dias)}</td><td style="font-size:12px">${esc(rNombre(a.regional_id))}</td>
+      <td>${a.soporte_path?`<a href="#" onclick="abrirSoporteAus('${escJs(a.soporte_path)}');return false">Ver</a>`:'<span style="color:var(--text3);font-size:12px">—</span>'}</td>
+      <td><button class="btn btn-sm" onclick="abrirAusencia('${a.id}')">Editar</button></td></tr>`).join('')}</tbody></table></div>`
+    :'<div style="font-size:13px;color:var(--text2)">No hay ausencias registradas en el periodo.</div>';
+}
+async function llenarPersonasAus(sel){
+  const reg=document.getElementById('au-reg').value;
+  const{data}=await db.from('conductores').select('id,nombre,cedula,cargo,activo').eq('regional_id',reg).order('nombre');
+  _condsAus=(data||[]).filter(c=>c.activo!==false||c.id===sel);
+  const s=document.getElementById('au-cond');
+  s.innerHTML='<option value="">— Elegir —</option>'+_condsAus.map(c=>`<option value="${c.id}">${esc(c.nombre)} · ${esc(c.cedula||'')}</option>`).join('')+'<option value="otra">Otra persona (no está en el listado)</option>';
+  if(sel)s.value=sel;
+}
+async function abrirAusencia(id){
+  const a=id?_aus.find(x=>x.id===id):null;
+  document.getElementById('au-titulo').textContent=a?'Editar ausencia':'Registrar ausencia';
+  document.getElementById('au-id').value=a?.id||'';
+  const sr=document.getElementById('au-reg');
+  sr.innerHTML=(USER_ROL==='gerente'?regionales:regionales.filter(x=>x.id===REGIONAL_ID)).map(x=>`<option value="${x.id}">${esc(x.nombre)}</option>`).join('');
+  sr.value=a?.regional_id||document.getElementById('aus-reg').value||REGIONAL_ID||regionales[0]?.id;
+  await llenarPersonasAus(a?.conductor_id);
+  const otra=a&&!a.conductor_id;
+  document.getElementById('au-cond').value=otra?'otra':(a?.conductor_id||'');
+  document.getElementById('au-wrap-otra').style.display=otra?'grid':'none';
+  document.getElementById('au-nom').value=otra?a.persona_nombre:'';document.getElementById('au-ced').value=otra?(a.persona_cedula||''):'';
+  document.getElementById('au-tipo').innerHTML=_tiposAus.filter(t=>t.activo!==false||t.nombre===a?.tipo).map(t=>`<option>${esc(t.nombre)}</option>`).join('');
+  document.getElementById('au-tipo').value=a?.tipo||_tiposAus[0]?.nombre||'';
+  document.getElementById('au-ini').value=a?.fecha_inicio||hoy();
+  document.getElementById('au-fin').value=a?.fecha_fin||hoy();
+  document.getElementById('au-dias').value=a?.dias??1;
+  document.getElementById('au-obs').value=a?.observacion||'';
+  document.getElementById('au-file').value='';
+  document.getElementById('au-file-actual').textContent=a?.soporte_nombre?'Soporte actual: '+a.soporte_nombre:'';
+  document.getElementById('au-borrar').style.display=a&&USER_ROL==='gerente'?'':'none';
+  document.getElementById('au-cond').onchange=function(){document.getElementById('au-wrap-otra').style.display=this.value==='otra'?'grid':'none';};
+  document.getElementById('modal-aus').classList.add('open');
+}
+function calcDiasAus(){
+  const i=document.getElementById('au-ini').value,f=document.getElementById('au-fin').value;
+  if(i&&f&&f>=i)document.getElementById('au-dias').value=diasEntre(i,f)+1;
+}
+async function guardarAusencia(){
+  const id=document.getElementById('au-id').value,reg=document.getElementById('au-reg').value,cs=document.getElementById('au-cond').value;
+  const c=_condsAus.find(x=>x.id===cs);
+  const d={regional_id:reg,conductor_id:c?.id||null,
+    persona_nombre:c?c.nombre:document.getElementById('au-nom').value.trim(),persona_cedula:c?c.cedula:(soloDigitos(document.getElementById('au-ced').value)||null),
+    cargo:c?.cargo||null,tipo:document.getElementById('au-tipo').value,fecha_inicio:document.getElementById('au-ini').value,
+    fecha_fin:document.getElementById('au-fin').value,dias:Number(document.getElementById('au-dias').value),
+    observacion:document.getElementById('au-obs').value.trim()||null};
+  if(!reg||!d.persona_nombre||!d.tipo||!d.fecha_inicio||!d.fecha_fin){toast('Regional, persona, tipo y fechas son obligatorios',true);return;}
+  if(d.fecha_fin<d.fecha_inicio){toast('La fecha "hasta" no puede ser anterior a "desde"',true);return;}
+  if(!(d.dias>=0)){toast('Revisa los días de ausencia',true);return;}
+  const btn=document.getElementById('au-btn');btn.disabled=true;
+  try{
+    const f=document.getElementById('au-file').files[0];
+    if(f){
+      if(!/^(application\/pdf|image\/jpeg|image\/png)$/.test(f.type))throw new Error('El soporte debe ser PDF o imagen');
+      if(f.size>10*1024*1024)throw new Error('El soporte supera 10 MB');
+      const ext=(f.name.split('.').pop()||'pdf').toLowerCase().replace(/[^a-z0-9]/g,'');
+      const path=`${reg}/${crypto.randomUUID?crypto.randomUUID():Date.now()}.${ext}`;
+      const{error:eUp}=await db.storage.from('rrhh-soportes').upload(path,f,{contentType:f.type,upsert:false});
+      if(eUp)throw eUp;
+      d.soporte_path=path;d.soporte_nombre=f.name.slice(0,200);
+    }
+    const{error}=id?await db.from('rrhh_ausentismo').update(d).eq('id',id):await db.from('rrhh_ausentismo').insert(d);
+    if(error)throw error;
+    toast('Ausencia guardada ✓');cerrarModal('modal-aus');cargarAusentismo();
+  }catch(e){toast('Error: '+e.message,true);}
+  finally{btn.disabled=false;}
+}
+async function borrarAusencia(){
+  const id=document.getElementById('au-id').value;if(!id||!confirm('¿Eliminar esta ausencia? Queda registrado en la bitácora.'))return;
+  const{error}=await db.from('rrhh_ausentismo').delete().eq('id',id);
+  if(error){toast('Error: '+error.message,true);return;}
+  toast('Ausencia eliminada');cerrarModal('modal-aus');cargarAusentismo();
+}
+async function abrirSoporteAus(path){
+  const w=window.open('','_blank');
+  const{data,error}=await db.storage.from('rrhh-soportes').createSignedUrl(path,300);
+  if(error||!data?.signedUrl){w?.close();toast('No se pudo abrir el soporte',true);return;}
+  if(w)w.location=data.signedUrl;else location.href=data.signedUrl;
+}
+function abrirTiposAus(){
+  if(USER_ROL!=='gerente'){toast('Solo el gerente puede cambiar los tipos',true);return;}
+  document.getElementById('ta-lista').innerHTML=_tiposAus.map(t=>`<div style="display:flex;align-items:center;gap:10px;font-size:13px;padding:6px 0;border-bottom:0.5px solid var(--border);${t.activo===false?'opacity:.5':''}">
+    <span style="flex:1">${esc(t.nombre)}</span>
+    <label style="font-size:12px;display:flex;gap:4px;align-items:center"><input type="checkbox" ${t.cuenta_ausentismo!==false?'checked':''} onchange="cambiarTipoAus('${t.id}',{cuenta_ausentismo:this.checked})"> Cuenta en el %</label>
+    <button class="btn btn-sm" onclick="cambiarTipoAus('${t.id}',{activo:${t.activo===false}})">${t.activo===false?'Activar':'Ocultar'}</button></div>`).join('');
+  document.getElementById('ta-nuevo').value='';
+  document.getElementById('modal-tiposaus').classList.add('open');
+}
+async function cambiarTipoAus(id,cambio){
+  const{error}=await db.from('rrhh_tipos_ausencia').update(cambio).eq('id',id);
+  if(error){toast('Error: '+error.message,true);return;}
+  const t=_tiposAus.find(x=>x.id===id);Object.assign(t,cambio);abrirTiposAus();
+}
+async function agregarTipoAus(){
+  const n=document.getElementById('ta-nuevo').value.trim();if(!n)return;
+  if(_tiposAus.some(t=>normTxt(t.nombre)===normTxt(n))){toast('Ese tipo ya existe',true);return;}
+  const{data,error}=await db.from('rrhh_tipos_ausencia').insert({nombre:n,cuenta_ausentismo:true,orden:95}).select().single();
+  if(error){toast('Error: '+error.message,true);return;}
+  _tiposAus.push(data);abrirTiposAus();
+}
+function exportarAusentismo(){
+  if(!_aus)return;
+  const anio=+document.getElementById('aus-anio').value,mes=document.getElementById('aus-mes').value;const{desde,hasta}=periodoRH(anio,mes);
+  const filas=_aus.filter(a=>a.fecha_fin>=desde&&a.fecha_inicio<=hasta).map(a=>({'Persona':a.persona_nombre,'Cédula':a.persona_cedula||'','Regional':rNombre(a.regional_id),
+    'Tipo':a.tipo,'Cuenta en el %':cuentaAus(a.tipo)?'Sí':'No','Desde':a.fecha_inicio,'Hasta':a.fecha_fin,'Días':Number(a.dias),'Días en el periodo':diasEnPeriodo(a,desde,hasta),'Observación':a.observacion||'','Con soporte':a.soporte_path?'Sí':'No'}));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(filas),'Ausentismo');
+  XLSX.writeFile(wb,`Ausentismo_${mes?MESES[mes-1]+'_':''}${anio}.xlsx`);
 }
 
 // ── AUDITORÍAS · Tabla por conductor ──────────────────────────
