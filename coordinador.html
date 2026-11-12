@@ -6465,7 +6465,7 @@ async function guardarRetiro(){
   const{error}=await db.from('conductores').update({activo:false,fecha_retiro:f,motivo_retiro:document.getElementById('rt-motivo').value,
     observacion_retiro:document.getElementById('rt-obs').value.trim()||null}).eq('id',id);
   if(error){toast('Error: '+error.message,true);return;}
-  toast('Conductor retirado');cerrarModal('modal-retiro');_aud=null;cargarConductoresPage();
+  toast(puedeModulo('personal')?'Conductor retirado · se abrió la vacante en Rotación':'Conductor retirado');cerrarModal('modal-retiro');_aud=null;cargarConductoresPage();
 }
 async function reintegrarCond(id){
   if(!confirm('¿Reintegrar este conductor? Volverá a contar en la planta y en las auditorías.'))return;
@@ -6613,7 +6613,7 @@ async function guardarPlantillas(){
 // ── PERSONAL · Rotación ───────────────────────────────────────
 let _rot=null;
 // Salidas que cuentan para la rotación (excluye movimientos internos y cupos nuevos)
-const NO_ES_SALIDA=['PROMOCION','TRASLADO DE CIUDAD','MAYOR CUPO','TRASLADO A NOMINA'];
+const NO_ES_SALIDA=['PROMOCION','TRASLADO DE CIUDAD','TRASLADO DE AREA','MAYOR CUPO','TRASLADO A NOMINA'];
 function esSalida(r){
   if(normTxt(r.estado_requisicion)==='ANULADO')return false;
   if(normTxt(r.motivo_requisicion)!=='REEMPLAZO')return false;
@@ -6701,7 +6701,7 @@ function pintarRotacion(){
   document.getElementById('rot-vac-count').textContent=abiertas.length?`${abiertas.length} abierta(s)`:'';
   document.getElementById('rot-vacantes').innerHTML=abiertas.length?`<div class="tbl-wrap"><table><thead><tr><th>Requisición</th><th>Cargo</th><th>Regional / ciudad</th><th>Reemplaza a</th><th>Días abierta</th><th>Estado</th><th></th></tr></thead><tbody>
     ${abiertas.map(r=>{const d=r.fecha_requisicion?diasEntre(r.fecha_requisicion,hoy()):null;
-      return`<tr><td>${r.consecutivo??'—'}<div style="font-size:11px;color:var(--text3)">${r.fecha_requisicion?fmtF(r.fecha_requisicion):''}</div></td><td>${esc(r.cargo||'')}</td>
+      return`<tr><td>${r.consecutivo??'—'}${r.origen==='automatica'?'<span class="badge b-amber" style="font-size:10px;margin-left:4px" title="Creada al retirar al conductor">auto</span>':''}<div style="font-size:11px;color:var(--text3)">${r.fecha_requisicion?fmtF(r.fecha_requisicion):''}</div></td><td>${esc(r.cargo||'')}</td>
       <td style="font-size:12px">${esc(r.regional_id?rNombre(r.regional_id):'—')}<div style="color:var(--text3)">${esc(r.ciudad||'')}</div></td><td style="font-size:12px">${esc(r.sale_nombre||'—')}</td>
       <td style="font-weight:700;color:${d>meta?'var(--red)':'inherit'}">${d??'—'}</td><td><span class="badge b-amber">${esc(r.estado_proceso||r.estado_requisicion||'Abierta')}</span></td>
       <td><button class="btn btn-sm" onclick="abrirRequisicion('${r.id}')">Editar</button></td></tr>`;}).join('')}</tbody></table></div>`
@@ -6711,7 +6711,7 @@ function pintarRotacion(){
   const lista=rows.filter(r=>enP(r.fecha_requisicion)||enP(fechaIngreso(r))).filter(r=>!q||[r.sale_nombre,r.ingresa_nombre,r.sale_cedula,r.ingresa_cedula,r.cargo].some(x=>normTxt(x).includes(q)));
   document.getElementById('rot-tabla').innerHTML=lista.length?`<div class="tbl-wrap"><table><thead><tr><th>Requisición</th><th>Cargo</th><th>Regional</th><th>Sale</th><th>Motivo</th><th>Ingresa</th><th>Contratación</th><th>Días</th><th></th></tr></thead><tbody>
     ${lista.map(r=>{const fi=fechaIngreso(r);const d=fi&&r.fecha_requisicion?Math.max(0,diasEntre(r.fecha_requisicion,fi)):null;
-      return`<tr><td>${r.consecutivo??'—'}<div style="font-size:11px;color:var(--text3)">${r.fecha_requisicion?fmtF(r.fecha_requisicion):''}</div></td>
+      return`<tr><td>${r.consecutivo??'—'}${r.origen==='automatica'?'<span class="badge b-amber" style="font-size:10px;margin-left:4px" title="Creada al retirar al conductor">auto</span>':''}<div style="font-size:11px;color:var(--text3)">${r.fecha_requisicion?fmtF(r.fecha_requisicion):''}</div></td>
       <td style="font-size:12px">${esc(r.cargo||'')}<div style="color:var(--text3)">${esc([r.tipo_cargo,r.empresa].filter(Boolean).join(' · '))}</div></td>
       <td style="font-size:12px">${esc(r.regional_id?rNombre(r.regional_id):'—')}<div style="color:var(--text3)">${esc(r.ciudad||'')}</div></td>
       <td style="font-size:12px"><b>${esc(r.sale_nombre||'—')}</b>${r.sale_cedula?`<div style="color:var(--text3)">C.C. ${esc(r.sale_cedula)}</div>`:''}</td>
@@ -6805,8 +6805,13 @@ async function confirmarImportRot(){
   const btn=document.getElementById('mp-btn');btn.disabled=true;btn.textContent='Importando…';
   try{
     const items=_rotImport.items.map(r=>({...r,regional_id:mapa[r.ciudad||'(sin ciudad)']||null,updated_at:new Date().toISOString()}));
-    const{data:ex}=await db.from('rrhh_requisiciones').select('id,consecutivo');
+    const{data:ex}=await db.from('rrhh_requisiciones').select('id,consecutivo,origen,sale_cedula');
     const porCons={};(ex||[]).forEach(x=>{if(x.consecutivo!=null)porCons[x.consecutivo]=x.id;});
+    // Vacantes creadas solas al retirar un conductor: si el Excel trae a esa persona, se completa esa misma vacante (sin duplicar)
+    (ex||[]).filter(x=>x.origen==='automatica'&&x.consecutivo==null&&x.sale_cedula).forEach(x=>{
+      const r=items.find(i=>i.consecutivo!=null&&!porCons[i.consecutivo]&&i.sale_cedula===x.sale_cedula);
+      if(r)porCons[r.consecutivo]=x.id;});
+    items.forEach(r=>r.origen='excel');
     let nuevos=0,act=0,err=0;
     const ins=items.filter(r=>r.consecutivo==null||!porCons[r.consecutivo]);
     for(let i=0;i<ins.length;i+=100){const{error}=await db.from('rrhh_requisiciones').insert(ins.slice(i,i+100));if(error)err+=Math.min(100,ins.length-i);else nuevos+=Math.min(100,ins.length-i);}
