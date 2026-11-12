@@ -5359,10 +5359,14 @@ const AUD_REQ=[
   {k:'ft_hds_plagas',cat:'plagas',nombre:'Fichas técnicas y hojas de seguridad de las sustancias (según manual de aliados)',alcance:'general',vig:null,multi:true,tituloLbl:'Sustancia'},
   {k:'concepto_sanitario_vehiculo',cat:'vehiculo',nombre:'Certificado de concepto sanitario del vehículo',alcance:'vehiculo',docTipo:'acta_sanitaria',vig:12,aviso:30},
   {k:'mantenimiento_frio',cat:'vehiculo',nombre:'Certificado de mantenimiento de la unidad de frío',alcance:'vehiculo',soloRefrigerado:true,vig:6,aviso:30},
-  {k:'concepto_medico',cat:'personal',nombre:'Concepto médico apto para manipulación de alimentos',alcance:'persona',roster:true,vig:12,aviso:30},
-  {k:'curso_manipulacion',cat:'personal',nombre:'Curso de manipulación de alimentos',alcance:'persona',roster:true,vig:12,aviso:30},
-  {k:'verificacion_bpm',cat:'personal',nombre:'Verificación de BPM a conductores',alcance:'persona',roster:true,vig:1,aviso:7,tituloLbl:'Periodo verificado',cargo:'Conductor'},
-  {k:'cronograma_capacitacion',cat:'personal',nombre:'Cronograma de capacitación enfocado en BPM',alcance:'general',vig:12,aviso:30},
+  {k:'examen_medico',cat:'personal',nombre:'Examen médico ocupacional',corto:'Examen médico',alcance:'persona',roster:true,vig:12,aviso:30},
+  {k:'concepto_medico',cat:'personal',nombre:'Concepto médico apto para manipulación de alimentos',corto:'Concepto médico manipulación',alcance:'persona',roster:true,vig:12,aviso:30},
+  {k:'curso_manipulacion',cat:'personal',nombre:'Curso de manipulación de alimentos',corto:'Curso manipulación de alimentos',alcance:'persona',roster:true,vig:12,aviso:30},
+  // Documentos del conductor que se controlan pero NO hacen parte de la auditoría de Calidad
+  {k:'seguridad_vial',cat:'personal',nombre:'Concepto de seguridad vial',corto:'Concepto seguridad vial',alcance:'persona',roster:true,noAud:true,vig:12,aviso:30},
+  {k:'curso_single_pallet',cat:'personal',nombre:'Curso de single pallet',corto:'Curso single pallet',alcance:'persona',roster:true,noAud:true,vig:12,aviso:30},
+  {k:'verificacion_bpm',cat:'personal',nombre:'Verificación de BPM a conductores',alcance:'persona',roster:true,soloAud:true,vig:1,aviso:7,tituloLbl:'Periodo verificado',cargo:'Conductor'},
+  {k:'cronograma_capacitacion',cat:'personal',nombre:'Cronograma de capacitación enfocado en BPM',alcance:'general',cron:true,vig:12,aviso:30},
   {k:'soporte_capacitacion',cat:'personal',nombre:'Soportes de ejecución de las capacitaciones en BPM',alcance:'general',vig:null,multi:true,prog:true,tituloLbl:'Tema de la capacitación'},
 ];
 const AUD_EST={
@@ -5428,8 +5432,9 @@ async function cargarAuditorias(){
     const docs=rDocs.data||[],vhs=rVhs.data||[],dv=rDv.data||[],lavs=rLav.data||[],cls=rCl.data||[],conds=rCond.data||[];
     const rProg=await db.from('auditoria_programacion').select('*').eq('regional_id',reg).eq('activo',true).order('fecha_programada');
     const prog=rProg.error?null:(rProg.data||[]);
-    const res=AUD_REQ.map(req=>evaluarReqAud(req,{docs,vhs,dv,lavs,cls,conds,prog,hoyD}));
-    _aud={reg,docs,vhs,conds,prog,res};
+    const resAll=AUD_REQ.map(req=>evaluarReqAud(req,{docs,vhs,dv,lavs,cls,conds,prog,hoyD}));
+    const res=resAll.filter(r=>!r.req.noAud); // lo que no es de auditoría solo se ve en Conductores
+    _aud={reg,docs,vhs,conds,prog,res,resAll};
     pintarAuditorias();
   }catch(e){
     const msg=/auditoria_documentos/.test(e.message||'')?'Falta ejecutar auditorias.sql en Supabase.':e.message;
@@ -5447,6 +5452,17 @@ function estadoProg(p,nSoportes){
 function evaluarReqAud(req,{docs,vhs,dv,lavs,cls,conds,prog,hoyD}){
   const out={req,estado:'faltante',detalle:'',items:[]};
   const aviso=req.aviso??30;
+  if(req.cron){
+    // El cronograma de capacitaciones es la sección "Cronograma" de esta página
+    if(prog===null){out.estado='info';out.detalle='Falta ejecutar programacion_auditoria.sql';return out;}
+    const acts=prog.filter(p=>p.requisito==='soporte_capacitacion');
+    if(!acts.length){out.detalle='Aún no hay actividades en el Cronograma';return out;}
+    const ej=acts.filter(p=>p.ejecutada_en).length;
+    const atras=acts.filter(p=>!p.ejecutada_en&&calcEstadoDoc(p.fecha_programada).dias<0).length;
+    out.estado=atras?'atrasado':'vigente';
+    out.detalle=`${acts.length} actividades en el cronograma · ${ej} ejecutada(s) (${Math.round(ej/acts.length*100)}%)`+(atras?` · ${atras} atrasada(s)`:'');
+    return out;
+  }
   if(req.alcance==='sistema'){
     const n=vhs.length;
     if(!n){out.estado='info';out.detalle='Sin vehículos activos en la regional';return out;}
@@ -5577,7 +5593,7 @@ function pintarAuditorias(){
   // Pendientes: elementos vencidos, faltantes o por vencer (los de sistema van en su requisito)
   const pend=[];
   res.forEach(r=>{
-    if(r.req.alcance==='sistema')return;
+    if(r.req.alcance==='sistema'||r.req.cron)return;
     if(!r.items.length&&r.estado==='faltante')pend.push({req:r.req,etiqueta:'Sin documento cargado',estado:'faltante',dias:-99999});
     r.items.forEach(i=>{if(i.estado!=='vigente'&&i.estado!=='programada')pend.push({req:r.req,etiqueta:i.etiqueta,estado:i.estado,dias:i.dias??-99999,detalle:i.detalle,item:i});});
   });
@@ -5622,6 +5638,7 @@ function accionItemAud(req,i){
   return accionCargarAud(req);
 }
 function accionCargarAud(req){
+  if(req.cron)return`<button class="btn btn-sm" onclick="document.getElementById('aud-prog').scrollIntoView({behavior:'smooth',block:'start'})">Ver cronograma</button>`;
   if(req.alcance==='sistema')return`<button class="btn btn-sm" onclick="ir('${req.ir}')">Abrir</button>`;
   if(req.docTipo)return`<button class="btn btn-sm" onclick="ir('documentos')" title="Se carga en Documentos del vehículo">Ir a documentos</button>`;
   return`<button class="btn btn-sm btn-primary" onclick="abrirDocAud('${req.k}')">+ Cargar</button>`;
@@ -5630,9 +5647,9 @@ function accionCargarAud(req){
 function filaReqAud(r){
   const id='aud-det-'+r.req.k;
   const hayDet=r.items.length>0;
-  const alc={general:'Documento',persona:'Por persona',vehiculo:'Por vehículo',sistema:'Del aplicativo'}[r.req.alcance];
+  const alc=r.req.cron?'Se lleva en la sección Cronograma':{general:'Documento',persona:'Por persona',vehiculo:'Por vehículo',sistema:'Del aplicativo'}[r.req.alcance];
   return`<tr>
-    <td style="width:46%"><div style="font-size:13px;font-weight:500">${esc(r.req.nombre)}</div><div style="font-size:11px;color:var(--text3)">${alc}${r.req.vig?` · vigencia ${r.req.vig} mes${r.req.vig===1?'':'es'}`:r.req.alcance==='general'&&r.req.vig===null?' · sin vencimiento':''}</div></td>
+    <td style="width:46%"><div style="font-size:13px;font-weight:500">${esc(r.req.nombre)}</div><div style="font-size:11px;color:var(--text3)">${alc}${r.req.cron?'':r.req.vig?` · vigencia ${r.req.vig} mes${r.req.vig===1?'':'es'}`:r.req.alcance==='general'&&r.req.vig===null?' · sin vencimiento':''}</div></td>
     <td>${badgeAud(r.estado)}</td>
     <td style="font-size:12px;color:var(--text2)">${esc(r.detalle)}</td>
     <td style="white-space:nowrap;text-align:right">${hayDet?`<button class="btn btn-sm" onclick="toggleDetAud('${id}')">Ver</button> `:''}${accionCargarAud(r.req)}</td>
@@ -5684,7 +5701,7 @@ function abrirDocAud(reqK,reemplazaId,conductorId,opts={}){
   const prog=opts.progId?(_aud?.prog||[]).find(p=>p.id===opts.progId):null;
   prepSelectRegAud();
   const sel=document.getElementById('aud-req');
-  sel.innerHTML=AUD_CATS.map(c=>`<optgroup label="${esc(c.nombre)}">${AUD_REQ.filter(r=>r.cat===c.k&&r.alcance!=='sistema'&&!r.docTipo).map(r=>`<option value="${r.k}">${esc(r.nombre)}</option>`).join('')}</optgroup>`).join('');
+  sel.innerHTML=AUD_CATS.map(c=>`<optgroup label="${esc(c.nombre)}">${AUD_REQ.filter(r=>r.cat===c.k&&r.alcance!=='sistema'&&!r.docTipo&&!r.cron).map(r=>`<option value="${r.k}">${esc(r.nombre)}${r.noAud?' (no es de auditoría)':''}</option>`).join('')}</optgroup>`).join('');
   if(reqK)sel.value=reqK;
   const sr=document.getElementById('aud-reg-sel');sr.innerHTML='';
   const regActual=document.getElementById('aud-reg').value;
@@ -5856,7 +5873,7 @@ async function guardarDocAud(){
 // Insignia del menú: documentos del módulo vencidos o por vencer (próximos 30 días)
 async function actualizarBadgeAuditorias(){
   try{
-    let q=db.from('auditoria_documentos').select('id',{count:'exact',head:true}).eq('activo',true).not('fecha_vencimiento','is',null).lte('fecha_vencimiento',fechaLocal(new Date(Date.now()+30*86400000)));
+    let q=db.from('auditoria_documentos').select('id',{count:'exact',head:true}).eq('activo',true).not('fecha_vencimiento','is',null).lte('fecha_vencimiento',fechaLocal(new Date(Date.now()+30*86400000))).not('requisito','in','(seguridad_vial,curso_single_pallet)');
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     const{count}=await q;
     const b=document.getElementById('badge-aud');
@@ -6238,7 +6255,7 @@ function abrirProg(id,preset){
   if(_aud?.prog===null){toast('Primero ejecuten programacion_auditoria.sql',true);return;}
   const p=id?(_aud.prog||[]).find(x=>x.id===id):(preset||null);
   const sel=document.getElementById('prog-req');
-  sel.innerHTML=AUD_CATS.map(c=>`<optgroup label="${esc(c.nombre)}">${AUD_REQ.filter(r=>r.cat===c.k&&r.alcance!=='sistema'&&!r.docTipo).map(r=>`<option value="${r.k}">${esc(r.nombre)}</option>`).join('')}</optgroup>`).join('');
+  sel.innerHTML=AUD_CATS.map(c=>`<optgroup label="${esc(c.nombre)}">${AUD_REQ.filter(r=>r.cat===c.k&&r.alcance!=='sistema'&&!r.docTipo&&!r.cron).map(r=>`<option value="${r.k}">${esc(r.nombre)}${r.noAud?' (no es de auditoría)':''}</option>`).join('')}</optgroup>`).join('');
   sel.value=p?.requisito||_cronReq||'soporte_capacitacion';
   document.getElementById('prog-id').value=id?p.id:'';
   document.getElementById('prog-metodo').value=p?.metodo||'Grupal';
@@ -6323,11 +6340,11 @@ async function cargarConductoresPage(){
     pintarConductoresPage();
   }catch(e){box.innerHTML=`<div class="card" style="color:var(--red-dark)">No se pudieron cargar los conductores: ${esc(e.message)}</div>`;}
 }
-const REQS_COND=()=>AUD_REQ.filter(r=>r.roster);
+const REQS_COND=()=>AUD_REQ.filter(r=>r.roster&&!r.soloAud);
 // Estado de los documentos de un conductor según la evaluación de auditoría
 function docsDeConductor(c){
   return REQS_COND().map(req=>{
-    const r=_aud?.res.find(x=>x.req.k===req.k);
+    const r=(_aud?.resAll||_aud?.res)?.find(x=>x.req.k===req.k);
     const it=r?.items.find(i=>i.conductor?.id===c.id);
     return{req,item:it||{estado:'faltante',detalle:'Sin documento'}};
   });
@@ -6380,9 +6397,8 @@ function tarjetaCond(c){
     if(!d)acc=`<a href="#" onclick="docCond('${req.k}','nuevo','${c.id}');return false">Cargar</a>`;
     else if(!d.archivo_path)acc=`<a href="#" onclick="docCond('${req.k}','completar','${d.id}');return false">Cargar soporte</a>`;
     else acc=`<a href="#" onclick="abrirArchivoAud('${escJs(d.archivo_path)}');return false">Ver</a> · <a href="#" onclick="docCond('${req.k}','renovar','${d.id}');return false">Renovar</a>`;
-    const nom={concepto_medico:'Concepto médico',curso_manipulacion:'Curso manipulación de alimentos',verificacion_bpm:'Verificación BPM'}[req.k]||req.nombre;
     return`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:0.5px solid var(--border)">
-      <div style="min-width:0"><div style="font-size:12px;font-weight:500">${esc(nom)}</div><div style="font-size:11px;color:var(--text3)">${d?.fecha_vencimiento?'Vence '+fmtF(d.fecha_vencimiento):'Sin fecha'}</div></div>
+      <div style="min-width:0"><div style="font-size:12px;font-weight:500">${esc(req.corto||req.nombre)}${req.noAud?' <span style="font-size:10px;color:var(--text3);font-weight:400">· control interno</span>':''}</div><div style="font-size:11px;color:var(--text3)">${d?.fecha_vencimiento?'Vence '+fmtF(d.fecha_vencimiento):'Sin fecha'}</div></div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">${badgeAud(item.estado)}<span style="font-size:11px;white-space:nowrap">${acc}</span></div></div>`;
   }).join('');
   return`<div class="card" style="margin:0;${ret?'opacity:.7':''}">
@@ -7018,7 +7034,7 @@ function exportarAusentismo(){
 // ── AUDITORÍAS · Tabla por conductor ──────────────────────────
 function pintarMatrizCond(){
   const box=document.getElementById('aud-matriz');if(!box||!_aud)return;
-  const reqs=AUD_REQ.filter(r=>r.roster);
+  const reqs=AUD_REQ.filter(r=>r.roster&&!r.noAud);
   const activos=(_aud.conds||[]).filter(c=>c.activo!==false);
   const q=normTxt(document.getElementById('aud-cond-buscar')?.value||'');
   if(!activos.length){
@@ -7049,7 +7065,10 @@ const AUD_ALIAS=[
   ['CRONOGRAMA_CAPACITACION','cronograma_capacitacion'],
   ['CONCEPTO_SANITARIO_PROVEEDOR','concepto_sanitario_proveedor'],['PROVEEDOR','concepto_sanitario_proveedor'],
   ['CONCEPTO_SANITARIO_VEHICULO','concepto_sanitario_vehiculo'],['ACTA_SANITARIA','concepto_sanitario_vehiculo'],['CONCEPTO_SANITARIO','concepto_sanitario_vehiculo'],
+  ['EXAMEN_MEDICO','examen_medico'],['EXAMEN_OCUPACIONAL','examen_medico'],['OCUPACIONAL','examen_medico'],['EXAMEN','examen_medico'],
   ['CONCEPTO_MEDICO','concepto_medico'],['MEDICO','concepto_medico'],['APTITUD','concepto_medico'],
+  ['SEGURIDAD_VIAL','seguridad_vial'],['SEG_VIAL','seguridad_vial'],['PESV','seguridad_vial'],
+  ['SINGLE_PALLET','curso_single_pallet'],['SINGLEPALLET','curso_single_pallet'],['PALLET','curso_single_pallet'],
   ['CURSO_MANIPULACION','curso_manipulacion'],['MANIPULACION','curso_manipulacion'],
   ['VERIFICACION_BPM','verificacion_bpm'],['BPM','verificacion_bpm'],
   ['MANTENIMIENTO_FRIO','mantenimiento_frio'],['UNIDAD_FRIO','mantenimiento_frio'],['FRIO','mantenimiento_frio'],['THERMO','mantenimiento_frio'],['TERMO','mantenimiento_frio'],
