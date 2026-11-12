@@ -284,6 +284,63 @@ tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
+<!-- Modal ficha de conductor -->
+<div class="modal-overlay" id="modal-fcond">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-title" id="fc-titulo">Nuevo conductor</div>
+    <input type="hidden" id="fc-id">
+    <div class="form2">
+      <div class="field" style="grid-column:1/-1"><label>Nombre completo *</label><input type="text" id="fc-nombre" maxlength="120"></div>
+      <div class="field"><label>Cédula *</label><input type="text" id="fc-cedula" maxlength="20" inputmode="numeric"></div>
+      <div class="field"><label>Cargo</label><input type="text" id="fc-cargo" maxlength="60" list="cond-cargos" value="Conductor"></div>
+      <div class="field"><label>Celular</label><input type="text" id="fc-tel" maxlength="20" inputmode="tel"></div>
+      <div class="field"><label>Fecha de ingreso</label><input type="date" id="fc-ingreso"></div>
+      <div class="field"><label>Vinculación *</label>
+        <select id="fc-vinc" onchange="document.getElementById('fc-wrap-emp').style.display=this.value==='temporal'?'':'none'">
+          <option value="directo">Directo (contratado por la empresa)</option><option value="temporal">Temporal (empresa de servicios temporales)</option></select></div>
+      <div class="field" id="fc-wrap-emp" style="display:none"><label>Empresa temporal</label><input type="text" id="fc-empresa" maxlength="80" list="fc-empresas" placeholder="Ej: SOLITEMP SAS"><datalist id="fc-empresas"></datalist></div>
+      <div class="field"><label>Fin de contrato <span style="font-size:11px;color:var(--text3)">(si es a término)</span></label><input type="date" id="fc-fin"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-fcond')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarFichaCond()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal retiro de conductor -->
+<div class="modal-overlay" id="modal-retiro">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-title">Retirar conductor</div>
+    <input type="hidden" id="rt-id">
+    <div style="font-size:13px;margin-bottom:12px" id="rt-nombre"></div>
+    <div class="form2">
+      <div class="field"><label>Fecha de retiro *</label><input type="date" id="rt-fecha"></div>
+      <div class="field"><label>Motivo *</label><select id="rt-motivo">
+        <option>Renuncia</option><option>Terminación de contrato</option><option>Fin de contrato temporal</option>
+        <option>Despido con justa causa</option><option>Despido sin justa causa</option><option>Traslado a otra área</option><option>Otro</option></select></div>
+      <div class="field" style="grid-column:1/-1"><label>Observación</label><input type="text" id="rt-obs" maxlength="300"></div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:8px">El conductor deja de contar en la planta y en las auditorías. Sus documentos e historial se conservan y se puede reintegrar.</div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-retiro')">Cancelar</button>
+      <button class="btn btn-red" onclick="guardarRetiro()">Retirar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal conductores requeridos -->
+<div class="modal-overlay" id="modal-planta">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title">Conductores requeridos · <span id="pl-reg"></span></div>
+    <div class="field"><label>¿Cuántos conductores debe tener la regional?</label><input type="number" id="pl-num" min="0" max="999"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-planta')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarPlanta()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal documento de auditoría -->
 <div class="modal-overlay" id="modal-aud">
   <div class="modal" style="max-width:560px">
@@ -355,6 +412,8 @@ tr:hover td{background:var(--bg2)}
       <div class="field"><label>Periodo del cronograma</label><input type="text" id="prog-periodo" maxlength="60" placeholder="Ej: Marzo - Abril 2027"></div>
       <div class="field"><label>Fecha límite *</label><input type="date" id="prog-fecha"></div>
       <div class="field"><label>Responsable</label><input type="text" id="prog-resp" maxlength="120"></div>
+      <div class="field"><label>Método</label><input type="text" id="prog-metodo" maxlength="40" list="prog-metodos" value="Grupal"><datalist id="prog-metodos"><option value="Grupal"><option value="Individual"><option value="Virtual"></datalist></div>
+      <div class="field"><label>Horas</label><input type="number" id="prog-horas" min="0" step="0.5" value="1"></div>
       <div class="field"><label>Fecha de ejecución</label><input type="date" id="prog-ejec"></div>
       <div class="field" style="grid-column:1/-1"><label>Objetivo / descripción</label><textarea id="prog-desc" rows="2" maxlength="600"></textarea></div>
     </div>
@@ -715,6 +774,7 @@ tr:hover td{background:var(--bg2)}
     <div class="snav-item" data-page="reportes" onclick="ir('reportes')"><span>Reportes</span></div>
     <div class="snav-item" data-page="lavados" onclick="ir('lavados')"><span>Lavados</span></div>
     <div class="snav-sec">Calidad</div>
+    <div class="snav-item" data-page="conductores" onclick="ir('conductores')"><span>Conductores</span></div>
     <div class="snav-item" data-page="auditorias" onclick="ir('auditorias')"><span>Auditorías</span><span class="badge b-red" id="badge-aud" style="display:none"></span></div>
   </nav>
 
@@ -1517,6 +1577,44 @@ tr:hover td{background:var(--bg2)}
   </div>
 
   <!-- NOVEDADES OPERATIVAS -->
+  <!-- CONDUCTORES (personal y sus documentos) -->
+  <div id="page-conductores" class="page">
+    <div class="card" style="padding:14px 18px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:16px;font-weight:700">Conductores</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px">Planta de conductores, vinculación y documentos de cada uno.</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="cp-reg" onchange="cargarConductoresPage()" style="font-size:12px;padding:6px 8px;border:0.5px solid var(--border);border-radius:var(--r)"></select>
+          <button class="btn btn-sm" onclick="exportarConductores()">⬇ Excel</button>
+          <button class="btn btn-sm" onclick="document.getElementById('cp-import').click()">⬆ Importar</button>
+          <input type="file" id="cp-import" accept=".xlsx,.xls,.csv" hidden onchange="importarDesdePagina(this)">
+          <button class="btn btn-sm btn-primary" onclick="abrirFichaCond()">+ Nuevo conductor</button>
+        </div>
+      </div>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">Activos / requeridos</div><div class="metric-val" id="cp-m-act">—</div><div class="metric-sub" id="cp-m-act-sub"></div></div>
+      <div class="metric" id="cp-m-vac-box"><div class="metric-label">Vacantes</div><div class="metric-val" id="cp-m-vac">—</div><div class="metric-sub" id="cp-m-vac-sub"></div></div>
+      <div class="metric"><div class="metric-label">Directos · Temporales</div><div class="metric-val" id="cp-m-vinc">—</div><div class="metric-sub" id="cp-m-vinc-sub"></div></div>
+      <div class="metric" style="border-top-color:var(--green)"><div class="metric-label">Documentos al día</div><div class="metric-val" id="cp-m-docs" style="color:var(--green)">—</div><div class="metric-sub" id="cp-m-docs-sub"></div></div>
+    </div>
+    <div class="card" style="padding:12px 16px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="cp-buscar" placeholder="Buscar por nombre o cédula…" oninput="pintarConductoresPage()" style="flex:1;min-width:200px;padding:7px 10px;font-size:13px;border:0.5px solid var(--border);border-radius:var(--r)">
+        <select id="cp-f-estado" onchange="pintarConductoresPage()" style="font-size:12px;padding:6px 8px;border:0.5px solid var(--border);border-radius:var(--r)">
+          <option value="activos">Activos</option><option value="retirados">Retirados</option><option value="todos">Todos</option></select>
+        <select id="cp-f-vinc" onchange="pintarConductoresPage()" style="font-size:12px;padding:6px 8px;border:0.5px solid var(--border);border-radius:var(--r)">
+          <option value="">Directos y temporales</option><option value="directo">Directos</option><option value="temporal">Temporales</option></select>
+        <select id="cp-f-docs" onchange="pintarConductoresPage()" style="font-size:12px;padding:6px 8px;border:0.5px solid var(--border);border-radius:var(--r)">
+          <option value="">Todos los documentos</option><option value="pend">Con documentos pendientes</option><option value="ok">Con todo al día</option></select>
+        <span id="cp-count" style="font-size:12px;color:var(--text2)"></span>
+      </div>
+    </div>
+    <div id="cp-lista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px"></div>
+  </div>
+
   <!-- AUDITORÍAS (documentos de Calidad) -->
   <div id="page-auditorias" class="page">
     <div class="card" style="padding:14px 18px">
@@ -1528,7 +1626,7 @@ tr:hover td{background:var(--bg2)}
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <select id="aud-reg" onchange="cargarAuditorias()" style="font-size:12px;padding:6px 8px;border:0.5px solid var(--border);border-radius:var(--r)"></select>
           <button class="btn btn-sm" onclick="exportarAuditoria()">⬇ Excel</button>
-          <button class="btn btn-sm" onclick="abrirConductores()">👥 Conductores</button>
+          <button class="btn btn-sm" onclick="ir('conductores')">👥 Conductores</button>
           <button class="btn btn-sm" onclick="abrirMasiva()">⬆ Carga masiva</button>
           <button class="btn btn-sm btn-primary" onclick="abrirDocAud()">+ Cargar documento</button>
         </div>
@@ -1545,7 +1643,7 @@ tr:hover td{background:var(--bg2)}
       <div id="aud-proximos"><div class="loading"><div class="spinner"></div></div></div>
     </div>
     <div class="card">
-      <div class="card-hdr"><span class="card-title">Programación (cronogramas)</span>
+      <div class="card-hdr"><span class="card-title">Cronograma</span>
         <div style="display:flex;gap:8px;align-items:center"><span id="aud-prog-res" style="font-size:12px;color:var(--text2)"></span>
           <button class="btn btn-sm btn-primary" onclick="abrirProg()">+ Programar</button></div></div>
       <div id="aud-prog"></div>
@@ -1804,6 +1902,7 @@ function ir(page){
   if(page==='gerencial')cargarPanelGerencial();
   if(page==='reportes')initReportes();
   if(page==='auditorias')cargarAuditorias();
+  if(page==='conductores')cargarConductoresPage();
 }
 function onFiltro(){REGIONAL_ID=USER_ROL==='gerente'?(document.getElementById('filtro-regional').value||null):REGIONAL_ID;cargarDashboard();}
 
@@ -5362,6 +5461,9 @@ function detalleReqAud(r){
   }).join('')}</tbody></table>`;
 }
 
+function refrescarAud(){
+  return cargarAuditorias().then(()=>{if(document.getElementById('page-conductores')?.classList.contains('active'))pintarConductoresPage();});
+}
 async function abrirArchivoAud(path){
   const w=window.open('','_blank');
   const{data,error}=await db.storage.from('auditoria-docs').createSignedUrl(path,600);
@@ -5373,7 +5475,7 @@ async function retirarDocAud(id){
   if(!confirm('¿Retirar este documento? Dejará de contar para la auditoría (el archivo se conserva).'))return;
   const{error}=await db.from('auditoria_documentos').update({activo:false}).eq('id',id);
   if(error){toast('Error: '+error.message,true);return;}
-  toast('Documento retirado');cargarAuditorias();actualizarBadgeAuditorias();
+  toast('Documento retirado');refrescarAud();actualizarBadgeAuditorias();
 }
 
 // ── Modal: cargar / renovar documento ──
@@ -5515,7 +5617,7 @@ async function guardarDocAud(){
         observaciones:document.getElementById('aud-obs').value.trim()||null,titulo:titulo||null,
       }).eq('id',completaId);
       if(error)throw error;
-      toast('Soporte cargado ✓');cerrarModal('modal-aud');cargarAuditorias();actualizarBadgeAuditorias();return;
+      toast('Soporte cargado ✓');cerrarModal('modal-aud');refrescarAud();actualizarBadgeAuditorias();return;
     }
     const{data:nuevo,error}=await db.from('auditoria_documentos').insert({
       programacion_id:progId,
@@ -5546,7 +5648,7 @@ async function guardarDocAud(){
     toast('Documento guardado ✓');
     cerrarModal('modal-aud');
     if(USER_ROL==='gerente')document.getElementById('aud-reg').value=regional;
-    cargarAuditorias();actualizarBadgeAuditorias();
+    refrescarAud();actualizarBadgeAuditorias();
   }catch(e){toast('Error: '+e.message,true);}
   finally{btn.disabled=false;btn.textContent='Guardar';}
 }
@@ -5751,18 +5853,141 @@ function alertaFechasMalas(lista){
 }
 
 // ── AUDITORÍAS · Programación (cronogramas) ───────────────────
+// ── AUDITORÍAS · Cronograma por bimestres (como el Excel de Calidad) ──
+const BIMESTRES=['Enero - Febrero','Marzo - Abril','Mayo - Junio','Julio - Agosto','Septiembre - Octubre','Noviembre - Diciembre'];
+let _cronVista='grid',_cronReq=null,_cronAnio=new Date().getFullYear();
+function bimDe(f){return Math.floor((+String(f).slice(5,7)-1)/2);}
+function finBim(anio,b){return fechaLocal(new Date(anio,(b+1)*2,0));}
+function anioDe(f){return f?+String(f).slice(0,4):null;}
+
 function pintarProgramacion(){
   const box=document.getElementById('aud-prog');if(!box||!_aud)return;
-  if(_aud.prog===null){box.innerHTML='<div style="font-size:13px;color:var(--text2)">Para usar la programación, ejecuten <b>programacion_auditoria.sql</b> en Supabase.</div>';return;}
-  const lista=_aud.prog||[];
-  document.getElementById('aud-prog-res').textContent=lista.length?`${lista.filter(p=>p.ejecutada_en).length} de ${lista.length} ejecutadas`:'';
-  if(!lista.length){box.innerHTML='<div style="font-size:13px;color:var(--text2);padding:6px 0">No hay actividades programadas. Usa <b>+ Programar</b> para agregar las del cronograma (capacitaciones, verificaciones, fumigaciones…).</div>';return;}
+  if(_aud.prog===null){box.innerHTML='<div style="font-size:13px;color:var(--text2)">Para usar el cronograma, ejecuten <b>programacion_auditoria.sql</b> en Supabase.</div>';return;}
+  const prog=_aud.prog||[];
+  // Requisitos que tienen programación (por defecto, capacitaciones)
+  const reqs=[...new Set(prog.map(p=>p.requisito))];
+  if(!reqs.includes('soporte_capacitacion'))reqs.unshift('soporte_capacitacion');
+  if(!_cronReq||!reqs.includes(_cronReq))_cronReq='soporte_capacitacion';
+  const anios=[...new Set(prog.flatMap(p=>[anioDe(p.fecha_programada),anioDe(p.ejecutada_en)]).filter(Boolean).concat([new Date().getFullYear()]))].sort();
+  if(!anios.includes(_cronAnio))_cronAnio=anios[anios.length-1];
+  const st='font-size:12px;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--r)';
+  const controles=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+    <select style="${st};max-width:320px" onchange="_cronReq=this.value;pintarProgramacion()">${reqs.map(k=>`<option value="${k}"${k===_cronReq?' selected':''}>${esc(audReq(k)?.nombre||k)}</option>`).join('')}</select>
+    <select style="${st}" onchange="_cronAnio=+this.value;pintarProgramacion()">${anios.map(a=>`<option${a===_cronAnio?' selected':''}>${a}</option>`).join('')}</select>
+    <div style="display:flex;border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden">
+      <button class="btn btn-sm" style="border:none;border-radius:0;${_cronVista==='grid'?'background:var(--text);color:#fff':''}" onclick="_cronVista='grid';pintarProgramacion()">Cronograma</button>
+      <button class="btn btn-sm" style="border:none;border-radius:0;${_cronVista==='lista'?'background:var(--text);color:#fff':''}" onclick="_cronVista='lista';pintarProgramacion()">Lista</button>
+    </div>
+    <button class="btn btn-sm" style="margin-left:auto" onclick="exportarCronograma()">⬇ Excel</button>
+  </div>`;
+  const lista=prog.filter(p=>p.requisito===_cronReq&&(anioDe(p.fecha_programada)===_cronAnio||anioDe(p.ejecutada_en)===_cronAnio));
+  const m=metricasCron(lista);
+  document.getElementById('aud-prog-res').textContent=m.plan?`${m.ejec} de ${m.plan} ejecutadas · ${m.pctAnual}% del año`:'';
+  const metricas=`<div class="metrics" style="margin-bottom:12px">
+    <div class="metric"><div class="metric-label">Planeadas ${_cronAnio}</div><div class="metric-val">${m.plan}</div><div class="metric-sub">${m.temas} tema(s)</div></div>
+    <div class="metric" style="border-top-color:var(--green)"><div class="metric-label">Ejecutadas</div><div class="metric-val" style="color:var(--green)">${m.ejec}</div><div class="metric-sub">${m.pctAnual}% del total del año</div></div>
+    <div class="metric" style="border-top-color:${colorPct(m.pctFecha)}"><div class="metric-label">Cumplimiento a la fecha</div><div class="metric-val" style="color:${colorPct(m.pctFecha)}">${m.vencidas?m.pctFecha+'%':'—'}</div><div class="metric-sub">${m.ejecVenc} de ${m.vencidas} que ya debían hacerse</div></div>
+    <div class="metric" style="border-top-color:${m.atrasadas?'var(--red)':'var(--border)'}"><div class="metric-label">Atrasadas</div><div class="metric-val" style="color:${m.atrasadas?'var(--red)':'inherit'}">${m.atrasadas}</div><div class="metric-sub">${m.conSop} de ${m.ejec} ejecutadas con soporte</div></div>
+  </div>`;
+  if(!lista.length){
+    box.innerHTML=controles+`<div style="font-size:13px;color:var(--text2);padding:6px 0">No hay actividades programadas en ${_cronAnio}. Usa <b>+ Programar</b> para agregarlas.</div>`;return;
+  }
+  box.innerHTML=controles+metricas+(_cronVista==='grid'?gridCronograma(lista):listaProgramacion(lista));
+}
+function colorPct(p){return p>=90?'var(--green)':p>=60?'var(--amber)':'var(--red)';}
+function temasCron(lista){
+  const temas=[];const idx={};
+  lista.slice().sort((a,b)=>(a.fecha_programada||'').localeCompare(b.fecha_programada||'')).forEach(p=>{
+    const k=normTxt(p.titulo);
+    if(!(k in idx)){idx[k]=temas.length;temas.push({titulo:p.titulo,base:p,items:[]});}
+    temas[idx[k]].items.push(p);
+  });
+  return temas;
+}
+function metricasCron(lista){
+  const h=hoy();
+  const soporteDe=p=>docsDeProg(p,(_aud.docs||[]).filter(d=>d.requisito===p.requisito)).filter(d=>d.archivo_path).length;
+  const plan=lista.length,ejec=lista.filter(p=>p.ejecutada_en).length;
+  const vencidas=lista.filter(p=>p.ejecutada_en||p.fecha_programada<h).length;
+  const ejecVenc=lista.filter(p=>p.ejecutada_en).length;
+  return{plan,ejec,vencidas,ejecVenc,temas:temasCron(lista).length,
+    atrasadas:lista.filter(p=>!p.ejecutada_en&&p.fecha_programada<h).length,
+    conSop:lista.filter(p=>p.ejecutada_en&&soporteDe(p)>0).length,
+    pctAnual:plan?Math.round(ejec/plan*100):0,pctFecha:vencidas?Math.round(ejecVenc/vencidas*100):0};
+}
+function gridCronograma(lista){
+  const h=hoy(),anio=_cronAnio;
+  const temas=temasCron(lista);
+  const bd='border:1px solid var(--border)';
+  const th=`padding:6px;${bd};background:#F1EFE8;font-size:11px;text-transform:uppercase;letter-spacing:.03em;text-align:center`;
+  const planB=Array(6).fill(0),ejecB=Array(6).fill(0);
+  let filas='';
+  temas.forEach(t=>{
+    const b=t.base;
+    const celdasP=[],celdasE=[];
+    for(let i=0;i<6;i++){
+      const enBim=t.items.filter(p=>anioDe(p.fecha_programada)===anio&&bimDe(p.fecha_programada)===i);
+      const ejBim=t.items.filter(p=>p.ejecutada_en&&anioDe(p.ejecutada_en)===anio&&bimDe(p.ejecutada_en)===i);
+      planB[i]+=enBim.length;ejecB[i]+=ejBim.length;
+      // Fila PROGRAMADO
+      if(enBim.length){
+        const p=enBim[0];const atras=!p.ejecutada_en&&p.fecha_programada<h;
+        const bg=p.ejecutada_en?'#FFF8E1':atras?'#FCEBEB':'#FFF8E1',co=atras?'#A32D2D':'#8A6D00';
+        celdasP.push(`<td colspan="2" onclick="abrirProg('${p.id}')" title="${atras?'Atrasada: el plazo era el '+fmtF(p.fecha_programada):'Programada · límite '+fmtF(p.fecha_programada)}" style="${bd};text-align:center;font-weight:700;cursor:pointer;background:${bg};color:${co}">P${atras?' ⚠':''}</td>`);
+      }else celdasP.push(`<td colspan="2" onclick="nuevaProgEnBim('${escJs(t.titulo)}',${i})" title="Programar en ${BIMESTRES[i]}" style="${bd};cursor:pointer"></td>`);
+      // Fila EJECUTADO
+      if(ejBim.length){
+        const p=ejBim[0];
+        const sop=docsDeProg(p,(_aud.docs||[]).filter(d=>d.requisito===p.requisito)).filter(d=>d.archivo_path).length;
+        celdasE.push(`<td colspan="2" onclick="abrirDocAud('${p.requisito}',null,null,{progId:'${p.id}'})" title="Ejecutada el ${fmtF(p.ejecutada_en)} · ${sop?sop+' soporte(s)':'falta cargar el soporte'}"
+          style="${bd};text-align:center;font-weight:700;cursor:pointer;background:${sop?'#E8F5E9':'#FFF3E0'};color:${sop?'#2E7D32':'#B26A00'}">E${sop?` <span style="font-weight:400;font-size:10px">· ${sop}</span>`:' · sin soporte'}</td>`);
+      }else{
+        const pend=t.items.find(p=>!p.ejecutada_en&&anioDe(p.fecha_programada)===anio&&bimDe(p.fecha_programada)===i);
+        celdasE.push(pend?`<td colspan="2" onclick="abrirDocAud('${pend.requisito}',null,null,{progId:'${pend.id}'})" title="Cargar el soporte para registrarla como ejecutada" style="${bd};cursor:pointer;text-align:center;color:var(--text3);font-size:11px">+ soporte</td>`:`<td colspan="2" style="${bd}"></td>`);
+      }
+    }
+    filas+=`<tr>
+      <td rowspan="2" style="${bd};padding:6px 8px;font-weight:600;font-size:12px;min-width:200px;vertical-align:middle">${esc(t.titulo)}</td>
+      <td rowspan="2" style="${bd};padding:6px 8px;font-size:11px;color:var(--text2);min-width:200px;max-width:280px;vertical-align:middle">${esc(b.descripcion||'')}</td>
+      <td rowspan="2" style="${bd};text-align:center;font-size:12px;vertical-align:middle">${esc(b.metodo||'Grupal')}</td>
+      <td rowspan="2" style="${bd};text-align:center;font-size:12px;vertical-align:middle">${b.horas??1}</td>
+      <td rowspan="2" style="${bd};text-align:center;font-size:11px;vertical-align:middle">${esc(b.responsable||'')}</td>
+      <td style="${bd};font-size:10px;color:var(--text3);text-align:center;padding:0 4px">Prog.</td>${celdasP.join('')}</tr>
+      <tr><td style="${bd};font-size:10px;color:var(--text3);text-align:center;padding:0 4px">Ejec.</td>${celdasE.join('')}</tr>`;
+  });
+  const tp=planB.reduce((a,b)=>a+b,0),te=ejecB.reduce((a,b)=>a+b,0);
+  const ind=(lbl,bg,vals,fmt)=>`<tr><td colspan="5" style="${bd};text-align:right;padding:5px 8px;font-weight:600;font-size:12px;background:${bg}">${lbl}</td><td style="${bd}"></td>${vals.map(v=>`<td colspan="2" style="${bd};text-align:center;font-weight:700;font-size:12px">${fmt(v)}</td>`).join('')}</tr>`;
+  const cumpl=planB.map((p,i)=>{
+    if(!p)return'—';const pct=Math.round(ejecB[i]/p*100);
+    const pasado=finBim(anio,i)<h;
+    return`<span style="color:${pasado||pct>=100?colorPct(pct):'var(--text2)'}">${pct}%</span>`;
+  });
+  return`<div class="tbl-wrap" style="overflow-x:auto"><table style="border-collapse:collapse;min-width:1100px;width:100%">
+    <thead><tr><th style="${th};text-align:left">Tema capacitación</th><th style="${th};text-align:left">Objetivo</th><th style="${th}">Método</th><th style="${th}">Horas</th><th style="${th}">Responsable</th><th style="${th}"></th>
+      ${BIMESTRES.map((b,i)=>{const actual=anio===new Date().getFullYear()&&i===bimDe(h);return`<th colspan="2" style="${th};${actual?'background:#E3F2FD;color:#1565C0':''}">${b}</th>`;}).join('')}</tr></thead>
+    <tbody>${filas}
+      <tr><td colspan="18" style="height:8px;border:none"></td></tr>
+      ${ind('Planeadas','#FFF59D',planB,v=>v)}
+      ${ind('Ejecutadas','#C8E6C9',ejecB,v=>v)}
+      ${ind('Cumplimiento','#F1EFE8',cumpl,v=>v)}
+      <tr><td colspan="5" style="${bd};text-align:right;padding:5px 8px;font-weight:700;font-size:12px">Total ${anio}</td><td style="${bd}"></td>
+        <td colspan="12" style="${bd};padding:5px 10px;font-size:12px"><b>${te}</b> de <b>${tp}</b> ejecutadas · <b style="color:${colorPct(tp?Math.round(te/tp*100):0)}">${tp?Math.round(te/tp*100):0}%</b> de cumplimiento anual</td></tr>
+    </tbody></table></div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--text2);margin-top:8px">
+      <span><b style="background:#FFF8E1;color:#8A6D00;padding:1px 6px;border-radius:3px">P</b> Programada</span>
+      <span><b style="background:#FCEBEB;color:#A32D2D;padding:1px 6px;border-radius:3px">P ⚠</b> Atrasada</span>
+      <span><b style="background:#E8F5E9;color:#2E7D32;padding:1px 6px;border-radius:3px">E · n</b> Ejecutada con n soportes</span>
+      <span><b style="background:#FFF3E0;color:#B26A00;padding:1px 6px;border-radius:3px">E</b> Ejecutada sin soporte</span>
+      <span>Clic en una celda vacía de "Prog." para programar el tema en ese bimestre.</span>
+    </div>`;
+}
+function listaProgramacion(lista){
   const docs=_aud.docs||[];
-  box.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Actividad</th><th>Fecha</th><th>Estado</th><th>Soportes</th><th></th></tr></thead><tbody>
+  return`<div class="tbl-wrap"><table><thead><tr><th>Actividad</th><th>Fecha</th><th>Estado</th><th>Soportes</th><th></th></tr></thead><tbody>
     ${lista.map(p=>{
       const req=audReq(p.requisito);
       const sop=docsDeProg(p,docs.filter(d=>d.requisito===p.requisito));
-      const est=estadoProg(p,sop.length);
+      const est=estadoProg(p,sop.filter(x=>x.archivo_path).length);
       const quien=p.conductor_id?(_aud.conds||[]).find(c=>c.id===p.conductor_id)?.nombre:p.vehiculo_id?(_aud.vhs||[]).find(v=>v.id===p.vehiculo_id)?.placa:'';
       return`<tr><td><b style="font-size:13px">${esc(p.titulo)}</b><div style="font-size:11px;color:var(--text3)">${esc(req?.nombre||p.requisito)}${quien?' · '+esc(quien):''}${p.responsable?' · Resp.: '+esc(p.responsable):''}</div></td>
         <td style="font-size:12px;white-space:nowrap">${esc(p.periodo||'')}<div style="color:var(--text3)">${p.ejecutada_en?'Ejecutada '+fmtF(p.ejecutada_en):'Límite '+fmtF(p.fecha_programada)}</div></td>
@@ -5775,13 +6000,49 @@ function pintarProgramacion(){
           <button class="btn btn-sm btn-red" onclick="quitarProg('${p.id}')" title="Quitar del cronograma">✕</button></td></tr>`;
     }).join('')}</tbody></table></div>`;
 }
-function abrirProg(id){
+// Programar un tema existente en otro bimestre (clic en celda vacía)
+function nuevaProgEnBim(titulo,b){
+  const base=(_aud.prog||[]).find(p=>p.requisito===_cronReq&&normTxt(p.titulo)===normTxt(titulo));
+  abrirProg(null,{requisito:_cronReq,titulo,descripcion:base?.descripcion,responsable:base?.responsable,metodo:base?.metodo,horas:base?.horas,
+    periodo:`${BIMESTRES[b]} ${_cronAnio}`,fecha_programada:finBim(_cronAnio,b)});
+}
+function exportarCronograma(){
+  if(!_aud?.prog){toast('No hay cronograma para exportar',true);return;}
+  const anio=_cronAnio,lista=(_aud.prog||[]).filter(p=>p.requisito===_cronReq&&(anioDe(p.fecha_programada)===anio||anioDe(p.ejecutada_en)===anio));
+  const aoa=[[`CRONOGRAMA ${(audReq(_cronReq)?.nombre||'').toUpperCase()} · ${rNombre(_aud.reg).toUpperCase()} · ${anio}`],[],
+    ['TEMA','OBJETIVO','MÉTODO','HORAS','RESPONSABLE','',...BIMESTRES]];
+  const planB=Array(6).fill(0),ejecB=Array(6).fill(0);
+  temasCron(lista).forEach(t=>{
+    const fp=[],fe=[];
+    for(let i=0;i<6;i++){
+      const pb=t.items.filter(p=>anioDe(p.fecha_programada)===anio&&bimDe(p.fecha_programada)===i);
+      const eb=t.items.filter(p=>p.ejecutada_en&&anioDe(p.ejecutada_en)===anio&&bimDe(p.ejecutada_en)===i);
+      planB[i]+=pb.length;ejecB[i]+=eb.length;
+      fp.push(pb.length?'P':'');fe.push(eb.length?'E':'');
+    }
+    const b=t.base;
+    aoa.push([t.titulo,b.descripcion||'',b.metodo||'Grupal',b.horas??1,b.responsable||'','Programado',...fp]);
+    aoa.push(['','','','','','Ejecutado',...fe]);
+  });
+  aoa.push([]);
+  aoa.push(['INDICADOR','','','','','Planeadas',...planB]);
+  aoa.push(['','','','','','Ejecutadas',...ejecB]);
+  aoa.push(['','','','','','Cumplimiento',...planB.map((p,i)=>p?Math.round(ejecB[i]/p*100)+'%':'')]);
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:48},{wch:60},{wch:10},{wch:7},{wch:18},{wch:13},...BIMESTRES.map(()=>({wch:16}))];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Cronograma');
+  XLSX.writeFile(wb,`Cronograma_${rNombre(_aud.reg).replace(/[^A-Za-z0-9]+/g,'_')}_${anio}.xlsx`);
+}
+
+function abrirProg(id,preset){
   if(_aud?.prog===null){toast('Primero ejecuten programacion_auditoria.sql',true);return;}
-  const p=id?(_aud.prog||[]).find(x=>x.id===id):null;
+  const p=id?(_aud.prog||[]).find(x=>x.id===id):(preset||null);
   const sel=document.getElementById('prog-req');
   sel.innerHTML=AUD_CATS.map(c=>`<optgroup label="${esc(c.nombre)}">${AUD_REQ.filter(r=>r.cat===c.k&&r.alcance!=='sistema'&&!r.docTipo).map(r=>`<option value="${r.k}">${esc(r.nombre)}</option>`).join('')}</optgroup>`).join('');
-  sel.value=p?.requisito||'soporte_capacitacion';
-  document.getElementById('prog-id').value=p?.id||'';
+  sel.value=p?.requisito||_cronReq||'soporte_capacitacion';
+  document.getElementById('prog-id').value=id?p.id:'';
+  document.getElementById('prog-metodo').value=p?.metodo||'Grupal';
+  document.getElementById('prog-horas').value=p?.horas??1;
   document.getElementById('prog-titulo').value=p?.titulo||'';
   document.getElementById('prog-periodo').value=p?.periodo||'';
   document.getElementById('prog-fecha').value=p?.fecha_programada||'';
@@ -5794,7 +6055,7 @@ function abrirProg(id){
   const sv=document.getElementById('prog-vh');
   sv.innerHTML='<option value="">— Ninguno —</option>'+(_aud.vhs||[]).map(v=>`<option value="${v.id}">${esc(v.placa)}</option>`).join('');
   sv.value=p?.vehiculo_id||'';
-  document.getElementById('prog-titulo-modal').textContent=p?'Editar actividad programada':'Programar actividad';
+  document.getElementById('prog-titulo-modal').textContent=id?'Editar actividad programada':'Programar actividad';
   onProgReq();
   document.getElementById('modal-prog').classList.add('open');
 }
@@ -5810,6 +6071,8 @@ async function guardarProg(){
     periodo:document.getElementById('prog-periodo').value.trim()||null,fecha_programada:document.getElementById('prog-fecha').value||null,
     ejecutada_en:document.getElementById('prog-ejec').value||null,responsable:document.getElementById('prog-resp').value.trim()||null,
     descripcion:document.getElementById('prog-desc').value.trim()||null,
+    metodo:document.getElementById('prog-metodo').value.trim()||null,
+    horas:document.getElementById('prog-horas').value===''?null:Number(document.getElementById('prog-horas').value),
     conductor_id:req?.alcance==='persona'?(document.getElementById('prog-cond').value||null):null,
     vehiculo_id:req?.alcance==='vehiculo'?(document.getElementById('prog-vh').value||null):null};
   if(!datos.requisito||!datos.titulo||!datos.fecha_programada){toast('Requisito, actividad y fecha son obligatorios',true);return;}
@@ -5828,6 +6091,218 @@ async function quitarProg(id){
   const{error}=await db.from('auditoria_programacion').update({activo:false}).eq('id',id);
   if(error){toast('Error: '+error.message,true);return;}
   cargarAuditorias();
+}
+
+// ── CONDUCTORES (planta, vinculación y documentos) ────────────
+let _cp=null; // {reg, conds, requeridos}
+function prepSelectRegCP(){
+  const sel=document.getElementById('cp-reg');if(sel.options.length)return;
+  if(USER_ROL==='gerente'){regionales.forEach(r=>sel.add(new Option(r.nombre,r.id)));sel.value=REGIONAL_ID||regionales[0]?.id||'';}
+  else{sel.add(new Option(rNombre(REGIONAL_ID),REGIONAL_ID));sel.disabled=true;}
+}
+// Los documentos se evalúan con el mismo motor del módulo de auditorías
+async function prepAudPara(reg){
+  prepSelectRegAud();
+  const s=document.getElementById('aud-reg');
+  if(s.value!==reg){s.value=reg;}
+  if(!_aud||_aud.reg!==reg)await cargarAuditorias();
+}
+async function cargarConductoresPage(){
+  prepSelectRegCP();
+  const reg=document.getElementById('cp-reg').value;
+  const box=document.getElementById('cp-lista');
+  box.innerHTML='<div class="card"><div class="loading"><div class="spinner"></div></div></div>';
+  try{
+    const[rC,rR]=await Promise.all([
+      db.from('conductores').select('*').eq('regional_id',reg).order('nombre'),
+      db.from('regionales').select('id,conductores_requeridos').eq('id',reg).maybeSingle(),
+    ]);
+    if(rC.error)throw rC.error;
+    await prepAudPara(reg);
+    _cp={reg,conds:rC.data||[],requeridos:rR.error?null:(rR.data?.conductores_requeridos??null)};
+    pintarConductoresPage();
+  }catch(e){box.innerHTML=`<div class="card" style="color:var(--red-dark)">No se pudieron cargar los conductores: ${esc(e.message)}</div>`;}
+}
+const REQS_COND=()=>AUD_REQ.filter(r=>r.roster);
+// Estado de los documentos de un conductor según la evaluación de auditoría
+function docsDeConductor(c){
+  return REQS_COND().map(req=>{
+    const r=_aud?.res.find(x=>x.req.k===req.k);
+    const it=r?.items.find(i=>i.conductor?.id===c.id);
+    return{req,item:it||{estado:'faltante',detalle:'Sin documento'}};
+  });
+}
+function pintarConductoresPage(){
+  if(!_cp)return;
+  const activos=_cp.conds.filter(c=>c.activo!==false);
+  const dir=activos.filter(c=>(c.vinculacion||'directo')==='directo').length,tem=activos.length-dir;
+  const req=_cp.requeridos;
+  document.getElementById('cp-m-act').textContent=req!=null?`${activos.length} / ${req}`:activos.length;
+  document.getElementById('cp-m-act-sub').innerHTML=`${req!=null?Math.round(activos.length/Math.max(req,1)*100)+'% de la planta':'Sin planta definida'}${USER_ROL==='gerente'?` · <a href="#" onclick="abrirPlanta();return false">${req!=null?'cambiar':'definir'}</a>`:''}`;
+  const vac=req!=null?req-activos.length:null;
+  document.getElementById('cp-m-vac').textContent=vac==null?'—':vac>0?vac:vac<0?`+${-vac}`:'0';
+  document.getElementById('cp-m-vac').style.color=vac>0?'var(--red)':vac<0?'var(--amber)':'var(--green)';
+  document.getElementById('cp-m-vac-box').style.borderTopColor=vac>0?'var(--red)':'var(--border)';
+  document.getElementById('cp-m-vac-sub').textContent=vac==null?'Defina la planta requerida':vac>0?'Faltan conductores':vac<0?'Conductores por encima de la planta':'Planta completa';
+  document.getElementById('cp-m-vinc').textContent=`${dir} · ${tem}`;
+  const emp={};activos.filter(c=>c.vinculacion==='temporal').forEach(c=>{const e=(c.empresa_temporal||'Sin empresa').trim();emp[e]=(emp[e]||0)+1;});
+  document.getElementById('cp-m-vinc-sub').textContent=Object.entries(emp).map(([e,n])=>`${e}: ${n}`).join(' · ')||'Sin temporales';
+  const alDia=activos.filter(c=>docsDeConductor(c).every(d=>d.item.estado==='vigente')).length;
+  const pctDocs=activos.length?Math.round(alDia/activos.length*100):null;
+  document.getElementById('cp-m-docs').textContent=pctDocs==null?'—':pctDocs+'%';
+  document.getElementById('cp-m-docs').style.color=pctDocs==null?'inherit':colorPct(pctDocs);
+  document.getElementById('cp-m-docs-sub').textContent=`${alDia} de ${activos.length} con todos los documentos al día`;
+
+  const q=normTxt(document.getElementById('cp-buscar').value);
+  const fe=document.getElementById('cp-f-estado').value,fv=document.getElementById('cp-f-vinc').value,fd=document.getElementById('cp-f-docs').value;
+  const lista=_cp.conds.filter(c=>{
+    if(fe==='activos'&&c.activo===false)return false;
+    if(fe==='retirados'&&c.activo!==false)return false;
+    if(fv&&(c.vinculacion||'directo')!==fv)return false;
+    if(q&&!normTxt(c.nombre).includes(q)&&!(c.cedula||'').includes(q))return false;
+    if(fd){const ok=docsDeConductor(c).every(d=>d.item.estado==='vigente');if(fd==='ok'&&!ok)return false;if(fd==='pend'&&ok)return false;}
+    return true;
+  });
+  document.getElementById('cp-count').textContent=`${lista.length} conductor(es)`;
+  document.getElementById('cp-lista').innerHTML=lista.length?lista.map(tarjetaCond).join('')
+    :`<div class="card" style="grid-column:1/-1;color:var(--text2);font-size:13px">${_cp.conds.length?'No hay conductores con estos filtros.':'No hay conductores en esta regional. Usa <b>+ Nuevo conductor</b> o <b>⬆ Importar</b> con el listado en Excel.'}</div>`;
+}
+function tarjetaCond(c){
+  const ret=c.activo===false;
+  const vinc=(c.vinculacion||'directo')==='temporal'
+    ?`<span class="badge b-amber">Temporal${c.empresa_temporal?' · '+esc(c.empresa_temporal):''}</span>`:'<span class="badge b-blue" style="background:#E3F2FD;color:#1565C0">Directo</span>';
+  let fin='';
+  if(!ret&&c.fecha_fin_contrato){const{dias}=calcEstadoDoc(c.fecha_fin_contrato);
+    fin=`<div style="font-size:11px;margin-top:4px;color:${dias<0?'var(--red-dark)':dias<=30?'#B26A00':'var(--text2)'}">Fin de contrato: ${fmtF(c.fecha_fin_contrato)}${dias<0?' · vencido':dias<=30?` · en ${dias} día(s)`:''}</div>`;}
+  const docs=ret?'':docsDeConductor(c).map(({req,item})=>{
+    const d=item.doc;
+    let acc;
+    if(!d)acc=`<a href="#" onclick="docCond('${req.k}','nuevo','${c.id}');return false">Cargar</a>`;
+    else if(!d.archivo_path)acc=`<a href="#" onclick="docCond('${req.k}','completar','${d.id}');return false">Cargar soporte</a>`;
+    else acc=`<a href="#" onclick="abrirArchivoAud('${escJs(d.archivo_path)}');return false">Ver</a> · <a href="#" onclick="docCond('${req.k}','renovar','${d.id}');return false">Renovar</a>`;
+    const nom={concepto_medico:'Concepto médico',curso_manipulacion:'Curso manipulación de alimentos',verificacion_bpm:'Verificación BPM'}[req.k]||req.nombre;
+    return`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:0.5px solid var(--border)">
+      <div style="min-width:0"><div style="font-size:12px;font-weight:500">${esc(nom)}</div><div style="font-size:11px;color:var(--text3)">${d?.fecha_vencimiento?'Vence '+fmtF(d.fecha_vencimiento):'Sin fecha'}</div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">${badgeAud(item.estado)}<span style="font-size:11px;white-space:nowrap">${acc}</span></div></div>`;
+  }).join('');
+  return`<div class="card" style="margin:0;${ret?'opacity:.7':''}">
+    <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+      <div style="min-width:0"><div style="font-size:14px;font-weight:700">${esc(c.nombre)}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px">C.C. ${esc(c.cedula||'—')} · ${esc(c.cargo||'Conductor')}${c.telefono?' · '+esc(c.telefono):''}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${vinc}${ret?'<span class="badge b-gray">Retirado</span>':''}</div>
+        ${c.fecha_ingreso?`<div style="font-size:11px;color:var(--text3);margin-top:4px">Ingreso: ${fmtF(c.fecha_ingreso)}${antiguedad(c.fecha_ingreso,ret?c.fecha_retiro:null)}</div>`:''}
+        ${fin}
+        ${ret?`<div style="font-size:11px;color:var(--text2);margin-top:4px">Retiro: ${c.fecha_retiro?fmtF(c.fecha_retiro):'—'} · ${esc(c.motivo_retiro||'')}${c.observacion_retiro?' · '+esc(c.observacion_retiro):''}</div>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <button class="btn btn-sm" onclick="abrirFichaCond('${c.id}')">Editar</button>
+        ${ret?`<button class="btn btn-sm" onclick="reintegrarCond('${c.id}')">Reintegrar</button>`:`<button class="btn btn-sm btn-red" onclick="abrirRetiro('${c.id}')">Retirar</button>`}
+      </div>
+    </div>
+    ${docs?`<div style="margin-top:10px">${docs}</div>`:''}
+  </div>`;
+}
+function antiguedad(ing,hasta){
+  const a=new Date(ing+'T00:00:00'),b=hasta?new Date(hasta+'T00:00:00'):new Date();
+  const m=(b.getFullYear()-a.getFullYear())*12+b.getMonth()-a.getMonth()-(b.getDate()<a.getDate()?1:0);
+  if(m<0)return'';
+  return m<12?` · ${m} mes(es)`:` · ${Math.floor(m/12)} año(s)${m%12?` ${m%12} mes(es)`:''}`;
+}
+// Documento de un conductor (abre el mismo formulario de auditoría)
+async function docCond(reqK,modo,id){
+  await prepAudPara(_cp.reg);
+  if(modo==='nuevo')abrirDocAud(reqK,null,id);
+  else if(modo==='completar')abrirDocAud(reqK,null,null,{completaId:id});
+  else abrirDocAud(reqK,id);
+}
+function abrirFichaCond(id){
+  const c=id?_cp.conds.find(x=>x.id===id):null;
+  document.getElementById('fc-titulo').textContent=c?'Editar conductor':'Nuevo conductor';
+  document.getElementById('fc-id').value=c?.id||'';
+  document.getElementById('fc-nombre').value=c?.nombre||'';
+  document.getElementById('fc-cedula').value=c?.cedula||'';
+  document.getElementById('fc-cargo').value=c?.cargo||'Conductor';
+  document.getElementById('fc-tel').value=c?.telefono||'';
+  document.getElementById('fc-ingreso').value=c?.fecha_ingreso||'';
+  document.getElementById('fc-vinc').value=c?.vinculacion||'directo';
+  document.getElementById('fc-empresa').value=c?.empresa_temporal||'';
+  document.getElementById('fc-fin').value=c?.fecha_fin_contrato||'';
+  document.getElementById('fc-wrap-emp').style.display=(c?.vinculacion==='temporal')?'':'none';
+  const emps=[...new Set(_cp.conds.map(x=>x.empresa_temporal).filter(Boolean))];
+  document.getElementById('fc-empresas').innerHTML=emps.map(e=>`<option value="${esc(e)}">`).join('');
+  document.getElementById('modal-fcond').classList.add('open');
+}
+async function guardarFichaCond(){
+  const id=document.getElementById('fc-id').value;
+  const vinc=document.getElementById('fc-vinc').value;
+  const datos={nombre:document.getElementById('fc-nombre').value.trim(),cedula:soloDigitos(document.getElementById('fc-cedula').value)||null,
+    cargo:document.getElementById('fc-cargo').value.trim()||'Conductor',telefono:document.getElementById('fc-tel').value.trim()||null,
+    fecha_ingreso:document.getElementById('fc-ingreso').value||null,vinculacion:vinc,
+    empresa_temporal:vinc==='temporal'?(document.getElementById('fc-empresa').value.trim()||null):null,
+    fecha_fin_contrato:document.getElementById('fc-fin').value||null};
+  if(!datos.nombre||!datos.cedula){toast('Nombre y cédula son obligatorios',true);return;}
+  const{data:dup}=await db.from('conductores').select('id,nombre,activo,regional_id').eq('cedula',datos.cedula);
+  const otro=(dup||[]).find(x=>x.id!==id);
+  if(otro){toast(`La cédula ya está registrada para ${otro.nombre}${otro.activo===false?' (retirado: use Reintegrar)':''}`,true);return;}
+  const{error}=id?await db.from('conductores').update(datos).eq('id',id)
+                 :await db.from('conductores').insert({...datos,regional_id:_cp.reg,activo:true});
+  if(error){toast('Error: '+error.message,true);return;}
+  toast(id?'Conductor actualizado ✓':'Conductor agregado ✓');cerrarModal('modal-fcond');
+  _aud=null;cargarConductoresPage();
+}
+function abrirRetiro(id){
+  const c=_cp.conds.find(x=>x.id===id);if(!c)return;
+  document.getElementById('rt-id').value=id;
+  document.getElementById('rt-nombre').innerHTML=`<b>${esc(c.nombre)}</b> · C.C. ${esc(c.cedula||'')}`;
+  document.getElementById('rt-fecha').value=hoy();
+  document.getElementById('rt-motivo').value=c.vinculacion==='temporal'?'Fin de contrato temporal':'Renuncia';
+  document.getElementById('rt-obs').value='';
+  document.getElementById('modal-retiro').classList.add('open');
+}
+async function guardarRetiro(){
+  const id=document.getElementById('rt-id').value,f=document.getElementById('rt-fecha').value;
+  if(!f){toast('La fecha de retiro es obligatoria',true);return;}
+  const{error}=await db.from('conductores').update({activo:false,fecha_retiro:f,motivo_retiro:document.getElementById('rt-motivo').value,
+    observacion_retiro:document.getElementById('rt-obs').value.trim()||null}).eq('id',id);
+  if(error){toast('Error: '+error.message,true);return;}
+  toast('Conductor retirado');cerrarModal('modal-retiro');_aud=null;cargarConductoresPage();
+}
+async function reintegrarCond(id){
+  if(!confirm('¿Reintegrar este conductor? Volverá a contar en la planta y en las auditorías.'))return;
+  const{error}=await db.from('conductores').update({activo:true,fecha_retiro:null,motivo_retiro:null,observacion_retiro:null,fecha_ingreso:hoy()}).eq('id',id);
+  if(error){toast('Error: '+error.message,true);return;}
+  toast('Conductor reintegrado. Revisa la fecha de ingreso en Editar.');_aud=null;cargarConductoresPage();
+}
+function abrirPlanta(){
+  document.getElementById('pl-reg').textContent=rNombre(_cp.reg);
+  document.getElementById('pl-num').value=_cp.requeridos??'';
+  document.getElementById('modal-planta').classList.add('open');
+}
+async function guardarPlanta(){
+  const v=document.getElementById('pl-num').value;
+  const n=v===''?null:Math.max(0,parseInt(v,10));
+  const{error}=await db.from('regionales').update({conductores_requeridos:n}).eq('id',_cp.reg);
+  if(error){toast('Error: '+error.message,true);return;}
+  toast('Planta actualizada ✓');cerrarModal('modal-planta');cargarConductoresPage();
+}
+async function importarDesdePagina(input){
+  // Reutiliza la importación del módulo de auditorías sobre la regional de esta página
+  prepSelectRegAud();document.getElementById('aud-reg').value=_cp.reg;
+  await importarConductores(input);
+  _aud=null;cargarConductoresPage();
+}
+function exportarConductores(){
+  if(!_cp)return;
+  const filas=_cp.conds.map(c=>{
+    const f={'Nombre':c.nombre,'Cédula':c.cedula||'','Cargo':c.cargo||'','Celular':c.telefono||'',
+      'Vinculación':(c.vinculacion||'directo')==='temporal'?'Temporal':'Directo','Empresa temporal':c.empresa_temporal||'',
+      'Fecha ingreso':c.fecha_ingreso||'','Fin contrato':c.fecha_fin_contrato||'','Estado':c.activo===false?'Retirado':'Activo',
+      'Fecha retiro':c.fecha_retiro||'','Motivo retiro':c.motivo_retiro||''};
+    if(c.activo!==false)docsDeConductor(c).forEach(({req,item})=>{f[req.nombre]=`${AUD_EST[item.estado]?.t||''}${item.doc?.fecha_vencimiento?' · vence '+item.doc.fecha_vencimiento:''}`;});
+    return f;
+  });
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(filas),'Conductores');
+  XLSX.writeFile(wb,`Conductores_${rNombre(_cp.reg).replace(/[^A-Za-z0-9]+/g,'_')}_${hoy()}.xlsx`);
 }
 
 // ── AUDITORÍAS · Tabla por conductor ──────────────────────────
