@@ -514,7 +514,7 @@ body.rol-gerencia .page .btn-primary,body.rol-gerencia .page .btn-red,body.rol-g
       <div class="field"><label id="aud-venc-lbl">Fecha de vencimiento *</label><input type="date" id="aud-venc" oninput="this.dataset.auto='0'"></div>
       <div class="field"><label>&nbsp;</label><div style="font-size:11px;color:var(--text3)" id="aud-venc-hint"></div></div>
       <div class="field" style="grid-column:1/-1"><label>Archivo * <span style="font-size:11px;color:var(--text3)">(PDF, imagen, Excel o Word, máx. 10 MB)</span></label>
-        <input type="file" id="aud-archivo" accept=".pdf,.jpg,.jpeg,.png,.xlsx,.docx" style="border:1px solid var(--border);border-radius:var(--r);padding:8px;font-size:12px;width:100%"></div>
+        <input type="file" id="aud-archivo" style="border:1px solid var(--border);border-radius:var(--r);padding:8px;font-size:12px;width:100%"></div>
       <div class="field" style="grid-column:1/-1"><label>Observaciones</label><input type="text" id="aud-obs" maxlength="300"></div>
     </div>
     <div class="modal-footer">
@@ -582,11 +582,13 @@ body.rol-gerencia .page .btn-primary,body.rol-gerencia .page .btn-red,body.rol-g
 <div class="modal-overlay" id="modal-masiva">
   <div class="modal" style="max-width:1100px;width:96vw">
     <div class="modal-title">Carga masiva de documentos · <span id="mas-reg-nombre"></span></div>
-    <label id="mas-drop" for="mas-files" style="display:block;border:2px dashed var(--border);border-radius:var(--rl);padding:22px;text-align:center;cursor:pointer;background:var(--bg2);font-size:13px;color:var(--text2)">
+    <div id="mas-drop" role="button" tabindex="0" onclick="document.getElementById('mas-files').click()" onkeydown="if(event.key==='Enter')this.click()" style="display:block;border:2px dashed var(--border);border-radius:var(--rl);padding:22px;text-align:center;cursor:pointer;background:var(--bg2);font-size:13px;color:var(--text2)">
       <b>Arrastra aquí los archivos</b> o haz clic para seleccionarlos (PDF, imagen, Excel o Word)<br>
       <span style="font-size:11px">Nombre sugerido: <code>REQUISITO_CEDULA-o-PLACA_AAAA-MM-DD.pdf</code> · ej. <code>CONCEPTO-MEDICO_1012345678_2026-11-01.pdf</code>, <code>FUMIGACION_WMK123_2026-10-15.pdf</code> · la fecha es la de expedición</span>
-      <input type="file" id="mas-files" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.docx" hidden onchange="agregarArchivosMasiva(this.files);this.value=''">
-    </label>
+    </div>
+    <!-- Sin filtro "accept": en algunos equipos el filtro dejaba los PDF sin poder seleccionarse. El tipo se valida al agregarlos. -->
+    <input type="file" id="mas-files" multiple style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none" onchange="agregarArchivosMasiva(this.files);this.value=''">
+    <div style="font-size:11px;color:var(--text3);margin-top:6px">¿No aparecen los PDF al buscar? En la ventana de selección cambia el filtro de tipo a <b>"Todos los archivos"</b>, o arrástralos al recuadro.</div>
     <div id="mas-barra" style="display:none;margin:12px 0;padding:10px;background:var(--bg2);border-radius:var(--r);gap:8px;align-items:end;flex-wrap:wrap">
       <span style="font-size:12px;font-weight:600;color:var(--text2)">Aplicar a todos:</span>
       <select id="mas-req-todos" style="font-size:12px;padding:6px;border:0.5px solid var(--border);border-radius:var(--r);max-width:340px"></select>
@@ -7452,6 +7454,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   ['dragenter','dragover'].forEach(t=>d.addEventListener(t,e=>{e.preventDefault();d.style.borderColor='var(--accent)';}));
   ['dragleave','drop'].forEach(t=>d.addEventListener(t,e=>{e.preventDefault();d.style.borderColor='var(--border)';}));
   d.addEventListener('drop',e=>agregarArchivosMasiva(e.dataTransfer.files));
+  // Si un archivo se suelta fuera del recuadro, que el navegador no lo abra (se perdería lo cargado)
+  ['dragover','drop'].forEach(t=>window.addEventListener(t,e=>{if(e.dataTransfer?.types?.includes('Files'))e.preventDefault();}));
 });
 function leerNombreArchivo(nombre){
   const base=nombre.replace(/\.[^.]+$/,'');
@@ -7496,7 +7500,8 @@ function venceDesde(req,exp){
 }
 function agregarArchivosMasiva(files){
   for(const f of files){
-    if(!tipoArchivoAudOk(f)){toast(`${f.name}: solo PDF, JPG, PNG, Excel o Word`,true);continue;}
+    if(!tipoArchivoAudOk(f)){toast(`"${f.name}" no se agregó: solo PDF, JPG, PNG, Excel (.xlsx) o Word (.docx)`,true);continue;}
+    if(f.size>10*1024*1024){toast(`"${f.name}" supera 10 MB, no se puede subir`,true);continue;}
     const p=leerNombreArchivo(f.name);
     const req=audReq(p.req);
     const r={id:++_masSeq,file:f,req:p.req,destino:p.destino,titulo:'',exp:p.exp,venc:venceDesde(req,p.exp),estado:'pendiente',msg:''};
