@@ -62,6 +62,7 @@ tr:hover td{background:var(--bg2)}
 .field textarea{resize:vertical;min-height:72px}
 .form2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .rot-cuadro td,.rot-cuadro th{padding:4px 6px;border:0.5px solid var(--border)}
+body.rol-gerencia .page .btn-primary,body.rol-gerencia .page .btn-red,body.rol-gerencia .modal .btn-primary{display:none!important}
 .rh-sel{font-size:12px;padding:6px 8px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text)}
 @media(max-width:900px){.rh-grid2{grid-template-columns:1fr!important}}
 .full{grid-column:1/-1}
@@ -297,7 +298,7 @@ tr:hover td{background:var(--bg2)}
       <div class="field"><label>Año *</label><input type="number" id="rm-anio" min="2020" max="2100" onchange="cambioMesRot()"></div>
       <div class="field"><label>Mes *</label><select id="rm-mes" onchange="cambioMesRot()"></select></div>
       <div class="field"><label>Conductores teóricos <span style="font-size:11px;color:var(--text3)">(necesarios)</span></label><input type="number" id="rm-teo" min="0" step="1" oninput="calcMesRot()"></div>
-      <div class="field"><label>D = Salidas del mes</label><input type="number" id="rm-sal" min="0" step="1" oninput="calcMesRot()"></div>
+      <div class="field"><label>D = Salidas del mes</label><input type="number" id="rm-sal" min="0" step="1" oninput="calcMesRot()"><div id="rm-sal-auto" style="font-size:11px;color:var(--text3);margin-top:3px"></div></div>
       <div class="field"><label>Inicial <span style="font-size:11px;color:var(--text3)">(al empezar el mes) *</span></label><input type="number" id="rm-ini" min="0" step="1" oninput="calcMesRot()"></div>
       <div class="field"><label>Final <span style="font-size:11px;color:var(--text3)">(al cerrar el mes)</span></label><input type="number" id="rm-fin" min="0" step="1" oninput="calcMesRot()"></div>
       <div class="field" style="grid-column:1/-1"><label>Observación</label><input type="text" id="rm-obs" maxlength="300"></div>
@@ -2087,6 +2088,21 @@ function toast(msg,err=false){const t=document.getElementById('toast');t.textCon
 function cerrarModal(id){document.getElementById(id).classList.remove('open');}
 
 // ── Auth ──
+let GH_TODAS=false; // gestión humana sin regional asignada = todas las regionales
+function verTodas(){return USER_ROL==='gerente'||USER_ROL==='gerencia'||(USER_ROL==='gestion_humana'&&GH_TODAS);}
+function adminRH(){return USER_ROL==='gerente'||USER_ROL==='gestion_humana';}
+// Páginas que puede abrir cada rol (además la base de datos limita lo que puede ver y cambiar)
+const PAGINAS_ROL={
+  gerencia:['dashboard','gerencial','checklists','criticidad'],
+  gestion_humana:['conductores','auditorias','rotacion','ausentismo'],
+};
+function puedePagina(pg){const l=PAGINAS_ROL[USER_ROL];return!l||l.includes(pg);}
+function aplicarMenuRol(){
+  const l=PAGINAS_ROL[USER_ROL];if(!l)return;
+  document.querySelectorAll('.snav-item[data-page]').forEach(e=>{if(!l.includes(e.dataset.page))e.remove();});
+  // Quitar títulos de secciones que quedaron vacías
+  document.querySelectorAll('.snav-sec').forEach(sec=>{let n=sec.nextElementSibling,hay=false;while(n&&!n.classList.contains('snav-sec')){if(n.classList.contains('snav-item')&&n.dataset.page)hay=true;n=n.nextElementSibling;}if(!hay)sec.remove();});
+}
 async function checkAuth(){
   const{data:{session}}=await db.auth.getSession();
   if(!session){window.location.href='login.html';return false;}
@@ -2097,13 +2113,19 @@ async function checkAuth(){
   if(!perfil){document.body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;flex-direction:column;gap:10px"><p>Tu usuario no tiene un perfil asignado. Contacta al administrador.</p><button onclick="db.auth.signOut().then(()=>location.href='login.html')" style="padding:8px 16px;cursor:pointer;border:1px solid #ccc;border-radius:6px">Cerrar sesión</button></div>`;return false;}
   USER_ROL=perfil.rol||'coordinador';
   const regNom=perfil.nombre_regional||null;
-  const esGerente=USER_ROL==='gerente';
-  document.getElementById('nav-user').textContent=`${USER_EMAIL} · ${esGerente?'Gerente':'Coordinador'}`;
-  if(esGerente){
-    USER_ROL='gerente';REGIONAL_ID=null;
+  // Roles: gerente = Coordinación nacional (administra todo) · gerencia = solo consulta
+  //        gestion_humana = Calidad y Personal de todas las regionales · coordinador = su regional
+  const ROL_TXT={gerente:'Coordinación nacional',gerencia:'Gerencia (consulta)',gestion_humana:'Gestión humana',coordinador:'Coordinador'};
+  if(!ROL_TXT[USER_ROL])USER_ROL='coordinador';
+  if(USER_ROL==='gestion_humana'){GH_TODAS=!perfil.regional_id;if(perfil.regional_id)REGIONAL_ID=perfil.regional_id;}
+  document.getElementById('nav-user').textContent=`${USER_EMAIL} · ${ROL_TXT[USER_ROL]}${USER_ROL==='gestion_humana'&&regNom?' · '+regNom:''}`;
+  document.body.classList.add('rol-'+USER_ROL);
+  if(verTodas()){
+    REGIONAL_ID=null;
     const snavGer=document.getElementById('snav-gerencial');
-    if(snavGer)snavGer.style.display='';
+    if(snavGer&&USER_ROL!=='gestion_humana')snavGer.style.display='';
   }
+  else if(USER_ROL==='gestion_humana'){/* regional fija: REGIONAL_ID ya asignado */}
   else{
     USER_ROL='coordinador';
     if(perfil.regional_id){REGIONAL_ID=perfil.regional_id;}
@@ -2116,6 +2138,7 @@ async function cerrarSesion(){await db.auth.signOut();window.location.href='logi
 
 // ── Nav ──
 function ir(page){
+  if(!puedePagina(page)){toast('Tu usuario no tiene acceso a esta sección',true);return;}
   if(PAGINAS_MODULO[page]&&!puedeModulo(PAGINAS_MODULO[page])){toast('Este módulo aún no está habilitado para tu usuario',true);return;}
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.snav-item').forEach(a=>a.classList.remove('active'));
@@ -2141,7 +2164,7 @@ function ir(page){
   if(page==='rotacion')cargarRotacion();
   if(page==='ausentismo')cargarAusentismo();
 }
-function onFiltro(){REGIONAL_ID=USER_ROL==='gerente'?(document.getElementById('filtro-regional').value||null):REGIONAL_ID;cargarDashboard();}
+function onFiltro(){REGIONAL_ID=verTodas()?(document.getElementById('filtro-regional').value||null):REGIONAL_ID;cargarDashboard();}
 
 // ── Init ──
 async function init(){
@@ -2152,7 +2175,7 @@ async function init(){
   document.getElementById('cl-fecha-filtro').value=hoy();
   const{data:regs}=await db.from('regionales').select('id,nombre,cupo_requerido,activa').eq('activa',true).order('nombre');
   regionales=regs||[];
-  if(USER_ROL==='gerente'){
+  if(verTodas()){
     ['filtro-regional','fl-reg'].forEach(id=>{
       const sel=document.getElementById(id);if(!sel)return;
       while(sel.options.length>1)sel.remove(1);
@@ -2166,6 +2189,8 @@ async function init(){
       sel.disabled=true;sel.style.opacity='0.7';
     });
   }
+  aplicarMenuRol();
+  if(USER_ROL==='gestion_humana'){ir('conductores');actualizarBadgeAuditorias();return;}
   await cargarDashboard();
   if(puedeModulo('calidad'))actualizarBadgeAuditorias();
 }
@@ -5439,7 +5464,7 @@ function diasTxt(d){if(d==null)return'No vence';if(d<0)return`Venció hace ${-d}
 function prepSelectRegAud(){
   const sel=document.getElementById('aud-reg');
   if(sel.options.length)return;
-  if(USER_ROL==='gerente'){
+  if(verTodas()){
     regionales.forEach(r=>sel.add(new Option(r.nombre,r.id)));
     sel.value=REGIONAL_ID||regionales[0]?.id||'';
   }else{
@@ -5742,7 +5767,7 @@ function abrirDocAud(reqK,reemplazaId,conductorId,opts={}){
   if(reqK)sel.value=reqK;
   const sr=document.getElementById('aud-reg-sel');sr.innerHTML='';
   const regActual=document.getElementById('aud-reg').value;
-  if(USER_ROL==='gerente'){
+  if(verTodas()){
     regionales.forEach(r=>sr.add(new Option(r.nombre,r.id)));
     sr.value=regActual||regionales[0]?.id||'';sr.disabled=false;
   }else{sr.add(new Option(rNombre(REGIONAL_ID),REGIONAL_ID));sr.disabled=true;}
@@ -5901,7 +5926,7 @@ async function guardarDocAud(){
     }
     toast('Documento guardado ✓');
     cerrarModal('modal-aud');
-    if(USER_ROL==='gerente')document.getElementById('aud-reg').value=regional;
+    if(verTodas())document.getElementById('aud-reg').value=regional;
     refrescarAud();actualizarBadgeAuditorias();
   }catch(e){toast('Error: '+e.message,true);}
   finally{btn.disabled=false;btn.textContent='Guardar';}
@@ -5999,7 +6024,7 @@ async function toggleActivoCond(id,activar){
 }
 function plantillaConductores(){
   const filas=[{'Nombre':'Carlos Gómez','Cédula':'1012345678','Cargo':'Conductor','Teléfono':'3001234567'}];
-  if(USER_ROL==='gerente')filas[0]['Regional']=rNombre(document.getElementById('aud-reg').value);
+  if(verTodas())filas[0]['Regional']=rNombre(document.getElementById('aud-reg').value);
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(filas),'Conductores');
   XLSX.writeFile(wb,'Plantilla_conductores.xlsx');
 }
@@ -6029,7 +6054,7 @@ async function importarConductores(input){
       const cedula=soloDigitos(col(fila,['CEDULA','CC','DOCUMENTO','IDENTIFICACION','NUMERODOCUMENTO']));
       if(!nombre||!cedula){omitidos++;continue;}
       let reg=regDefecto;
-      if(USER_ROL==='gerente'){const rn=normTxt(col(fila,['REGIONAL','SEDE']));if(rn&&regPorNombre[rn])reg=regPorNombre[rn];}
+      if(verTodas()){const rn=normTxt(col(fila,['REGIONAL','SEDE']));if(rn&&regPorNombre[rn])reg=regPorNombre[rn];}
       const tel=String(col(fila,['CELULAR'])||col(fila,['TELEFONO','MOVIL'])).trim()||null;
       const it={nombre,cedula,cargo:String(col(fila,['CARGO','ROL'])).trim()||'Conductor',telefono:tel,regional_id:reg};
       // Fechas de vencimiento que trae el listado (quedan registradas; solo falta subir el soporte)
@@ -6351,7 +6376,7 @@ async function quitarProg(id){
 let _cp=null; // {reg, conds, requeridos}
 function prepSelectRegCP(){
   const sel=document.getElementById('cp-reg');if(sel.options.length)return;
-  if(USER_ROL==='gerente'){regionales.forEach(r=>sel.add(new Option(r.nombre,r.id)));sel.value=REGIONAL_ID||regionales[0]?.id||'';}
+  if(verTodas()){regionales.forEach(r=>sel.add(new Option(r.nombre,r.id)));sel.value=REGIONAL_ID||regionales[0]?.id||'';}
   else{sel.add(new Option(rNombre(REGIONAL_ID),REGIONAL_ID));sel.disabled=true;}
 }
 // Los documentos se evalúan con el mismo motor del módulo de auditorías
@@ -6576,7 +6601,7 @@ async function cargarAccesosModulos(){
   }catch(e){}
   aplicarAccesosMenu();
 }
-function puedeModulo(m){return USER_ROL==='gerente'||!!MOD_VISIBLE[m];}
+function puedeModulo(m){return USER_ROL==='gerente'||(USER_ROL==='gestion_humana'&&(m==='calidad'||m==='personal'))||(USER_ROL==='coordinador'&&!!MOD_VISIBLE[m]);}
 function aplicarAccesosMenu(){
   const cal=puedeModulo('calidad'),per=puedeModulo('personal');
   document.querySelectorAll('[data-modulo="calidad"]').forEach(e=>e.style.display=cal?'':'none');
@@ -6615,7 +6640,7 @@ function llenarSelect(id,opciones,valor){
   if(opciones.some(([v])=>String(v)===String(prev)))s.value=prev;
 }
 function selRegionalesRH(id){
-  const ops=USER_ROL==='gerente'?[['','Todas las regionales'],...regionales.map(r=>[r.id,r.nombre])]:[[REGIONAL_ID,rNombre(REGIONAL_ID)]];
+  const ops=verTodas()?[['','Todas las regionales'],...regionales.map(r=>[r.id,r.nombre])]:[[REGIONAL_ID,rNombre(REGIONAL_ID)]];
   llenarSelect(id,ops);
 }
 function periodoRH(anio,mes){ // mes: '' = todo el año, o 1..12
@@ -6679,16 +6704,33 @@ function peDe(r){const i=nz(r?.inicial),f=nz(r?.final);if(i==null&&f==null)retur
 // Valores calculados por el aplicativo para el mes en curso: {regional_id:{conductores,teoricos,inicial,final,salidas}}
 let _rotAuto={},_rotAutoMes='';
 const CAMPOS_ROT=['teoricos','inicial','final','salidas'];
+// Salidas e ingresos de conductores por regional y mes, tomados de las requisiciones (Excel de GH + retiros del aplicativo)
+let _reqMes={};
+const esConductorReq=r=>normTxt(r.tipo_cargo)==='CONDUCTOR'||(!r.tipo_cargo&&normTxt(r.cargo).includes('CONDUCTOR'));
+function indexarReqMes(){
+  _reqMes={};
+  const k=(reg,f)=>`${reg}|${+f.slice(0,4)}|${+f.slice(5,7)}`;
+  (_rot||[]).forEach(r=>{
+    if(!r.regional_id||!esConductorReq(r))return;
+    if(esSalida(r)&&r.fecha_requisicion){const x=_reqMes[k(r.regional_id,r.fecha_requisicion)]??={sal:0,ing:0};x.sal++;}
+    const fi=fechaIngreso(r);
+    if(fi&&r.ingresa_nombre&&normTxt(r.estado_requisicion)!=='ANULADO'){const x=_reqMes[k(r.regional_id,fi)]??={sal:0,ing:0};x.ing++;}
+  });
+}
+const reqMes=(reg,anio,mes)=>_reqMes[`${reg}|${anio}|${mes}`]||{sal:0,ing:0};
 function filasEfectivas(regIds,anio,mes){
   // Lo guardado manda; lo que falte en el mes en curso se completa con el cálculo del aplicativo
   const actual=`${anio}-${mes}`===_rotAutoMes;
   return regIds.map(id=>{
     const g=(_rotM||[]).find(r=>r.regional_id===id&&r.anio===anio&&r.mes===mes);
     const a=actual?_rotAuto[id]:null;
-    const conLista=a?.conductores>0; // inicial, final y salidas solo si la regional tiene su listado de conductores
-    if(!g&&!conLista)return null;
-    const o={regional_id:id,auto:new Set()};
-    CAMPOS_ROT.forEach(k=>{const v=nz(g?.[k]);const av=k==='teoricos'?(a?.teoricos>0?a.teoricos:null):(conLista?a[k]:null);
+    const conLista=a?.conductores>0; // inicial y final solo si la regional tiene su listado de conductores
+    const rq=reqMes(id,anio,mes);
+    if(!g&&!conLista&&!rq.sal&&!rq.ing)return null;
+    const o={regional_id:id,auto:new Set(),ingresos:rq.ing};
+    CAMPOS_ROT.forEach(k=>{const v=nz(g?.[k]);
+      // Salidas: siempre de las requisiciones, salvo que se haya escrito un valor a mano
+      const av=k==='salidas'?rq.sal:k==='teoricos'?(a?.teoricos>0?a.teoricos:null):(conLista?a[k]:null);
       if(v!=null)o[k]=v;else if(av!=null){o[k]=av;o.auto.add(k);}else o[k]=null;});
     return o;
   }).filter(Boolean);
@@ -6698,7 +6740,7 @@ function cuadroMes(regIds,anio,mes){
   const filas=filasEfectivas(regIds,anio,mes);
   if(!filas.length)return null;
   const s=k=>filas.some(r=>nz(r[k])!=null)?filas.reduce((a,r)=>a+(nz(r[k])||0),0):null;
-  const o={teoricos:s('teoricos'),inicial:s('inicial'),final:s('final'),salidas:s('salidas'),n:filas.length,auto:new Set(filas.flatMap(f=>[...f.auto]))};
+  const o={teoricos:s('teoricos'),inicial:s('inicial'),final:s('final'),salidas:s('salidas'),ingresos:filas.reduce((a,r)=>a+(r.ingresos||0),0),n:filas.length,auto:new Set(filas.flatMap(f=>[...f.auto]))};
   if(o.auto.has('inicial')||o.auto.has('final'))o.auto.add('pe');
   if(o.auto.has('pe')||o.auto.has('salidas'))o.auto.add('rot');
   if(o.auto.has('pe')||o.auto.has('teoricos'))o.auto.add('cob');
@@ -6714,6 +6756,7 @@ function regsCuadro(){
   if(reg&&reg!=='__sin')return regionales.filter(r=>r.id===reg);
   const conDatos=new Set((_rotM||[]).map(r=>r.regional_id));
   Object.entries(_rotAuto).forEach(([id,a])=>{if(a.conductores>0)conDatos.add(id);});
+  Object.keys(_reqMes).forEach(k=>conDatos.add(k.split('|')[0]));
   return regionales.filter(r=>conDatos.has(r.id));
 }
 function resumenCuadro(regIds,anio,mes){
@@ -6726,13 +6769,13 @@ function resumenCuadro(regIds,anio,mes){
 }
 function pintarCuadroRot(){
   const box=document.getElementById('rot-cuadro');if(!box)return;
-  if(_rotM===null){box.innerHTML='<div style="color:var(--red-dark);font-size:13px">Falta ejecutar rotacion_conductores.sql en Supabase.</div>';return;}
+  if(_rotM===null){box.innerHTML=`<div style="color:var(--red-dark);font-size:13px">${/rrhh_rotacion_mensual/.test(_rotMErr)&&/exist|schema cache|encontr/i.test(_rotMErr)?'Falta ejecutar rotacion_conductores.sql en Supabase.':'No se pudo cargar el cuadro.'} <span style="color:var(--text3)">Detalle: ${esc(_rotMErr||'sin respuesta')}</span></div>`;return;}
   const anio=+document.getElementById('rot-anio').value,mesSel=+document.getElementById('rot-mes').value||0;
   const regs=regsCuadro();
-  const ger=USER_ROL==='gerente'||puedeModulo('personal');
+  const ger=USER_ROL!=='gerencia'&&puedeModulo('personal');
   if(!regs.length){box.innerHTML=`<div style="font-size:13px;color:var(--text2)">Aún no hay datos del cuadro para ${anio}. Haz clic en <b>+ Registrar mes</b> para llenarlo.</div>`;return;}
   const th=m=>`<th style="text-align:center;min-width:58px;${m===mesSel?'background:var(--blue-light,#E3F2FD)':''}">${MESES_CORTOS[m-1]}</th>`;
-  const FIL=[['teoricos','Conductores teóricos'],['inicial','Inicial'],['final','Final'],['pe','PE = Promedio efectivo'],['salidas','D = Salidas'],['rot','R = Rotación'],['cob','Cobertura (PE / teóricos)']];
+  const FIL=[['teoricos','Conductores teóricos'],['inicial','Inicial'],['final','Final'],['pe','PE = Promedio efectivo'],['salidas','D = Salidas'],['ingresos','Ingresos (reemplazos)'],['rot','R = Rotación'],['cob','Cobertura (PE / teóricos)']];
   const bloque=(nombre,ids,editable,regId)=>{
     const cs=Array.from({length:12},(_,i)=>cuadroMes(ids,anio,i+1));
     const res=resumenCuadro(ids,anio,0);
@@ -6743,21 +6786,22 @@ function pintarCuadroRot(){
         const txt=k==='rot'||k==='cob'?fmtP(v):fmtN(v);
         let est=k==='rot'?`font-weight:700;color:${colRot(v)}`:k==='cob'&&v!=null?`color:${v>=95?'var(--green-dark)':v>=85?'#B26A00':'var(--red-dark)'}`:'';
         if(c?.auto?.has(k)&&v!=null)est+=';font-style:italic;background:#FFFDE7';
+        if(k==='ingresos')est+=';color:var(--text2)';
         const clic=editable&&ger?` onclick="abrirMesRot('${regId}',${anio},${i+1})" style="cursor:pointer;text-align:center;${est};${i+1===mesSel?'background:#F5FAFF':''}" title="Clic para editar ${MESES[i]}"`:` style="text-align:center;${est};${i+1===mesSel?'background:#F5FAFF':''}"`;
         return`<td${clic}>${txt||(editable&&ger&&fi===0?'<span style="color:var(--text3)">+</span>':'')}</td>`;}).join('')}
-      <td style="text-align:center;font-weight:700;background:#F8F9FA">${k==='salidas'&&res?fmtN(res.salidas):k==='pe'&&res?fmtN(res.pe):k==='rot'&&res?`<span style="color:${colRot(res.promMes)}">${fmtP(res.rot)}</span>`:''}</td></tr>`).join('');
+      <td style="text-align:center;font-weight:700;background:#F8F9FA">${k==='ingresos'?fmtN(cs.reduce((a,c)=>a+(c?.ingresos||0),0)):k==='salidas'&&res?fmtN(res.salidas):k==='pe'&&res?fmtN(res.pe):k==='rot'&&res?`<span style="color:${colRot(res.promMes)}">${fmtP(res.rot)}</span>`:''}</td></tr>`).join('');
   };
   let html=`<div class="tbl-wrap"><table class="rot-cuadro" style="font-size:12px"><thead><tr><th style="position:sticky;left:0;background:#F8F9FA;z-index:2">Regional</th><th>Ítem</th>${Array.from({length:12},(_,i)=>th(i+1)).join('')}<th style="text-align:center">Año</th></tr></thead><tbody>`;
   regs.forEach(r=>html+=bloque(r.nombre,[r.id],true,r.id));
   if(regs.length>1)html+=bloque('NACIONAL',regs.map(r=>r.id),false,'');
-  html+=`</tbody></table></div><div style="font-size:11px;color:var(--text3);margin-top:8px">PE = (Inicial + Final) / 2 · R = Salidas / PE · Año = salidas del año / PE promedio de los meses con datos. <span style="background:#FFFDE7;font-style:italic;padding:0 4px">Amarillo claro</span> = calculado por el aplicativo con el listado de conductores (mes en curso; se guarda solo al cerrar el mes). ${ger?'Clic en cualquier celda de una regional para editar ese mes.':''}</div>`;
+  html+=`</tbody></table></div><div style="font-size:11px;color:var(--text3);margin-top:8px">PE = (Inicial + Final) / 2 · R = Salidas / PE · Año = salidas del año / PE promedio de los meses con datos. <span style="background:#FFFDE7;font-style:italic;padding:0 4px">Amarillo claro</span> = calculado por el aplicativo: salidas e ingresos salen de las requisiciones de conductores (quién salió y quién lo reemplazó); inicial y final del mes en curso, del listado de conductores. ${ger?'Clic en cualquier celda de una regional para editar ese mes.':''}</div>`;
   box.innerHTML=html;
 }
 function abrirMesRot(regId,anio,mes){
   const r=(_rotM||[]).find(x=>x.regional_id===regId&&x.anio===anio&&x.mes===mes);
   const prev=(_rotM||[]).find(x=>x.regional_id===regId&&x.anio===(mes===1?anio-1:anio)&&x.mes===(mes===1?12:mes-1));
   const sr=document.getElementById('rm-reg');
-  sr.innerHTML=(USER_ROL==='gerente'?regionales:regionales.filter(x=>x.id===REGIONAL_ID)).map(x=>`<option value="${x.id}">${esc(x.nombre)}</option>`).join('');
+  sr.innerHTML=(verTodas()?regionales:regionales.filter(x=>x.id===REGIONAL_ID)).map(x=>`<option value="${x.id}">${esc(x.nombre)}</option>`).join('');
   sr.value=regId||document.getElementById('rot-reg').value||REGIONAL_ID||regionales[0]?.id;
   document.getElementById('rm-anio').value=anio||+document.getElementById('rot-anio').value;
   document.getElementById('rm-mes').innerHTML=MESES.map((m,i)=>`<option value="${i+1}">${m}</option>`).join('');
@@ -6768,6 +6812,9 @@ function abrirMesRot(regId,anio,mes){
   document.getElementById('rm-ini').value=r?.inicial??prev?.final??'';
   document.getElementById('rm-fin').value=r?.final??'';
   document.getElementById('rm-sal').value=r?.salidas??'';
+  const rqm=reqMes(sr.value,anio,mes);
+  document.getElementById('rm-sal').placeholder=`Automático: ${rqm.sal}`;
+  document.getElementById('rm-sal-auto').textContent=`Según requisiciones: ${rqm.sal} salida(s) y ${rqm.ing} ingreso(s) de conductores. Deja "Salidas" vacío para usar el automático.`;
   document.getElementById('rm-obs').value=r?.observacion||'';
   document.getElementById('rm-hint').textContent=!r&&prev?.final!=null?'Inicial tomado del final del mes anterior.':'';
   document.getElementById('rm-borrar').style.display=r&&USER_ROL==='gerente'?'':'none';
@@ -6780,7 +6827,8 @@ function cambioMesRot(){
 }
 function calcMesRot(){
   const o={inicial:nz(document.getElementById('rm-ini').value),final:nz(document.getElementById('rm-fin').value)};
-  const pe=peDe(o),d=nz(document.getElementById('rm-sal').value),t=nz(document.getElementById('rm-teo').value);
+  const salAuto=reqMes(document.getElementById('rm-reg').value,+document.getElementById('rm-anio').value,+document.getElementById('rm-mes').value).sal;
+  const pe=peDe(o),d=nz(document.getElementById('rm-sal').value)??salAuto,t=nz(document.getElementById('rm-teo').value);
   document.getElementById('rm-calc').innerHTML=pe==null?'Escribe inicial y final para calcular.':
     `PE = <b>${fmtN(pe)}</b> · Rotación = <b style="color:${colRot(d!=null?d/pe*100:null)}">${d!=null&&pe?fmtP(d/pe*100):'—'}</b>${t?` · Cobertura = <b>${fmtP(pe/t*100)}</b> (${fmtN(pe)} de ${fmtN(t)} necesarios)`:''}`;
 }
@@ -6791,7 +6839,7 @@ async function traerMesRot(){
   if(error){toast(/rotacion_mes_auto/.test(error.message)?'Falta ejecutar rotacion_automatica.sql':'Error: '+error.message,true);return;}
   const a=(data||[]).find(x=>x.regional_id===reg);
   if(!a||!a.conductores){toast('Esta regional no tiene conductores cargados en el aplicativo',true);return;}
-  ['teo:teoricos','ini:inicial','fin:final','sal:salidas'].forEach(x=>{const[el,k]=x.split(':');if(a[k]!=null)document.getElementById('rm-'+el).value=a[k];});
+  ['teo:teoricos','ini:inicial','fin:final'].forEach(x=>{const[el,k]=x.split(':');if(a[k]!=null)document.getElementById('rm-'+el).value=a[k];});
   const{desde,hasta}=periodoRH(anio,mes);
   const req=(_rot||[]).filter(r=>r.regional_id===reg&&normTxt(r.tipo_cargo)==='CONDUCTOR'&&esSalida(r)&&r.fecha_requisicion>=desde&&r.fecha_requisicion<=hasta).length;
   document.getElementById('rm-hint').textContent=`Calculado con ${a.conductores} conductores del listado. Requisiciones de conductores con salida en el mes: ${req}. Revisa antes de guardar.`;
@@ -6814,7 +6862,7 @@ async function cargarRotAuto(){
     const o={regional_id:a.regional_id,anio:pa,mes:pm,updated_at:new Date().toISOString(),
       observacion:g?.observacion||'Cierre automático con el aplicativo'};
     let cambia=false;
-    CAMPOS_ROT.forEach(k=>{const auto=k==='teoricos'?(a.teoricos>0?a.teoricos:null):(conLista?a[k]:null);
+    CAMPOS_ROT.forEach(k=>{const auto=k==='salidas'?null:k==='teoricos'?(a.teoricos>0?a.teoricos:null):(conLista?a[k]:null);
       o[k]=g?.[k]??auto;if(g?.[k]==null&&auto!=null)cambia=true;});
     if(cambia)filas.push(o); // solo completa lo que falte; nunca cambia lo guardado
   });
@@ -6839,12 +6887,13 @@ async function borrarMesRot(){
 }
 async function recargarRotM(){
   const{data,error}=await db.from('rrhh_rotacion_mensual').select('*').order('anio').order('mes');
-  _rotM=error?null:(data||[]);
+  _rotM=error?null:(data||[]);_rotMErr=error?.message||'';
 }
+let _rotMErr='';
 function exportarCuadroRot(){
   const anio=+document.getElementById('rot-anio').value;const regs=regsCuadro();if(!regs.length)return;
   const aoa=[['Regional','Ítem',...MESES,'Año']];
-  const FIL=[['teoricos','Conductores teóricos'],['inicial','Inicial'],['final','Final'],['pe','PE = Promedio efectivo'],['salidas','D = Salidas'],['rot','R = Rotación'],['cob','Cobertura']];
+  const FIL=[['teoricos','Conductores teóricos'],['inicial','Inicial'],['final','Final'],['pe','PE = Promedio efectivo'],['salidas','D = Salidas'],['ingresos','Ingresos (reemplazos)'],['rot','R = Rotación'],['cob','Cobertura']];
   const add=(nombre,ids)=>{const cs=Array.from({length:12},(_,i)=>cuadroMes(ids,anio,i+1));const res=resumenCuadro(ids,anio,0);
     FIL.forEach(([k,l])=>aoa.push([nombre,l,...cs.map(c=>c&&c[k]!=null?(k==='rot'||k==='cob'?Math.round(c[k]*100)/10000:Math.round(c[k]*10)/10):''),
       res?(k==='salidas'?res.salidas:k==='pe'?Math.round(res.pe*10)/10:k==='rot'?Math.round(res.rot*100)/10000:''):'']));};
@@ -6871,15 +6920,16 @@ async function cargarRotacion(){
   box.innerHTML='<div class="loading"><div class="spinner"></div></div>';
   try{
     const[rq]=await Promise.all([db.from('rrhh_requisiciones').select('*').order('fecha_requisicion',{ascending:false}),cargarPlantillas(),recargarRotM()]);
-    await cargarRotAuto();
     if(rq.error)throw rq.error;
     _rot=rq.data||[];
+    indexarReqMes();
+    await cargarRotAuto();
     try{const m=localStorage.getItem('rot_meta');if(m)document.getElementById('rot-meta').value=m;}catch(e){}
     const anios=[...new Set(_rot.flatMap(r=>[r.fecha_requisicion,fechaIngreso(r)]).filter(Boolean).map(f=>+f.slice(0,4)).concat((_rotM||[]).map(r=>r.anio)).concat([new Date().getFullYear()]))].sort((a,b)=>b-a);
     llenarSelect('rot-anio',anios.map(a=>[a,a]),document.getElementById('rot-anio').value||anios[0]);
     llenarSelect('rot-mes',[['','Todo el año'],...MESES.map((m,i)=>[i+1,m])]);
     selRegionalesRH('rot-reg');
-    if(USER_ROL==='gerente'&&_rot.some(r=>!r.regional_id)){const s=document.getElementById('rot-reg');s.add(new Option('Sin regional asignada','__sin'));}
+    if(verTodas()&&_rot.some(r=>!r.regional_id)){const s=document.getElementById('rot-reg');s.add(new Option('Sin regional asignada','__sin'));}
     llenarSelect('rot-tipo',[['','Todos los cargos'],...[...new Set(_rot.map(r=>r.tipo_cargo).filter(Boolean))].sort().map(t=>[t,t])]);
     llenarSelect('rot-emp',[['','Todas las empresas'],...[...new Set(_rot.map(r=>r.empresa).filter(Boolean))].sort().map(t=>[t,t])]);
     pintarRotacion();
@@ -6983,7 +7033,7 @@ function abrirRequisicion(id,preset){
   document.getElementById('rq-titulo').textContent=id?'Editar requisición':'Nueva requisición';
   document.getElementById('rq-id').value=id||'';
   const sr=document.getElementById('rq-reg');
-  sr.innerHTML=(USER_ROL==='gerente'?regionales:regionales.filter(x=>x.id===REGIONAL_ID)).map(x=>`<option value="${x.id}">${esc(x.nombre)}</option>`).join('');
+  sr.innerHTML=(verTodas()?regionales:regionales.filter(x=>x.id===REGIONAL_ID)).map(x=>`<option value="${x.id}">${esc(x.nombre)}</option>`).join('');
   sr.value=r.regional_id||REGIONAL_ID||regionales[0]?.id||'';
   Object.entries(RQ_CAMPOS).forEach(([k,el])=>{const e=document.getElementById(el);e.value=r[k]??(e.tagName==='SELECT'?e.options[0].value:'');});
   if(!id&&!preset){document.getElementById('rq-freq').value=hoy();document.getElementById('rq-estado').value='VACANTE';}
@@ -7173,7 +7223,7 @@ async function abrirAusencia(id){
   document.getElementById('au-titulo').textContent=a?'Editar ausencia':'Registrar ausencia';
   document.getElementById('au-id').value=a?.id||'';
   const sr=document.getElementById('au-reg');
-  sr.innerHTML=(USER_ROL==='gerente'?regionales:regionales.filter(x=>x.id===REGIONAL_ID)).map(x=>`<option value="${x.id}">${esc(x.nombre)}</option>`).join('');
+  sr.innerHTML=(verTodas()?regionales:regionales.filter(x=>x.id===REGIONAL_ID)).map(x=>`<option value="${x.id}">${esc(x.nombre)}</option>`).join('');
   sr.value=a?.regional_id||document.getElementById('aus-reg').value||REGIONAL_ID||regionales[0]?.id;
   await llenarPersonasAus(a?.conductor_id);
   const otra=a&&!a.conductor_id;
@@ -7238,7 +7288,7 @@ async function abrirSoporteAus(path){
   if(w)w.location=data.signedUrl;else location.href=data.signedUrl;
 }
 function abrirTiposAus(){
-  if(USER_ROL!=='gerente'){toast('Solo el gerente puede cambiar los tipos',true);return;}
+  if(!adminRH()){toast('Solo coordinación nacional o gestión humana pueden cambiar los tipos',true);return;}
   document.getElementById('ta-lista').innerHTML=_tiposAus.map(t=>`<div style="display:flex;align-items:center;gap:10px;font-size:13px;padding:6px 0;border-bottom:0.5px solid var(--border);${t.activo===false?'opacity:.5':''}">
     <span style="flex:1">${esc(t.nombre)}</span>
     <label style="font-size:12px;display:flex;gap:4px;align-items:center"><input type="checkbox" ${t.cuenta_ausentismo!==false?'checked':''} onchange="cambiarTipoAus('${t.id}',{cuenta_ausentismo:this.checked})"> Cuenta en el %</label>
