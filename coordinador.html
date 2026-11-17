@@ -63,6 +63,7 @@ tr:hover td{background:var(--bg2)}
 .form2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .rot-cuadro td,.rot-cuadro th{padding:4px 6px;border:0.5px solid var(--border)}
 body.rol-gerencia .page .btn-primary,body.rol-gerencia .page .btn-red,body.rol-gerencia .modal .btn-primary{display:none!important}
+.oculto-rol{display:none!important}
 .rh-sel{font-size:12px;padding:6px 8px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text)}
 @media(max-width:900px){.rh-grid2{grid-template-columns:1fr!important}}
 .full{grid-column:1/-1}
@@ -2099,9 +2100,9 @@ const PAGINAS_ROL={
 function puedePagina(pg){const l=PAGINAS_ROL[USER_ROL];return!l||l.includes(pg);}
 function aplicarMenuRol(){
   const l=PAGINAS_ROL[USER_ROL];if(!l)return;
-  document.querySelectorAll('.snav-item[data-page]').forEach(e=>{if(!l.includes(e.dataset.page))e.remove();});
-  // Quitar títulos de secciones que quedaron vacías
-  document.querySelectorAll('.snav-sec').forEach(sec=>{let n=sec.nextElementSibling,hay=false;while(n&&!n.classList.contains('snav-sec')){if(n.classList.contains('snav-item')&&n.dataset.page)hay=true;n=n.nextElementSibling;}if(!hay)sec.remove();});
+  // Se ocultan (no se borran): otras partes de la página actualizan sus contadores
+  document.querySelectorAll('.snav-item[data-page]').forEach(e=>{if(!l.includes(e.dataset.page))e.classList.add('oculto-rol');});
+  document.querySelectorAll('.snav-sec').forEach(sec=>{let n=sec.nextElementSibling,hay=false;while(n&&!n.classList.contains('snav-sec')){if(n.classList.contains('snav-item')&&n.dataset.page&&!n.classList.contains('oculto-rol'))hay=true;n=n.nextElementSibling;}if(!hay)sec.classList.add('oculto-rol');});
 }
 async function checkAuth(){
   const{data:{session}}=await db.auth.getSession();
