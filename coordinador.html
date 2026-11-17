@@ -61,6 +61,7 @@ tr:hover td{background:var(--bg2)}
 .field input,.field select,.field textarea{padding:8px 10px;font-size:13px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text);outline:none;font-family:inherit}
 .field textarea{resize:vertical;min-height:72px}
 .form2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.rot-cuadro td,.rot-cuadro th{padding:4px 6px;border:0.5px solid var(--border)}
 .rh-sel{font-size:12px;padding:6px 8px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text)}
 @media(max-width:900px){.rh-grid2{grid-template-columns:1fr!important}}
 .full{grid-column:1/-1}
@@ -286,6 +287,31 @@ tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
+<!-- Modal mes del cuadro de rotación -->
+<div class="modal-overlay" id="modal-rotm">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title">Rotación de conductores · mes</div>
+    <input type="hidden" id="rm-id">
+    <div class="form2">
+      <div class="field" style="grid-column:1/-1"><label>Regional *</label><select id="rm-reg" onchange="cambioMesRot()"></select></div>
+      <div class="field"><label>Año *</label><input type="number" id="rm-anio" min="2020" max="2100" onchange="cambioMesRot()"></div>
+      <div class="field"><label>Mes *</label><select id="rm-mes" onchange="cambioMesRot()"></select></div>
+      <div class="field"><label>Conductores teóricos <span style="font-size:11px;color:var(--text3)">(necesarios)</span></label><input type="number" id="rm-teo" min="0" step="1" oninput="calcMesRot()"></div>
+      <div class="field"><label>D = Salidas del mes</label><input type="number" id="rm-sal" min="0" step="1" oninput="calcMesRot()"></div>
+      <div class="field"><label>Inicial <span style="font-size:11px;color:var(--text3)">(al empezar el mes) *</span></label><input type="number" id="rm-ini" min="0" step="1" oninput="calcMesRot()"></div>
+      <div class="field"><label>Final <span style="font-size:11px;color:var(--text3)">(al cerrar el mes)</span></label><input type="number" id="rm-fin" min="0" step="1" oninput="calcMesRot()"></div>
+      <div class="field" style="grid-column:1/-1"><label>Observación</label><input type="text" id="rm-obs" maxlength="300"></div>
+    </div>
+    <div id="rm-calc" style="font-size:13px;margin-top:12px;padding:10px;background:var(--bg2);border-radius:var(--r)"></div>
+    <div id="rm-hint" style="font-size:11px;color:var(--text3);margin-top:6px"></div>
+    <div class="modal-footer">
+      <button class="btn btn-red" id="rm-borrar" onclick="borrarMesRot()" style="margin-right:auto;display:none">Eliminar</button>
+      <button class="btn" onclick="traerMesRot()" title="Calcula inicial, final y salidas con el listado de conductores">Traer del aplicativo</button>
+      <button class="btn" onclick="cerrarModal('modal-rotm')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarMesRot()">Guardar</button>
+    </div>
+  </div>
+</div>
 <!-- Modal requisición (rotación) -->
 <div class="modal-overlay" id="modal-req">
   <div class="modal" style="max-width:720px;max-height:92vh;overflow-y:auto">
@@ -454,7 +480,12 @@ tr:hover td{background:var(--bg2)}
 <div class="modal-overlay" id="modal-planta">
   <div class="modal" style="max-width:380px">
     <div class="modal-title">Conductores requeridos · <span id="pl-reg"></span></div>
-    <div class="field"><label>¿Cuántos conductores debe tener la regional?</label><input type="number" id="pl-num" min="0" max="999"></div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Conductores requeridos = vehículos titulares × factor, redondeado hacia arriba. Los titulares son el cupo de la regional (se cambia en el tablero).</div>
+    <div class="form2">
+      <div class="field"><label>Vehículos titulares</label><div id="pl-tit" style="font-size:20px;font-weight:700;padding:4px 0">—</div></div>
+      <div class="field"><label>Factor</label><input type="number" id="pl-factor" min="0.1" max="19.99" step="0.01" oninput="calcPlanta()"></div>
+    </div>
+    <div id="pl-res" style="font-size:13px;margin-top:10px;padding:10px;background:var(--bg2);border-radius:var(--r);font-weight:600"></div>
     <div class="modal-footer">
       <button class="btn" onclick="cerrarModal('modal-planta')">Cancelar</button>
       <button class="btn btn-primary" onclick="guardarPlanta()">Guardar</button>
@@ -1766,6 +1797,12 @@ tr:hover td{background:var(--bg2)}
       </div>
     </div>
     <div class="metrics" id="rot-metricas"></div>
+    <div class="card">
+      <div class="card-hdr"><span class="card-title">Cuadro de rotación de conductores</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm" onclick="exportarCuadroRot()">⬇ Excel</button>
+        <button class="btn btn-sm btn-primary" onclick="abrirMesRot(document.getElementById('rot-reg').value||'',+document.getElementById('rot-anio').value,+document.getElementById('rot-mes').value||(new Date().getMonth()+1))">+ Registrar mes</button></div></div>
+      <div id="rot-cuadro"></div>
+    </div>
     <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px" class="rh-grid2">
       <div class="card"><div class="card-hdr"><span class="card-title">Rotación por mes</span><span style="font-size:11px;color:var(--text2)" id="rot-graf-nota"></span></div><div id="rot-grafica"></div></div>
       <div class="card"><div class="card-hdr"><span class="card-title">Motivos de salida</span></div><div id="rot-motivos"></div></div>
@@ -6332,11 +6369,12 @@ async function cargarConductoresPage(){
   try{
     const[rC,rR]=await Promise.all([
       db.from('conductores').select('*').eq('regional_id',reg).order('nombre'),
-      db.from('regionales').select('id,conductores_requeridos').eq('id',reg).maybeSingle(),
+      db.rpc('conductores_requeridos_de',{p_regional:reg}),
     ]);
     if(rC.error)throw rC.error;
     await prepAudPara(reg);
-    _cp={reg,conds:rC.data||[],requeridos:rR.error?null:(rR.data?.conductores_requeridos??null)};
+    const rq=rR.error?null:(rR.data||[])[0];
+    _cp={reg,conds:rC.data||[],requeridos:rq?.requeridos||null,titulares:rq?.titulares??null,factor:rq?.factor??2.54,sinFuncion:!!rR.error};
     pintarConductoresPage();
   }catch(e){box.innerHTML=`<div class="card" style="color:var(--red-dark)">No se pudieron cargar los conductores: ${esc(e.message)}</div>`;}
 }
@@ -6355,12 +6393,12 @@ function pintarConductoresPage(){
   const dir=activos.filter(c=>(c.vinculacion||'directo')==='directo').length,tem=activos.length-dir;
   const req=_cp.requeridos;
   document.getElementById('cp-m-act').textContent=req!=null?`${activos.length} / ${req}`:activos.length;
-  document.getElementById('cp-m-act-sub').innerHTML=`${req!=null?Math.round(activos.length/Math.max(req,1)*100)+'% de la planta':'Sin planta definida'}${USER_ROL==='gerente'?` · <a href="#" onclick="abrirPlanta();return false">${req!=null?'cambiar':'definir'}</a>`:''}`;
+  document.getElementById('cp-m-act-sub').innerHTML=`${req!=null?Math.round(activos.length/Math.max(req,1)*100)+`% de la planta · ${_cp.titulares} titulares × ${_cp.factor}`:'Sin vehículos titulares'}${USER_ROL==='gerente'?` · <a href="#" onclick="abrirPlanta();return false">factor</a>`:''}`;
   const vac=req!=null?req-activos.length:null;
   document.getElementById('cp-m-vac').textContent=vac==null?'—':vac>0?vac:vac<0?`+${-vac}`:'0';
   document.getElementById('cp-m-vac').style.color=vac>0?'var(--red)':vac<0?'var(--amber)':'var(--green)';
   document.getElementById('cp-m-vac-box').style.borderTopColor=vac>0?'var(--red)':'var(--border)';
-  document.getElementById('cp-m-vac-sub').textContent=vac==null?'Defina la planta requerida':vac>0?'Faltan conductores':vac<0?'Conductores por encima de la planta':'Planta completa';
+  document.getElementById('cp-m-vac-sub').textContent=vac==null?'Defina el cupo de titulares':vac>0?'Faltan conductores':vac<0?'Conductores por encima de la planta':'Planta completa';
   document.getElementById('cp-m-vinc').textContent=`${dir} · ${tem}`;
   const emp={};activos.filter(c=>c.vinculacion==='temporal').forEach(c=>{const e=(c.empresa_temporal||'Sin empresa').trim();emp[e]=(emp[e]||0)+1;});
   document.getElementById('cp-m-vinc-sub').textContent=Object.entries(emp).map(([e,n])=>`${e}: ${n}`).join(' · ')||'Sin temporales';
@@ -6490,16 +6528,23 @@ async function reintegrarCond(id){
   toast('Conductor reintegrado. Revisa la fecha de ingreso en Editar.');_aud=null;cargarConductoresPage();
 }
 function abrirPlanta(){
+  if(_cp.sinFuncion){toast('Falta ejecutar rotacion_automatica.sql',true);return;}
   document.getElementById('pl-reg').textContent=rNombre(_cp.reg);
-  document.getElementById('pl-num').value=_cp.requeridos??'';
+  document.getElementById('pl-tit').textContent=_cp.titulares??'—';
+  document.getElementById('pl-factor').value=_cp.factor;
+  calcPlanta();
   document.getElementById('modal-planta').classList.add('open');
 }
+function calcPlanta(){
+  const f=parseFloat(document.getElementById('pl-factor').value);
+  document.getElementById('pl-res').textContent=_cp.titulares&&f>0?`${_cp.titulares} × ${f} = ${(Math.round(_cp.titulares*f*100)/100).toLocaleString('es-CO')} → ${Math.ceil(_cp.titulares*f)} conductores`:'—';
+}
 async function guardarPlanta(){
-  const v=document.getElementById('pl-num').value;
-  const n=v===''?null:Math.max(0,parseInt(v,10));
-  const{error}=await db.from('regionales').update({conductores_requeridos:n}).eq('id',_cp.reg);
+  const f=parseFloat(document.getElementById('pl-factor').value);
+  if(!(f>0&&f<20)){toast('Factor no válido',true);return;}
+  const{error}=await db.from('regionales').update({factor_conductores:f}).eq('id',_cp.reg);
   if(error){toast('Error: '+error.message,true);return;}
-  toast('Planta actualizada ✓');cerrarModal('modal-planta');cargarConductoresPage();
+  toast('Factor actualizado ✓');cerrarModal('modal-planta');cargarConductoresPage();
 }
 async function importarDesdePagina(input){
   // Reutiliza la importación del módulo de auditorías sobre la regional de esta página
@@ -6626,6 +6671,189 @@ async function guardarPlantillas(){
   if(document.getElementById('page-rotacion').classList.contains('active'))pintarRotacion();else pintarAusentismo();
 }
 
+// ── Cuadro de rotación de conductores (mismo formato de Gestión Humana) ──
+// PE = (Inicial + Final) / 2 · Rotación = Salidas / PE. Mes en curso sin cierre: PE = Inicial.
+let _rotM=null;
+const nz=v=>v==null||v===''?null:Number(v);
+function peDe(r){const i=nz(r?.inicial),f=nz(r?.final);if(i==null&&f==null)return null;if(i==null)return f;if(f==null)return i;return(i+f)/2;}
+// Valores calculados por el aplicativo para el mes en curso: {regional_id:{conductores,teoricos,inicial,final,salidas}}
+let _rotAuto={},_rotAutoMes='';
+const CAMPOS_ROT=['teoricos','inicial','final','salidas'];
+function filasEfectivas(regIds,anio,mes){
+  // Lo guardado manda; lo que falte en el mes en curso se completa con el cálculo del aplicativo
+  const actual=`${anio}-${mes}`===_rotAutoMes;
+  return regIds.map(id=>{
+    const g=(_rotM||[]).find(r=>r.regional_id===id&&r.anio===anio&&r.mes===mes);
+    const a=actual?_rotAuto[id]:null;
+    const conLista=a?.conductores>0; // inicial, final y salidas solo si la regional tiene su listado de conductores
+    if(!g&&!conLista)return null;
+    const o={regional_id:id,auto:new Set()};
+    CAMPOS_ROT.forEach(k=>{const v=nz(g?.[k]);const av=k==='teoricos'?(a?.teoricos>0?a.teoricos:null):(conLista?a[k]:null);
+      if(v!=null)o[k]=v;else if(av!=null){o[k]=av;o.auto.add(k);}else o[k]=null;});
+    return o;
+  }).filter(Boolean);
+}
+function cuadroMes(regIds,anio,mes){
+  // Suma las regionales elegidas (como la fila NACIONAL del cuadro)
+  const filas=filasEfectivas(regIds,anio,mes);
+  if(!filas.length)return null;
+  const s=k=>filas.some(r=>nz(r[k])!=null)?filas.reduce((a,r)=>a+(nz(r[k])||0),0):null;
+  const o={teoricos:s('teoricos'),inicial:s('inicial'),final:s('final'),salidas:s('salidas'),n:filas.length,auto:new Set(filas.flatMap(f=>[...f.auto]))};
+  if(o.auto.has('inicial')||o.auto.has('final'))o.auto.add('pe');
+  if(o.auto.has('pe')||o.auto.has('salidas'))o.auto.add('rot');
+  if(o.auto.has('pe')||o.auto.has('teoricos'))o.auto.add('cob');
+  o.pe=peDe(o);o.rot=o.pe&&o.salidas!=null?o.salidas/o.pe*100:null; // sin salidas registradas aún: no se muestra %
+  o.cob=o.teoricos&&o.pe!=null?o.pe/o.teoricos*100:null;
+  return o;
+}
+const fmtN=v=>v==null?'':(Math.round(v*10)/10).toLocaleString('es-CO');
+const fmtP=v=>v==null?'':(Math.round(v*100)/100).toLocaleString('es-CO',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';
+const colRot=v=>v==null?'inherit':v<=3?'var(--green-dark)':v<=6?'#B26A00':'var(--red-dark)';
+function regsCuadro(){
+  const reg=document.getElementById('rot-reg').value;
+  if(reg&&reg!=='__sin')return regionales.filter(r=>r.id===reg);
+  const conDatos=new Set((_rotM||[]).map(r=>r.regional_id));
+  Object.entries(_rotAuto).forEach(([id,a])=>{if(a.conductores>0)conDatos.add(id);});
+  return regionales.filter(r=>conDatos.has(r.id));
+}
+function resumenCuadro(regIds,anio,mes){
+  if(mes)return cuadroMes(regIds,anio,+mes);
+  const ms=[];for(let m=1;m<=12;m++){const c=cuadroMes(regIds,anio,m);if(c&&c.pe&&c.rot!=null)ms.push(c);}
+  if(!ms.length)return null;
+  const sal=ms.reduce((a,c)=>a+(c.salidas||0),0),pe=ms.reduce((a,c)=>a+c.pe,0)/ms.length;
+  const ult=ms[ms.length-1];
+  return{salidas:sal,pe,rot:sal/pe*100,promMes:ms.reduce((a,c)=>a+(c.rot||0),0)/ms.length,meses:ms.length,teoricos:ult.teoricos,cob:ult.cob,peUlt:ult.pe};
+}
+function pintarCuadroRot(){
+  const box=document.getElementById('rot-cuadro');if(!box)return;
+  if(_rotM===null){box.innerHTML='<div style="color:var(--red-dark);font-size:13px">Falta ejecutar rotacion_conductores.sql en Supabase.</div>';return;}
+  const anio=+document.getElementById('rot-anio').value,mesSel=+document.getElementById('rot-mes').value||0;
+  const regs=regsCuadro();
+  const ger=USER_ROL==='gerente'||puedeModulo('personal');
+  if(!regs.length){box.innerHTML=`<div style="font-size:13px;color:var(--text2)">Aún no hay datos del cuadro para ${anio}. Haz clic en <b>+ Registrar mes</b> para llenarlo.</div>`;return;}
+  const th=m=>`<th style="text-align:center;min-width:58px;${m===mesSel?'background:var(--blue-light,#E3F2FD)':''}">${MESES_CORTOS[m-1]}</th>`;
+  const FIL=[['teoricos','Conductores teóricos'],['inicial','Inicial'],['final','Final'],['pe','PE = Promedio efectivo'],['salidas','D = Salidas'],['rot','R = Rotación'],['cob','Cobertura (PE / teóricos)']];
+  const bloque=(nombre,ids,editable,regId)=>{
+    const cs=Array.from({length:12},(_,i)=>cuadroMes(ids,anio,i+1));
+    const res=resumenCuadro(ids,anio,0);
+    return FIL.map(([k,lbl],fi)=>`<tr style="${fi===0?'border-top:2px solid var(--border)':''}">
+      ${fi===0?`<td rowspan="${FIL.length}" style="font-weight:700;vertical-align:middle;background:#fff;position:sticky;left:0;z-index:1;min-width:110px">${esc(nombre)}</td>`:''}
+      <td style="white-space:nowrap;font-size:11px;color:${k==='rot'?'var(--text)':'var(--text2)'};${k==='rot'?'font-weight:700':''}">${lbl}</td>
+      ${cs.map((c,i)=>{const v=c?c[k]:null;
+        const txt=k==='rot'||k==='cob'?fmtP(v):fmtN(v);
+        let est=k==='rot'?`font-weight:700;color:${colRot(v)}`:k==='cob'&&v!=null?`color:${v>=95?'var(--green-dark)':v>=85?'#B26A00':'var(--red-dark)'}`:'';
+        if(c?.auto?.has(k)&&v!=null)est+=';font-style:italic;background:#FFFDE7';
+        const clic=editable&&ger?` onclick="abrirMesRot('${regId}',${anio},${i+1})" style="cursor:pointer;text-align:center;${est};${i+1===mesSel?'background:#F5FAFF':''}" title="Clic para editar ${MESES[i]}"`:` style="text-align:center;${est};${i+1===mesSel?'background:#F5FAFF':''}"`;
+        return`<td${clic}>${txt||(editable&&ger&&fi===0?'<span style="color:var(--text3)">+</span>':'')}</td>`;}).join('')}
+      <td style="text-align:center;font-weight:700;background:#F8F9FA">${k==='salidas'&&res?fmtN(res.salidas):k==='pe'&&res?fmtN(res.pe):k==='rot'&&res?`<span style="color:${colRot(res.promMes)}">${fmtP(res.rot)}</span>`:''}</td></tr>`).join('');
+  };
+  let html=`<div class="tbl-wrap"><table class="rot-cuadro" style="font-size:12px"><thead><tr><th style="position:sticky;left:0;background:#F8F9FA;z-index:2">Regional</th><th>Ítem</th>${Array.from({length:12},(_,i)=>th(i+1)).join('')}<th style="text-align:center">Año</th></tr></thead><tbody>`;
+  regs.forEach(r=>html+=bloque(r.nombre,[r.id],true,r.id));
+  if(regs.length>1)html+=bloque('NACIONAL',regs.map(r=>r.id),false,'');
+  html+=`</tbody></table></div><div style="font-size:11px;color:var(--text3);margin-top:8px">PE = (Inicial + Final) / 2 · R = Salidas / PE · Año = salidas del año / PE promedio de los meses con datos. <span style="background:#FFFDE7;font-style:italic;padding:0 4px">Amarillo claro</span> = calculado por el aplicativo con el listado de conductores (mes en curso; se guarda solo al cerrar el mes). ${ger?'Clic en cualquier celda de una regional para editar ese mes.':''}</div>`;
+  box.innerHTML=html;
+}
+function abrirMesRot(regId,anio,mes){
+  const r=(_rotM||[]).find(x=>x.regional_id===regId&&x.anio===anio&&x.mes===mes);
+  const prev=(_rotM||[]).find(x=>x.regional_id===regId&&x.anio===(mes===1?anio-1:anio)&&x.mes===(mes===1?12:mes-1));
+  const sr=document.getElementById('rm-reg');
+  sr.innerHTML=(USER_ROL==='gerente'?regionales:regionales.filter(x=>x.id===REGIONAL_ID)).map(x=>`<option value="${x.id}">${esc(x.nombre)}</option>`).join('');
+  sr.value=regId||document.getElementById('rot-reg').value||REGIONAL_ID||regionales[0]?.id;
+  document.getElementById('rm-anio').value=anio||+document.getElementById('rot-anio').value;
+  document.getElementById('rm-mes').innerHTML=MESES.map((m,i)=>`<option value="${i+1}">${m}</option>`).join('');
+  document.getElementById('rm-mes').value=mes||(new Date().getMonth()+1);
+  document.getElementById('rm-id').value=r?.id||'';
+  const au=`${anio}-${mes}`===_rotAutoMes?_rotAuto[sr.value]:null;
+  document.getElementById('rm-teo').value=r?.teoricos??(au?.teoricos>0?au.teoricos:null)??prev?.teoricos??'';
+  document.getElementById('rm-ini').value=r?.inicial??prev?.final??'';
+  document.getElementById('rm-fin').value=r?.final??'';
+  document.getElementById('rm-sal').value=r?.salidas??'';
+  document.getElementById('rm-obs').value=r?.observacion||'';
+  document.getElementById('rm-hint').textContent=!r&&prev?.final!=null?'Inicial tomado del final del mes anterior.':'';
+  document.getElementById('rm-borrar').style.display=r&&USER_ROL==='gerente'?'':'none';
+  calcMesRot();
+  document.getElementById('modal-rotm').classList.add('open');
+}
+function cambioMesRot(){
+  const reg=document.getElementById('rm-reg').value,anio=+document.getElementById('rm-anio').value,mes=+document.getElementById('rm-mes').value;
+  abrirMesRot(reg,anio,mes);
+}
+function calcMesRot(){
+  const o={inicial:nz(document.getElementById('rm-ini').value),final:nz(document.getElementById('rm-fin').value)};
+  const pe=peDe(o),d=nz(document.getElementById('rm-sal').value),t=nz(document.getElementById('rm-teo').value);
+  document.getElementById('rm-calc').innerHTML=pe==null?'Escribe inicial y final para calcular.':
+    `PE = <b>${fmtN(pe)}</b> · Rotación = <b style="color:${colRot(d!=null?d/pe*100:null)}">${d!=null&&pe?fmtP(d/pe*100):'—'}</b>${t?` · Cobertura = <b>${fmtP(pe/t*100)}</b> (${fmtN(pe)} de ${fmtN(t)} necesarios)`:''}`;
+}
+// Trae los datos del listado de conductores del aplicativo (sirve cuando el listado está completo y con fechas)
+async function traerMesRot(){
+  const reg=document.getElementById('rm-reg').value,anio=+document.getElementById('rm-anio').value,mes=+document.getElementById('rm-mes').value;
+  const{data,error}=await db.rpc('rotacion_mes_auto',{p_anio:anio,p_mes:mes});
+  if(error){toast(/rotacion_mes_auto/.test(error.message)?'Falta ejecutar rotacion_automatica.sql':'Error: '+error.message,true);return;}
+  const a=(data||[]).find(x=>x.regional_id===reg);
+  if(!a||!a.conductores){toast('Esta regional no tiene conductores cargados en el aplicativo',true);return;}
+  ['teo:teoricos','ini:inicial','fin:final','sal:salidas'].forEach(x=>{const[el,k]=x.split(':');if(a[k]!=null)document.getElementById('rm-'+el).value=a[k];});
+  const{desde,hasta}=periodoRH(anio,mes);
+  const req=(_rot||[]).filter(r=>r.regional_id===reg&&normTxt(r.tipo_cargo)==='CONDUCTOR'&&esSalida(r)&&r.fecha_requisicion>=desde&&r.fecha_requisicion<=hasta).length;
+  document.getElementById('rm-hint').textContent=`Calculado con ${a.conductores} conductores del listado. Requisiciones de conductores con salida en el mes: ${req}. Revisa antes de guardar.`;
+  calcMesRot();
+}
+// Mes en curso calculado + cierre automático del mes anterior (completa solo lo que falte)
+async function cargarRotAuto(){
+  const h=new Date(),anio=h.getFullYear(),mes=h.getMonth()+1;
+  _rotAuto={};_rotAutoMes='';
+  const{data,error}=await db.rpc('rotacion_mes_auto',{p_anio:anio,p_mes:mes});
+  if(error)return; // aún no se ha ejecutado rotacion_automatica.sql
+  (data||[]).forEach(a=>_rotAuto[a.regional_id]=a);_rotAutoMes=`${anio}-${mes}`;
+  const pa=mes===1?anio-1:anio,pm=mes===1?12:mes-1;
+  const{data:prev}=await db.rpc('rotacion_mes_auto',{p_anio:pa,p_mes:pm});
+  const filas=[];
+  (prev||[]).forEach(a=>{
+    const g=(_rotM||[]).find(r=>r.regional_id===a.regional_id&&r.anio===pa&&r.mes===pm);
+    const conLista=a.conductores>0;
+    if(!g&&!conLista)return;
+    const o={regional_id:a.regional_id,anio:pa,mes:pm,updated_at:new Date().toISOString(),
+      observacion:g?.observacion||'Cierre automático con el aplicativo'};
+    let cambia=false;
+    CAMPOS_ROT.forEach(k=>{const auto=k==='teoricos'?(a.teoricos>0?a.teoricos:null):(conLista?a[k]:null);
+      o[k]=g?.[k]??auto;if(g?.[k]==null&&auto!=null)cambia=true;});
+    if(cambia)filas.push(o); // solo completa lo que falte; nunca cambia lo guardado
+  });
+  if(filas.length){const{error:e2}=await db.from('rrhh_rotacion_mensual').upsert(filas,{onConflict:'regional_id,anio,mes'});if(!e2)await recargarRotM();}
+}
+async function guardarMesRot(){
+  const d={regional_id:document.getElementById('rm-reg').value,anio:+document.getElementById('rm-anio').value,mes:+document.getElementById('rm-mes').value,
+    teoricos:nz(document.getElementById('rm-teo').value),inicial:nz(document.getElementById('rm-ini').value),final:nz(document.getElementById('rm-fin').value),
+    salidas:nz(document.getElementById('rm-sal').value),observacion:document.getElementById('rm-obs').value.trim()||null,updated_at:new Date().toISOString()};
+  if(!d.regional_id||!d.anio||!d.mes){toast('Regional, año y mes son obligatorios',true);return;}
+  if(['teoricos','inicial','final','salidas'].some(k=>d[k]!=null&&!(d[k]>=0))){toast('Los valores no pueden ser negativos',true);return;}
+  if(d.inicial==null){toast('Escribe al menos los conductores al inicio del mes',true);return;}
+  const{error}=await db.from('rrhh_rotacion_mensual').upsert(d,{onConflict:'regional_id,anio,mes'});
+  if(error){toast('Error: '+error.message,true);return;}
+  toast('Mes guardado ✓');cerrarModal('modal-rotm');await recargarRotM();pintarRotacion();
+}
+async function borrarMesRot(){
+  const id=document.getElementById('rm-id').value;if(!id||!confirm('¿Eliminar los datos de este mes? Queda registrado en la bitácora.'))return;
+  const{error}=await db.from('rrhh_rotacion_mensual').delete().eq('id',id);
+  if(error){toast('Error: '+error.message,true);return;}
+  toast('Mes eliminado');cerrarModal('modal-rotm');await recargarRotM();pintarRotacion();
+}
+async function recargarRotM(){
+  const{data,error}=await db.from('rrhh_rotacion_mensual').select('*').order('anio').order('mes');
+  _rotM=error?null:(data||[]);
+}
+function exportarCuadroRot(){
+  const anio=+document.getElementById('rot-anio').value;const regs=regsCuadro();if(!regs.length)return;
+  const aoa=[['Regional','Ítem',...MESES,'Año']];
+  const FIL=[['teoricos','Conductores teóricos'],['inicial','Inicial'],['final','Final'],['pe','PE = Promedio efectivo'],['salidas','D = Salidas'],['rot','R = Rotación'],['cob','Cobertura']];
+  const add=(nombre,ids)=>{const cs=Array.from({length:12},(_,i)=>cuadroMes(ids,anio,i+1));const res=resumenCuadro(ids,anio,0);
+    FIL.forEach(([k,l])=>aoa.push([nombre,l,...cs.map(c=>c&&c[k]!=null?(k==='rot'||k==='cob'?Math.round(c[k]*100)/10000:Math.round(c[k]*10)/10):''),
+      res?(k==='salidas'?res.salidas:k==='pe'?Math.round(res.pe*10)/10:k==='rot'?Math.round(res.rot*100)/10000:''):'']));};
+  regs.forEach(r=>add(r.nombre,[r.id]));if(regs.length>1)add('NACIONAL',regs.map(r=>r.id));
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  Object.keys(ws).forEach(c=>{if(c[0]==='!')return;const cell=ws[c];const row=XLSX.utils.decode_cell(c).r;if(row>0&&typeof cell.v==='number'&&/Rotación|Cobertura/.test(aoa[row][1]))cell.z='0.00%';});
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Rotación conductores');XLSX.writeFile(wb,`Cuadro_rotacion_conductores_${anio}.xlsx`);
+}
+
 // ── PERSONAL · Rotación ───────────────────────────────────────
 let _rot=null;
 // Salidas que cuentan para la rotación (excluye movimientos internos y cupos nuevos)
@@ -6642,11 +6870,12 @@ async function cargarRotacion(){
   const box=document.getElementById('rot-tabla');
   box.innerHTML='<div class="loading"><div class="spinner"></div></div>';
   try{
-    const[rq]=await Promise.all([db.from('rrhh_requisiciones').select('*').order('fecha_requisicion',{ascending:false}),cargarPlantillas()]);
+    const[rq]=await Promise.all([db.from('rrhh_requisiciones').select('*').order('fecha_requisicion',{ascending:false}),cargarPlantillas(),recargarRotM()]);
+    await cargarRotAuto();
     if(rq.error)throw rq.error;
     _rot=rq.data||[];
     try{const m=localStorage.getItem('rot_meta');if(m)document.getElementById('rot-meta').value=m;}catch(e){}
-    const anios=[...new Set(_rot.flatMap(r=>[r.fecha_requisicion,fechaIngreso(r)]).filter(Boolean).map(f=>+f.slice(0,4)).concat([new Date().getFullYear()]))].sort((a,b)=>b-a);
+    const anios=[...new Set(_rot.flatMap(r=>[r.fecha_requisicion,fechaIngreso(r)]).filter(Boolean).map(f=>+f.slice(0,4)).concat((_rotM||[]).map(r=>r.anio)).concat([new Date().getFullYear()]))].sort((a,b)=>b-a);
     llenarSelect('rot-anio',anios.map(a=>[a,a]),document.getElementById('rot-anio').value||anios[0]);
     llenarSelect('rot-mes',[['','Todo el año'],...MESES.map((m,i)=>[i+1,m])]);
     selRegionalesRH('rot-reg');
@@ -6686,9 +6915,14 @@ function pintarRotacion(){
   // Para el año se colorea con el promedio mensual (meses transcurridos), así el semáforo es comparable
   const mesesTransc=mes?1:(anio<new Date().getFullYear()?12:anio>new Date().getFullYear()?1:new Date().getMonth()+1);
   const rotMesProm=rotPct==null?null:Math.round(rotPct/mesesTransc*10)/10;
+  // Rotación de conductores según el cuadro mensual (Salidas / PE)
+  const regsC=regsCuadro().map(r=>r.id);
+  const rc=regsC.length?resumenCuadro(regsC,anio,mes):null;
   document.getElementById('rot-metricas').innerHTML=
-    metrica(`Rotación ${per}`,rotPct==null?'—':rotPct+'%',`${salidas.length} retiro(s) sobre ${base.total||'—'} personas${!mes&&rotPct!=null?` · promedio mensual ${rotMesProm}%`:''}${USER_ROL==='gerente'?` · <a href="#" onclick="abrirPlantillas();return false">${base.origen==='activos'?'definir base':'cambiar base'}</a>`:''}`,rotPct==null?null:rotMesProm<=3?'var(--green)':rotMesProm<=6?'var(--amber)':'var(--red)')+
-    metrica('Ingresos',ingresos.length,`Índice (ingresos+retiros)/2: ${indice==null?'—':indice+'%'}`,'var(--blue)')+
+    (rc&&rc.pe?metrica(`Rotación conductores ${per}`,fmtP(rc.rot),`${fmtN(rc.salidas||0)} salida(s) sobre PE ${fmtN(rc.pe)}${!mes?` · promedio mensual ${fmtP(rc.promMes)}`:''}`,colRot(mes?rc.rot:rc.promMes).replace('-dark','').replace('#B26A00','var(--amber)'))
+      :metrica(`Rotación conductores ${per}`,'—','Sin datos en el cuadro para este periodo'))+
+    metrica('Conductores vs. necesarios',rc&&rc.cob!=null?fmtP(rc.cob):'—',rc&&rc.teoricos?`${fmtN(mes?rc.pe:rc.peUlt)} de ${fmtN(rc.teoricos)} teóricos${mes?'':' (último mes)'}`:'Sin conductores teóricos',rc&&rc.cob!=null?(rc.cob>=95?'var(--green)':rc.cob>=85?'var(--amber)':'var(--red)'):null)+
+    metrica('Ingresos',ingresos.length,`Contratados en el periodo (requisiciones) · ${salidas.length} retiro(s) registrados`,'var(--blue)')+
     metrica('Tiempo de contratación',prom==null?'—':prom+' días',`Mediana ${med??'—'} días · desde la requisición`,prom==null?null:prom<=meta?'var(--green)':'var(--amber)')+
     metrica(`Contratadas en ≤ ${meta} días`,tiempos.length?Math.round(enMeta/tiempos.length*100)+'%':'—',`${enMeta} de ${tiempos.length} contrataciones`,tiempos.length?(enMeta/tiempos.length>=0.8?'var(--green)':'var(--amber)'):null);
   // Gráfica mensual del año
@@ -6698,15 +6932,17 @@ function pintarRotacion(){
     const fi=fechaIngreso(r);
     if(r.ingresa_nombre&&fi?.startsWith(String(anio))&&normTxt(r.estado_requisicion)!=='ANULADO'){const m=+fi.slice(5,7)-1;ing[m]++;if(r.fecha_requisicion)tm[m].push(Math.max(0,diasEntre(r.fecha_requisicion,fi)));}
   });
-  const pctMes=sal.map(s=>base.total?Math.round(s/base.total*1000)/10:0);
-  document.getElementById('rot-graf-nota').textContent=base.total?`% de rotación mensual sobre ${base.total} personas`:'Defina el personal promedio para ver el %';
-  document.getElementById('rot-grafica').innerHTML=barrasMes(base.total?pctMes:sal,{fmt:v=>base.total?v+'%':v,resaltar:mes?mes-1:-1,
-      colorFn:v=>!base.total?'var(--blue)':v<=3?'#66BB6A':v<=6?'#FFB300':'#E53935'})+
+  const pctMes=Array.from({length:12},(_,i)=>{const c=regsC.length?cuadroMes(regsC,anio,i+1):null;return c&&c.rot!=null?Math.round(c.rot*100)/100:0;});
+  const hayCuadro=pctMes.some(v=>v>0)||(_rotM||[]).some(r=>r.anio===anio);
+  document.getElementById('rot-graf-nota').textContent=hayCuadro?'% de rotación de conductores (Salidas / PE)':'Retiros según requisiciones (sin datos en el cuadro)';
+  document.getElementById('rot-grafica').innerHTML=barrasMes(hayCuadro?pctMes:sal,{fmt:v=>hayCuadro?v.toLocaleString('es-CO')+'%':v,resaltar:mes?mes-1:-1,
+      colorFn:v=>!hayCuadro?'var(--blue)':v<=3?'#66BB6A':v<=6?'#FFB300':'#E53935'})+
     `<div class="tbl-wrap" style="margin-top:10px"><table style="font-size:11px"><tbody>
-      <tr><td style="color:var(--text2)">Retiros</td>${sal.map(v=>`<td style="text-align:center">${v||'·'}</td>`).join('')}<td style="text-align:center;font-weight:700">${sal.reduce((a,b)=>a+b,0)}</td></tr>
+      <tr><td style="color:var(--text2)">Retiros (requisiciones)</td>${sal.map(v=>`<td style="text-align:center">${v||'·'}</td>`).join('')}<td style="text-align:center;font-weight:700">${sal.reduce((a,b)=>a+b,0)}</td></tr>
       <tr><td style="color:var(--text2)">Ingresos</td>${ing.map(v=>`<td style="text-align:center">${v||'·'}</td>`).join('')}<td style="text-align:center;font-weight:700">${ing.reduce((a,b)=>a+b,0)}</td></tr>
       <tr><td style="color:var(--text2)">Días contratación</td>${tm.map(a=>`<td style="text-align:center">${a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):'·'}</td>`).join('')}<td></td></tr>
     </tbody></table></div>`;
+  pintarCuadroRot();
   // Motivos de salida
   const mot={};salidas.forEach(r=>{const k=(r.motivo_salida||'Sin motivo').trim();mot[k]=(mot[k]||0)+1;});
   const motOrd=Object.entries(mot).sort((a,b)=>b[1]-a[1]);
