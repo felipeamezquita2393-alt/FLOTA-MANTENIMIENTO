@@ -1145,7 +1145,7 @@ body.rol-gerencia .page .btn-primary,body.rol-gerencia .page .btn-red,body.rol-g
     <div id="page-fuera" class="page">
       <div class="card">
         <div class="card-hdr">
-          <span class="card-title">Vehículos fuera de servicio</span>
+          <span class="card-title">Vehículos fuera de servicio <span id="fuera-pt-count" class="badge b-red" style="display:none;margin-left:6px"></span></span>
           <div style="display:flex;gap:8px">
             <button class="btn btn-sm" onclick="abrirMasivo()">⬆ Masivo</button>
             <button class="btn btn-sm btn-primary" onclick="ir('entrada')">+ Entrada</button>
@@ -2638,7 +2638,7 @@ async function verHistCrit(vid,placa){
 async function cargarFuera(){
   const tb=document.getElementById('fuera-body');
   try{
-    let q=db.from('eventos_mantenimiento').select('id,fecha_entrada,prioridad,descripcion_trabajo,regional_id,vehiculos(id,placa,tipo,figura),talleres(nombre,tipo),tipos_mantenimiento(nombre)').eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
+    let q=db.from('eventos_mantenimiento').select('id,fecha_entrada,prioridad,descripcion_trabajo,perdida_total,regional_id,vehiculos(id,placa,tipo,figura,es_tercero),talleres(nombre,tipo),tipos_mantenimiento(nombre)').eq('estado','en_proceso').order('fecha_entrada',{ascending:true});
     if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
     const{data:ev,error}=await q;if(error)throw error;
 
@@ -2649,12 +2649,15 @@ async function cargarFuera(){
     if(reempIds.length){const{data:pvhs}=await db.from('vehiculos').select('id,placa').in('id',reempIds);(pvhs||[]).forEach(v=>placaMap[v.id]=v.placa);}
     const rMap=new Map((reemps||[]).map(r=>[r.titular_id,{placa:placaMap[r.reemplazo_id]||'—',motivo:r.motivo}]));
 
+    const nPT=(ev||[]).filter(e=>e.perdida_total).length;
+    const cPT=document.getElementById('fuera-pt-count');
+    if(cPT){cPT.textContent=nPT?`${nPT} pérdida(s) total(es)`:'';cPT.style.display=nPT?'':'none';}
     if(!ev?.length){tb.innerHTML='<tr><td colspan="9" class="empty">Sin vehículos fuera ✓</td></tr>';return;}
     tb.innerHTML=ev.map(e=>{
       const d=diasFuera(e.fecha_entrada);
       const reem=rMap.get(e.vehiculos?.id);
-      return`<tr>
-        <td style="font-weight:600">${esc(e.vehiculos?.placa||'—')}</td>
+      return`<tr style="${e.perdida_total?'background:rgba(198,40,40,0.06);box-shadow:inset 3px 0 0 var(--red)':''}">
+        <td style="font-weight:600;color:${e.perdida_total?'var(--red)':'inherit'}">${esc(e.vehiculos?.placa||'—')}${e.perdida_total?' <span class="badge b-red" style="font-size:10px">PÉRDIDA TOTAL</span>':''}</td>
         <td>${bFig(e.vehiculos?.figura||'titular')}</td>
         <td>${esc(rNombre(e.regional_id))}</td>
         <td>${esc(e.talleres?.nombre||'—')}<br><span style="font-size:11px;color:var(--text2)">${e.talleres?.tipo?lTaller(e.talleres.tipo):''}</span></td>
@@ -2666,10 +2669,18 @@ async function cargarFuera(){
           <button class="btn btn-sm" onclick="irRet('${e.id}')">Retorno</button>
           <button class="btn btn-sm btn-amber" onclick="asignarReemplazo('${e.id}','${e.vehiculos?.id||''}','${escJs(e.vehiculos?.placa||'')}')">Reemplazo</button>
           <button class="btn btn-sm" onclick="editarEv(event)" data-id="${e.id}">✏️</button>
+          <button class="btn btn-sm ${e.perdida_total?'':'btn-red'}" onclick="marcarPerdidaTotal('${e.id}',${!e.perdida_total},'${escJs(e.vehiculos?.placa||'')}')" title="${e.perdida_total?'Quitar la marca de pérdida total':'Marcar como pérdida total'}">${e.perdida_total?'Quitar P. total':'Pérdida total'}</button>
         </td>
       </tr>`;
     }).join('');
   }catch(e){tb.innerHTML=`<tr><td colspan="9" style="color:var(--red);padding:12px">Error: ${esc(e.message)}</td></tr>`;}
+}
+async function marcarPerdidaTotal(evId,valor,placa){
+  if(!confirm(valor?`¿Marcar ${placa} como PÉRDIDA TOTAL?`:`¿Quitar la marca de pérdida total a ${placa}?`))return;
+  const{error}=await db.from('eventos_mantenimiento').update({perdida_total:valor}).eq('id',evId);
+  if(error){toast('Error: '+error.message,true);return;}
+  toast(valor?`${placa} marcado como pérdida total`:`${placa} ya no está como pérdida total`);
+  cargarFuera();if(typeof cargarFueraDash==='function')cargarFueraDash();
 }
 
 // ── Alertas ──
