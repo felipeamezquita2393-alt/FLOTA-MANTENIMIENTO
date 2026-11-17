@@ -511,7 +511,7 @@ body.rol-gerencia .page .btn-primary,body.rol-gerencia .page .btn-red,body.rol-g
       <div class="field" style="grid-column:1/-1"><label id="aud-titulo-lbl">Descripción</label><input type="text" id="aud-titulo" maxlength="160"></div>
       <div class="field"><label>N.° documento</label><input type="text" id="aud-numero" maxlength="60"></div>
       <div class="field"><label>Fecha de expedición</label><input type="date" id="aud-exp" onchange="sugerirVencAud()"></div>
-      <div class="field"><label id="aud-venc-lbl">Fecha de vencimiento *</label><input type="date" id="aud-venc"></div>
+      <div class="field"><label id="aud-venc-lbl">Fecha de vencimiento *</label><input type="date" id="aud-venc" oninput="this.dataset.auto='0'"></div>
       <div class="field"><label>&nbsp;</label><div style="font-size:11px;color:var(--text3)" id="aud-venc-hint"></div></div>
       <div class="field" style="grid-column:1/-1"><label>Archivo * <span style="font-size:11px;color:var(--text3)">(PDF, imagen, Excel o Word, máx. 10 MB)</span></label>
         <input type="file" id="aud-archivo" accept=".pdf,.jpg,.jpeg,.png,.xlsx,.docx" style="border:1px solid var(--border);border-radius:var(--r);padding:8px;font-size:12px;width:100%"></div>
@@ -3747,10 +3747,10 @@ function onDocTipo(){
   const tipo=document.getElementById('doc-tipo').value;
   const exp=document.getElementById('doc-expedicion').value;
   if(!exp)return;
-  const d=new Date(exp);
-  if(tipo==='soat'||tipo==='tecnomecanica'||tipo==='acta_sanitaria') d.setFullYear(d.getFullYear()+1);
-  if(tipo==='fumigacion') d.setMonth(d.getMonth()+3);
-  document.getElementById('doc-vencimiento').value=d.toISOString().split('T')[0];
+  const meses=tipo==='fumigacion'?3:(tipo==='soat'||tipo==='tecnomecanica'||tipo==='acta_sanitaria')?12:0;
+  if(!meses)return;
+  const f=sumarMesesFecha(exp,meses);if(!f)return; // año incompleto mientras se escribe
+  document.getElementById('doc-vencimiento').value=f;
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
@@ -5794,6 +5794,7 @@ function abrirDocAud(reqK,reemplazaId,conductorId,opts={}){
     sr.value=regActual||regionales[0]?.id||'';sr.disabled=false;
   }else{sr.add(new Option(rNombre(REGIONAL_ID),REGIONAL_ID));sr.disabled=true;}
   ['aud-p-nombre','aud-p-cedula','aud-p-cargo','aud-titulo','aud-numero','aud-exp','aud-venc','aud-obs'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('aud-venc').dataset.auto='0';
   document.getElementById('aud-archivo').value='';
   document.getElementById('aud-reemplaza').value=reemplazaId||'';
   document.getElementById('aud-completa').value=completa?.id||'';
@@ -5865,12 +5866,23 @@ function autollenarPersonaAud(){
   if(!c.value&&d.persona_cedula)c.value=d.persona_cedula;
   if(d.persona_cargo&&(!g.value||g.value===audReq(document.getElementById('aud-req').value)?.cargo))g.value=d.persona_cargo;
 }
+// Suma meses a una fecha AAAA-MM-DD. Devuelve null si el año aún está incompleto (mientras se escribe)
+function sumarMesesFecha(iso,meses){
+  const p=String(iso||'').split('-').map(Number);
+  if(p.length!==3||!(p[0]>=2000&&p[0]<=2100))return null;
+  const f=new Date(2000,0,1);f.setFullYear(p[0],p[1]-1+meses,1); // setFullYear evita que años cortos se vuelvan 19xx
+  const ultimo=new Date(f.getFullYear(),f.getMonth()+1,0).getDate();
+  f.setDate(Math.min(p[2],ultimo)); // 31 de enero + 1 mes = 28/29 de febrero
+  return fechaLocal(f);
+}
 function sugerirVencAud(){
   const req=audReq(document.getElementById('aud-req').value);
   const exp=document.getElementById('aud-exp').value;
-  if(!req?.vig||!exp||document.getElementById('aud-venc').value)return;
-  const[y,m,d]=exp.split('-').map(Number);
-  document.getElementById('aud-venc').value=fechaLocal(new Date(y,m-1+req.vig,d));
+  const v=document.getElementById('aud-venc');
+  // Solo se llena si está vacío o si lo había sugerido el sistema (no pisa una fecha escrita a mano)
+  if(!req?.vig||!exp||(v.value&&v.dataset.auto!=='1'))return;
+  const f=sumarMesesFecha(exp,req.vig);if(!f)return;
+  v.value=f;v.dataset.auto='1';
 }
 
 // Tipos de archivo admitidos en el módulo (Excel y Word para formularios y piezas de capacitación)
