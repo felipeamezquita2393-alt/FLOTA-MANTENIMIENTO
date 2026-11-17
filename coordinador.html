@@ -1756,13 +1756,14 @@ body.rol-gerencia .page .btn-primary,body.rol-gerencia .page .btn-red,body.rol-g
       <div class="metric"><div class="metric-label">Activos / requeridos</div><div class="metric-val" id="cp-m-act">—</div><div class="metric-sub" id="cp-m-act-sub"></div></div>
       <div class="metric" id="cp-m-vac-box"><div class="metric-label">Vacantes</div><div class="metric-val" id="cp-m-vac">—</div><div class="metric-sub" id="cp-m-vac-sub"></div></div>
       <div class="metric"><div class="metric-label">Directos · Temporales</div><div class="metric-val" id="cp-m-vinc">—</div><div class="metric-sub" id="cp-m-vinc-sub"></div></div>
+      <div class="metric" id="cp-m-op-box"><div class="metric-label">Operativos hoy</div><div class="metric-val" id="cp-m-op">—</div><div class="metric-sub" id="cp-m-op-sub"></div></div>
       <div class="metric" style="border-top-color:var(--green)"><div class="metric-label">Documentos al día</div><div class="metric-val" id="cp-m-docs" style="color:var(--green)">—</div><div class="metric-sub" id="cp-m-docs-sub"></div></div>
     </div>
     <div class="card" style="padding:12px 16px">
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <input type="text" id="cp-buscar" placeholder="Buscar por nombre o cédula…" oninput="pintarConductoresPage()" style="flex:1;min-width:200px;padding:7px 10px;font-size:13px;border:0.5px solid var(--border);border-radius:var(--r)">
         <select id="cp-f-estado" onchange="pintarConductoresPage()" style="font-size:12px;padding:6px 8px;border:0.5px solid var(--border);border-radius:var(--r)">
-          <option value="activos">Activos</option><option value="retirados">Retirados</option><option value="todos">Todos</option></select>
+          <option value="activos">Activos</option><option value="operativos">Operativos hoy</option><option value="no_operativos">No operativos hoy</option><option value="retirados">Retirados</option><option value="todos">Todos</option></select>
         <select id="cp-f-vinc" onchange="pintarConductoresPage()" style="font-size:12px;padding:6px 8px;border:0.5px solid var(--border);border-radius:var(--r)">
           <option value="">Directos y temporales</option><option value="directo">Directos</option><option value="temporal">Temporales</option></select>
         <select id="cp-f-docs" onchange="pintarConductoresPage()" style="font-size:12px;padding:6px 8px;border:0.5px solid var(--border);border-radius:var(--r)">
@@ -2009,6 +2010,15 @@ body.rol-gerencia .page .btn-primary,body.rol-gerencia .page .btn-red,body.rol-g
         <tbody id="ger-regionales-body"><tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr></tbody>
         </table>
       </div>
+    </div>
+
+    <!-- Conductores por regional (solo totales) · por ahora solo Coordinación nacional -->
+    <div class="card" id="ger-conductores-card" style="display:none">
+      <div class="card-hdr">
+        <span class="card-title">Conductores por regional</span>
+        <span style="font-size:11px;color:var(--text2)">Requeridos = vehículos titulares × factor</span>
+      </div>
+      <div id="ger-conductores"><div class="loading"><div class="spinner"></div></div></div>
     </div>
 
     <!-- Gráfica disponibilidad 7 días -->
@@ -6411,7 +6421,9 @@ async function cargarConductoresPage(){
     if(rC.error)throw rC.error;
     await prepAudPara(reg);
     const rq=rR.error?null:(rR.data||[])[0];
-    _cp={reg,conds:rC.data||[],requeridos:rq?.requeridos||null,titulares:rq?.titulares??null,factor:rq?.factor??2.54,sinFuncion:!!rR.error};
+    const{data:nh}=await db.rpc('conductores_novedad_hoy',{p_regional:reg});
+    const novHoy={};(nh||[]).forEach(n=>novHoy[n.conductor_id]=n);
+    _cp={reg,conds:rC.data||[],requeridos:rq?.requeridos||null,titulares:rq?.titulares??null,factor:rq?.factor??2.54,sinFuncion:!!rR.error,novHoy};
     pintarConductoresPage();
   }catch(e){box.innerHTML=`<div class="card" style="color:var(--red-dark)">No se pudieron cargar los conductores: ${esc(e.message)}</div>`;}
 }
@@ -6437,6 +6449,16 @@ function pintarConductoresPage(){
   document.getElementById('cp-m-vac-box').style.borderTopColor=vac>0?'var(--red)':'var(--border)';
   document.getElementById('cp-m-vac-sub').textContent=vac==null?'Defina el cupo de titulares':vac>0?'Faltan conductores':vac<0?'Conductores por encima de la planta':'Planta completa';
   document.getElementById('cp-m-vinc').textContent=`${dir} · ${tem}`;
+  // Operativos hoy = activos sin novedad (vacaciones, incapacidad, restricción médica…) que cubra hoy
+  const noOp=activos.filter(c=>_cp.novHoy?.[c.id]);
+  const op=activos.length-noOp.length;
+  const base=req||activos.length;
+  const pctOp=base?Math.round(op/base*100):null;
+  document.getElementById('cp-m-op').textContent=req?`${op} / ${req}`:op;
+  document.getElementById('cp-m-op').style.color=pctOp==null?'inherit':pctOp>=100?'var(--green)':pctOp>=90?'var(--amber)':'var(--red)';
+  document.getElementById('cp-m-op-box').style.borderTopColor=pctOp==null?'var(--border)':pctOp>=100?'var(--green)':pctOp>=90?'var(--amber)':'var(--red)';
+  const motH={};noOp.forEach(c=>{const t=_cp.novHoy[c.id].tipo;motH[t]=(motH[t]||0)+1;});
+  document.getElementById('cp-m-op-sub').textContent=noOp.length?`${noOp.length} no operativo(s): `+Object.entries(motH).map(([t,n])=>`${t} ${n}`).join(' · '):`Todos los activos operativos${req?` · ${pctOp}% de los requeridos`:''}`;
   const emp={};activos.filter(c=>c.vinculacion==='temporal').forEach(c=>{const e=(c.empresa_temporal||'Sin empresa').trim();emp[e]=(emp[e]||0)+1;});
   document.getElementById('cp-m-vinc-sub').textContent=Object.entries(emp).map(([e,n])=>`${e}: ${n}`).join(' · ')||'Sin temporales';
   const alDia=activos.filter(c=>docsDeConductor(c).every(d=>d.item.estado==='vigente')).length;
@@ -6449,6 +6471,8 @@ function pintarConductoresPage(){
   const fe=document.getElementById('cp-f-estado').value,fv=document.getElementById('cp-f-vinc').value,fd=document.getElementById('cp-f-docs').value;
   const lista=_cp.conds.filter(c=>{
     if(fe==='activos'&&c.activo===false)return false;
+    if(fe==='operativos'&&(c.activo===false||_cp.novHoy?.[c.id]))return false;
+    if(fe==='no_operativos'&&(c.activo===false||!_cp.novHoy?.[c.id]))return false;
     if(fe==='retirados'&&c.activo!==false)return false;
     if(fv&&(c.vinculacion||'directo')!==fv)return false;
     if(q&&!normTxt(c.nombre).includes(q)&&!(c.cedula||'').includes(q))return false;
@@ -6458,6 +6482,21 @@ function pintarConductoresPage(){
   document.getElementById('cp-count').textContent=`${lista.length} conductor(es)`;
   document.getElementById('cp-lista').innerHTML=lista.length?lista.map(tarjetaCond).join('')
     :`<div class="card" style="grid-column:1/-1;color:var(--text2);font-size:13px">${_cp.conds.length?'No hay conductores con estos filtros.':'No hay conductores en esta regional. Usa <b>+ Nuevo conductor</b> o <b>⬆ Importar</b> con el listado en Excel.'}</div>`;
+}
+function estadoOpCond(c){
+  const n=_cp?.novHoy?.[c.id];
+  if(!n)return'<span class="badge b-green">Operativo</span>';
+  return`<span class="badge b-red" title="Desde ${fmtF(n.fecha_inicio)}">No operativo · ${esc(n.tipo)} hasta ${fmtF(n.fecha_fin)}</span>`;
+}
+// Registrar una novedad (ausencia) desde la tarjeta del conductor
+async function novedadCond(id){
+  if(!_tiposAus.length){const{data}=await db.from('rrhh_tipos_ausencia').select('*').order('orden');_tiposAus=data||[];}
+  if(!_aus)_aus=[];
+  await abrirAusencia();
+  const sr=document.getElementById('au-reg');sr.value=_cp.reg;
+  await llenarPersonasAus(id);
+  document.getElementById('au-cond').value=id;
+  document.getElementById('au-wrap-otra').style.display='none';
 }
 function tarjetaCond(c){
   const ret=c.activo===false;
@@ -6480,13 +6519,14 @@ function tarjetaCond(c){
     <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
       <div style="min-width:0"><div style="font-size:14px;font-weight:700">${esc(c.nombre)}</div>
         <div style="font-size:11px;color:var(--text2);margin-top:2px">C.C. ${esc(c.cedula||'—')} · ${esc(c.cargo||'Conductor')}${c.telefono?' · '+esc(c.telefono):''}</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${vinc}${ret?'<span class="badge b-gray">Retirado</span>':''}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${vinc}${ret?'<span class="badge b-gray">Retirado</span>':estadoOpCond(c)}</div>
         ${c.fecha_ingreso?`<div style="font-size:11px;color:var(--text3);margin-top:4px">Ingreso: ${fmtF(c.fecha_ingreso)}${antiguedad(c.fecha_ingreso,ret?c.fecha_retiro:null)}</div>`:''}
         ${fin}
         ${ret?`<div style="font-size:11px;color:var(--text2);margin-top:4px">Retiro: ${c.fecha_retiro?fmtF(c.fecha_retiro):'—'} · ${esc(c.motivo_retiro||'')}${c.observacion_retiro?' · '+esc(c.observacion_retiro):''}</div>`:''}
       </div>
       <div style="display:flex;flex-direction:column;gap:4px">
         <button class="btn btn-sm" onclick="abrirFichaCond('${c.id}')">Editar</button>
+        ${!ret&&puedeModulo('personal')?`<button class="btn btn-sm" onclick="novedadCond('${c.id}')" title="Vacaciones, incapacidad, restricción médica…">Novedad</button>`:''}
         ${ret?`<button class="btn btn-sm" onclick="reintegrarCond('${c.id}')">Reintegrar</button>`:`<button class="btn btn-sm btn-red" onclick="abrirRetiro('${c.id}')">Retirar</button>`}
       </div>
     </div>
@@ -7283,7 +7323,8 @@ async function guardarAusencia(){
     }
     const{error}=id?await db.from('rrhh_ausentismo').update(d).eq('id',id):await db.from('rrhh_ausentismo').insert(d);
     if(error)throw error;
-    toast('Ausencia guardada ✓');cerrarModal('modal-aus');cargarAusentismo();
+    toast('Ausencia guardada ✓');cerrarModal('modal-aus');
+    if(document.getElementById('page-conductores').classList.contains('active'))cargarConductoresPage();else cargarAusentismo();
   }catch(e){toast('Error: '+e.message,true);}
   finally{btn.disabled=false;}
 }
@@ -8125,7 +8166,52 @@ async function confirmarCierreNovedad(){
 
 
 // ── PANEL GERENCIAL ──────────────────────────────────────────
+async function cargarConductoresPanel(){
+  const box=document.getElementById('ger-conductores');if(!box)return;
+  const card=document.getElementById('ger-conductores-card');
+  if(USER_ROL!=='gerente'){if(card)card.style.display='none';return;}
+  if(card)card.style.display='';
+  const{data,error}=await db.rpc('conductores_resumen_regional');
+  if(error){box.innerHTML=`<div style="font-size:13px;color:var(--text2)">${/conductores_resumen_regional/.test(error.message)?'Falta ejecutar conductores_panel.sql en Supabase.':esc(error.message)}</div>`;return;}
+  const filas=(data||[]).map(r=>({...r,nombre:rNombre(r.regional_id)})).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  if(!filas.length){box.innerHTML='<div class="empty">Sin regionales</div>';return;}
+  const conLista=filas.filter(r=>r.en_listado>0);
+  const tot=k=>conLista.reduce((a,r)=>a+(r[k]||0),0);
+  const fila=(r,total)=>{
+    const sinLista=!total&&!r.en_listado;
+    const dif=(r.activos||0)-(r.requeridos||0);
+    const pct=r.requeridos?Math.round((r.activos||0)/r.requeridos*100):null;
+    const col=pct==null?'var(--text3)':pct>=100?'var(--green)':pct>=90?'var(--amber)':'var(--red)';
+    const opPct=r.requeridos&&!sinLista?Math.round((r.operativos_hoy??r.activos)/r.requeridos*100):null;
+    const opCol=opPct==null?'inherit':opPct>=100?'var(--green-dark)':opPct>=90?'#B26A00':'var(--red-dark)';
+    const estado=total?(r.faltan?`<span class="badge b-red">Faltan ${r.faltan}</span>${r.sobran?` <span style="font-size:11px;color:var(--text3)">(sobran ${r.sobran} en otras)</span>`:''}`:`<span class="badge b-green">Completas</span>`)
+      :sinLista?'<span class="badge b-gray">Sin listado cargado</span>'
+      :!r.requeridos?'<span class="badge b-gray">Sin cupo de titulares</span>'
+      :dif>=0?`<span class="badge b-green">${dif?`Completa · sobran ${dif}`:'Completa'}</span>`
+      :`<span class="badge b-red">Faltan ${-dif}</span>`;
+    return`<tr style="${total?'font-weight:700;background:#F8F9FA':''}">
+      <td style="font-weight:600;${total?'':'white-space:nowrap'}">${esc(r.nombre)}${!total&&r.titulares?`<div style="font-size:11px;color:var(--text3);font-weight:400">${r.titulares} titulares × ${Number(r.factor).toLocaleString('es-CO')}</div>`:''}</td>
+      <td style="text-align:center">${r.requeridos||'—'}</td>
+      <td style="text-align:center;font-weight:700">${sinLista?'—':r.activos}</td>
+      <td>${estado}</td>
+      <td style="min-width:130px">${sinLista||pct==null?'':`<div style="display:flex;align-items:center;gap:6px"><div style="flex:1;height:8px;background:var(--bg2);border-radius:4px;overflow:hidden"><div style="height:100%;width:${Math.min(100,pct)}%;background:${col}"></div></div><span style="font-size:12px;font-weight:700;color:${col}">${pct}%</span></div>`}</td>
+      <td style="text-align:center;font-weight:700;color:${opCol}">${sinLista?'—':`${r.operativos_hoy??r.activos}${opPct!=null?`<div style="font-size:11px;font-weight:600">${opPct}%</div>`:''}`}</td>
+      <td style="font-size:11px;color:var(--text2)">${sinLista?'—':r.no_operativos?Object.entries(r.motivos||{}).map(([t,n])=>`${esc(t)}: <b>${n}</b>`).join('<br>'):'<span style="color:var(--green-dark)">Ninguno</span>'}</td>
+      <td style="text-align:center;font-size:12px">${sinLista?'—':`${r.directos} · ${r.temporales}`}</td>
+      <td style="text-align:center">${r.vacantes_abiertas?`<span class="badge b-amber">${r.vacantes_abiertas}</span>`:'0'}</td>
+      <td style="text-align:center">${sinLista?'—':(r.retiros_mes||0)}</td></tr>`;
+  };
+  const T={nombre:'Total (regionales con listado)',requeridos:tot('requeridos'),activos:tot('activos'),directos:tot('directos'),temporales:tot('temporales'),
+    vacantes_abiertas:filas.reduce((a,r)=>a+(r.vacantes_abiertas||0),0),operativos_hoy:tot('operativos_hoy'),no_operativos:tot('no_operativos'),
+    motivos:conLista.reduce((m,r)=>{Object.entries(r.motivos||{}).forEach(([t,n])=>m[t]=(m[t]||0)+n);return m;},{}),retiros_mes:tot('retiros_mes'),en_listado:tot('en_listado'),
+    faltan:conLista.reduce((a,r)=>a+Math.max(0,(r.requeridos||0)-(r.activos||0)),0),sobran:conLista.reduce((a,r)=>a+Math.max(0,(r.activos||0)-(r.requeridos||0)),0)};
+  box.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Regional</th><th style="text-align:center">Requeridos</th><th style="text-align:center">Activos</th><th>Estado</th><th>Cobertura</th><th style="text-align:center">Operativos hoy</th><th>No operativos</th>
+    <th style="text-align:center">Directos · Temporales</th><th style="text-align:center">Vacantes abiertas</th><th style="text-align:center">Retiros del mes</th></tr></thead>
+    <tbody>${filas.map(r=>fila(r,false)).join('')}${conLista.length>1?fila(T,true):''}</tbody></table></div>
+    ${filas.some(r=>!r.en_listado)?'<div style="font-size:11px;color:var(--text3);margin-top:8px">"Sin listado cargado": la regional aún no tiene sus conductores en el aplicativo, por eso no se puede saber si está completa.</div>':''}`;
+}
 async function cargarPanelGerencial(){
+  cargarConductoresPanel();
   try{
     // Datos base en paralelo
     const[
