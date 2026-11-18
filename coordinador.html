@@ -433,6 +433,45 @@ body.solo-consulta .page .btn-primary,body.solo-consulta .page .btn-red,body.sol
   </div>
 </div>
 
+<!-- Modal verificación de BPM (formulario digital) -->
+<div class="modal-overlay" id="modal-bpm">
+  <div class="modal" style="max-width:760px;max-height:94vh;overflow-y:auto">
+    <div class="modal-title">Verificación de BPM al conductor</div>
+    <div style="font-size:12px;color:var(--text2);margin:-6px 0 12px">Buenas Prácticas de Manufactura en el transporte de alimentos. Al guardar se genera el PDF y queda como soporte en Auditorías.</div>
+    <div class="form2">
+      <div class="field"><label>Regional</label><div id="bpm-reg-nombre" style="font-weight:600;padding:8px 0"></div></div>
+      <div class="field"><label>Fecha *</label><input type="date" id="bpm-fecha"></div>
+      <div class="field"><label>Conductor *</label><select id="bpm-cond"></select></div>
+      <div class="field"><label>Vehículo</label><select id="bpm-vh"></select></div>
+      <div class="field"><label>Quién verifica *</label><input type="text" id="bpm-evaluador" maxlength="120" placeholder="Nombre de quien realiza la verificación"></div>
+      <div class="field"><label>Firma digital de quien verifica</label>
+        <div style="display:flex;align-items:center;gap:10px;min-height:48px">
+          <img id="bpm-firma-ev-img" alt="" style="max-height:48px;max-width:170px;display:none;background:#fff;border:0.5px solid var(--border);border-radius:var(--r);padding:2px">
+          <span id="bpm-firma-ev-txt" style="font-size:12px;color:var(--text3)">Cargando…</span>
+          <button class="btn btn-sm" type="button" onclick="document.getElementById('bpm-firma-ev-file').click()">Subir firma</button>
+          <input type="file" id="bpm-firma-ev-file" accept="image/png,image/jpeg" style="display:none" onchange="subirFirmaEvaluador(this)">
+        </div></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin:16px 0 8px;flex-wrap:wrap">
+      <div style="font-size:12px;color:var(--text2)">Marca cada punto: <b style="color:var(--green-dark)">C</b> cumple · <b style="color:var(--red-dark)">NC</b> no cumple · <b>NA</b> no aplica</div>
+      <button class="btn btn-sm" type="button" onclick="bpmTodoCumple()">Marcar los vacíos como C</button>
+    </div>
+    <div id="bpm-items"></div>
+    <div id="bpm-resultado" style="margin-top:12px;padding:12px;border-radius:var(--r);background:var(--bg2);font-size:13px"></div>
+    <div class="form2" style="margin-top:12px">
+      <div class="field" style="grid-column:1/-1"><label>Observaciones generales</label><textarea id="bpm-obs" rows="2" maxlength="600" style="width:100%;font:inherit;padding:8px;border:1px solid var(--border);border-radius:var(--r)"></textarea></div>
+      <div class="field" style="grid-column:1/-1"><label>Acciones correctivas acordadas <span id="bpm-acc-req" style="color:var(--red-dark);display:none">* (hay puntos que no cumplen)</span></label><textarea id="bpm-acc" rows="2" maxlength="600" style="width:100%;font:inherit;padding:8px;border:1px solid var(--border);border-radius:var(--r)"></textarea></div>
+      <div class="field" style="grid-column:1/-1"><label>Firma del conductor <span style="font-size:11px;color:var(--text3)">(opcional · con el dedo o el mouse)</span></label>
+        <canvas id="bpm-firma" width="600" height="140" style="width:100%;max-width:600px;height:140px;border:1px dashed var(--border);border-radius:var(--r);background:#fff;touch-action:none"></canvas>
+        <div><button class="btn btn-sm" type="button" onclick="bpmLimpiarFirma()">Borrar firma</button></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-bpm')">Cancelar</button>
+      <button class="btn btn-primary" id="bpm-btn" onclick="guardarBPM()">Guardar verificación</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal ficha de conductor -->
 <div class="modal-overlay" id="modal-fcond">
   <div class="modal" style="max-width:600px">
@@ -1866,6 +1905,7 @@ body.solo-consulta .page .btn-primary,body.solo-consulta .page .btn-red,body.sol
           <button class="btn btn-sm" onclick="exportarAuditoria()">⬇ Excel</button>
           <button class="btn btn-sm" onclick="ir('conductores')">👥 Conductores</button>
           <button class="btn btn-sm" onclick="abrirMasiva()">⬆ Carga masiva</button>
+          <button class="btn btn-sm" onclick="abrirBPM()">📋 Verificación BPM</button>
           <button class="btn btn-sm btn-primary" onclick="abrirDocAud()">+ Cargar documento</button>
         </div>
       </div>
@@ -2065,7 +2105,7 @@ const db=createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpeHRxdG9wcHBiY2x4cWRhcmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5Njk2ODAsImV4cCI6MjA5MjU0NTY4MH0.WRYBP4006NZrRCNBpoclVWSz64zQfE2sjFslVc4imDg'
 );
 
-let REGIONAL_ID=null, USER_ROL=null, USER_EMAIL='';
+let REGIONAL_ID=null, USER_ROL=null, USER_EMAIL='', USER_ID=null;
 var regionales=[];
 
 // Fecha en hora local (Colombia). toISOString() usa UTC y después de las 7 p. m. devolvía el día siguiente.
@@ -2120,7 +2160,7 @@ function aplicarMenuRol(){
 async function checkAuth(){
   const{data:{session}}=await db.auth.getSession();
   if(!session){window.location.href='login.html';return false;}
-  USER_EMAIL=session.user.email;
+  USER_EMAIL=session.user.email;USER_ID=session.user.id;
   // El rol y la regional se leen de perfiles_usuario (el usuario no puede modificarlos).
   // Antes se leían de user_metadata, que el propio usuario puede cambiar desde el navegador.
   const{data:perfil}=await db.from('perfiles_usuario').select('rol,regional_id,nombre_regional').eq('user_id',session.user.id).maybeSingle();
@@ -5736,6 +5776,7 @@ function accionCargarAud(req){
   if(req.cron)return`<button class="btn btn-sm" onclick="document.getElementById('aud-prog').scrollIntoView({behavior:'smooth',block:'start'})">Ver cronograma</button>`;
   if(req.alcance==='sistema')return`<button class="btn btn-sm" onclick="ir('${req.ir}')">Abrir</button>`;
   if(req.docTipo)return`<button class="btn btn-sm" onclick="ir('documentos')" title="Se carga en Documentos del vehículo">Ir a documentos</button>`;
+  if(req.k==='verificacion_bpm')return`<button class="btn btn-sm btn-primary" onclick="abrirBPM()">📋 Verificar</button> <button class="btn btn-sm" onclick="abrirDocAud('${req.k}')">+ Cargar</button>`;
   return`<button class="btn btn-sm btn-primary" onclick="abrirDocAud('${req.k}')">+ Cargar</button>`;
 }
 
@@ -7419,6 +7460,219 @@ function pintarMatrizCond(){
     ${filas.map(c=>`<tr><td><b>${esc(c.nombre)}</b><div style="font-size:11px;color:var(--text3)">C.C. ${esc(c.cedula||'—')} · ${esc(c.cargo||'Conductor')}</div></td>${reqs.map(r=>celda(r,c)).join('')}</tr>`).join('')
       ||`<tr><td colspan="${reqs.length+1}" style="text-align:center;color:var(--text3)">Sin resultados</td></tr>`}
   </tbody></table></div>`;
+}
+
+// ── AUDITORÍAS · Formulario digital de verificación de BPM ────
+// Puntos basados en la Resolución 2674 de 2013 (BPM) y la 2505 de 2004 (transporte de alimentos perecederos)
+const BPM_SECCIONES=[
+  {t:'Presentación personal e higiene',items:[
+    ['uniforme','Uniforme limpio, completo y en buen estado'],
+    ['unas','Uñas cortas, limpias y sin esmalte'],
+    ['cabello','Cabello corto o recogido y barba arreglada'],
+    ['accesorios','Sin joyas, reloj, piercing ni accesorios durante la manipulación'],
+    ['salud','Sin heridas expuestas ni síntomas de enfermedad (tos, fiebre, diarrea)'],
+    ['manos','Se lava las manos correctamente antes del cargue y después de ir al baño'],
+    ['habitos','No fuma, come, bebe ni escupe durante el cargue y descargue'],
+  ]},
+  {t:'Vehículo y unidad de carga',items:[
+    ['furgon_limpio','Furgón limpio, sin olores, residuos ni presencia de plagas'],
+    ['furgon_estado','Paredes, piso y techo del furgón en buen estado (sin roturas ni óxido)'],
+    ['frio','Unidad de frío funcionando y temperatura dentro del rango requerido'],
+    ['termometro','Termómetro o registrador de temperatura funcionando'],
+    ['docs','Acta sanitaria y certificado de fumigación vigentes a bordo'],
+  ]},
+  {t:'Conocimiento y documentos del conductor',items:[
+    ['conoce_bpm','Responde correctamente preguntas básicas de BPM'],
+    ['carne','Porta el curso de manipulación de alimentos vigente'],
+  ]},
+];
+const BPM_ITEMS=BPM_SECCIONES.flatMap(s=>s.items.map(([k,t])=>({k,t,sec:s.t})));
+let _bpm={resp:{},obs:{},firma:false};
+async function abrirBPM(condId){
+  if(!puedeModulo('calidad')){toast('No tienes acceso a Calidad',true);return;}
+  prepSelectRegAud();
+  const reg=document.getElementById('aud-reg').value;
+  if(!_aud||_aud.reg!==reg)await cargarAuditorias();
+  const conds=(_aud?.conds||[]).filter(c=>c.activo!==false).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  if(!conds.length){toast('Primero registra los conductores de la regional',true);return;}
+  _bpm={reg,resp:{},obs:{},firma:false};
+  document.getElementById('bpm-reg-nombre').textContent=rNombre(reg);
+  document.getElementById('bpm-fecha').value=hoy();
+  document.getElementById('bpm-cond').innerHTML='<option value="">— Elegir —</option>'+conds.map(c=>`<option value="${c.id}">${esc(c.nombre)} · ${esc(c.cedula||'')}</option>`).join('');
+  document.getElementById('bpm-cond').value=condId||'';
+  document.getElementById('bpm-vh').innerHTML='<option value="">— Sin vehículo —</option>'+(_aud?.vhs||[]).filter(v=>v.activo!==false).sort((a,b)=>a.placa.localeCompare(b.placa)).map(v=>`<option value="${v.id}">${esc(v.placa)}</option>`).join('');
+  document.getElementById('bpm-evaluador').value=(()=>{try{return localStorage.getItem('bpm_evaluador')||'';}catch(e){return'';}})();
+  document.getElementById('bpm-obs').value='';document.getElementById('bpm-acc').value='';
+  const NOMBRES={'rocio.cortes@aldialogistica.com':'Rocío Cortés'};
+  if(!document.getElementById('bpm-evaluador').value&&NOMBRES[USER_EMAIL])document.getElementById('bpm-evaluador').value=NOMBRES[USER_EMAIL];
+  pintarItemsBPM();bpmLimpiarFirma();prepFirmaBPM();
+  document.getElementById('modal-bpm').classList.add('open');
+  cargarFirmaEvaluador();
+}
+// Firma digital de quien verifica: una imagen por usuario, guardada en el almacenamiento privado (firmas/<usuario>/)
+async function cargarFirmaEvaluador(){
+  const img=document.getElementById('bpm-firma-ev-img'),txt=document.getElementById('bpm-firma-ev-txt');
+  _bpm.firmaEv=null;img.style.display='none';txt.textContent='Cargando…';
+  try{
+    if(!USER_ID)throw new Error('sin usuario');
+    const{data:l}=await db.storage.from('auditoria-docs').list(`firmas/${USER_ID}`,{limit:50});
+    const ult=(l||[]).filter(f=>/\.(png|jpe?g)$/i.test(f.name)).sort((a,b)=>b.name.localeCompare(a.name))[0];
+    if(!ult){txt.textContent='Aún no has subido tu firma';return;}
+    const{data:u}=await db.storage.from('auditoria-docs').createSignedUrl(`firmas/${USER_ID}/${ult.name}`,300);
+    const blob=await (await fetch(u.signedUrl)).blob();
+    _bpm.firmaEv=await new Promise(ok=>{const r=new FileReader();r.onload=()=>ok(r.result);r.readAsDataURL(blob);});
+    img.src=_bpm.firmaEv;img.style.display='';txt.textContent='';
+  }catch(e){txt.textContent='No se pudo cargar la firma';}
+}
+async function subirFirmaEvaluador(input){
+  const f=input.files[0];input.value='';if(!f)return;
+  if(!/^image\/(png|jpeg)$/.test(f.type)){toast('La firma debe ser una imagen PNG o JPG',true);return;}
+  if(f.size>2*1024*1024){toast('La imagen de la firma supera 2 MB',true);return;}
+  // Se recorta y se deja el fondo blanco transparente para que se vea bien sobre la línea
+  const bmp=await createImageBitmap(f);const k=Math.min(1,600/bmp.width);
+  const cv=document.createElement('canvas');cv.width=Math.round(bmp.width*k);cv.height=Math.round(bmp.height*k);
+  const cx=cv.getContext('2d');cx.drawImage(bmp,0,0,cv.width,cv.height);
+  const px=cx.getImageData(0,0,cv.width,cv.height);
+  for(let i=0;i<px.data.length;i+=4){const m=(px.data[i]+px.data[i+1]+px.data[i+2])/3;if(m>200)px.data[i+3]=0;}
+  cx.putImageData(px,0,0);
+  const blob=await new Promise(ok=>cv.toBlob(ok,'image/png'));
+  const{error}=await db.storage.from('auditoria-docs').upload(`firmas/${USER_ID}/${Date.now()}.png`,blob,{contentType:'image/png',upsert:false});
+  if(error){toast('No se pudo guardar la firma: '+error.message,true);return;}
+  toast('Firma guardada ✓ · se usará en tus próximas verificaciones');cargarFirmaEvaluador();
+}
+function pintarItemsBPM(){
+  let n=0;
+  document.getElementById('bpm-items').innerHTML=BPM_SECCIONES.map(s=>`<div style="font-size:12px;font-weight:700;color:var(--text2);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.3px">${esc(s.t)}</div>
+    ${s.items.map(([k,t])=>{n++;const r=_bpm.resp[k];
+      const b=(v,col)=>`<button type="button" onclick="setBPM('${k}','${v}')" style="min-width:40px;padding:5px 8px;font-size:12px;font-weight:700;border:1px solid ${r===v?col:'var(--border)'};background:${r===v?col:'#fff'};color:${r===v?'#fff':'var(--text2)'};border-radius:var(--r);cursor:pointer">${v}</button>`;
+      return`<div style="padding:7px 0;border-bottom:0.5px solid var(--border)">
+        <div style="display:flex;gap:10px;align-items:center;justify-content:space-between">
+          <div style="font-size:13px;flex:1"><span style="color:var(--text3);margin-right:4px">${n}.</span>${esc(t)}</div>
+          <div style="display:flex;gap:4px;flex-shrink:0">${b('C','#2E7D32')}${b('NC','#C62828')}${b('NA','#78909C')}</div></div>
+        ${r==='NC'?`<input type="text" placeholder="¿Qué se encontró? *" maxlength="200" value="${esc(_bpm.obs[k]||'')}" oninput="_bpm.obs['${k}']=this.value" style="width:100%;margin-top:6px;font-size:12px;padding:6px 8px;border:1px solid #EF9A9A;border-radius:var(--r)">`:''}
+      </div>`;}).join('')}`).join('');
+  resumenBPM();
+}
+function setBPM(k,v){_bpm.resp[k]=_bpm.resp[k]===v?undefined:v;pintarItemsBPM();}
+function bpmTodoCumple(){BPM_ITEMS.forEach(i=>{if(!_bpm.resp[i.k])_bpm.resp[i.k]='C';});pintarItemsBPM();}
+function calcBPM(){
+  const v=BPM_ITEMS.map(i=>_bpm.resp[i.k]);
+  const c=v.filter(x=>x==='C').length,nc=v.filter(x=>x==='NC').length,na=v.filter(x=>x==='NA').length,sin=v.filter(x=>!x).length;
+  const pct=c+nc?Math.round(c/(c+nc)*1000)/10:null;
+  const res=pct==null?null:nc===0?'Conforme':pct>=85?'Conforme con observaciones':'No conforme';
+  return{c,nc,na,sin,pct,res};
+}
+function resumenBPM(){
+  const r=calcBPM();
+  const col=r.res==='Conforme'?'var(--green-dark)':r.res==='No conforme'?'var(--red-dark)':'#B26A00';
+  document.getElementById('bpm-resultado').innerHTML=`<b>Cumplimiento: <span style="color:${col}">${r.pct==null?'—':r.pct+'%'}</span></b>${r.res?` · <b style="color:${col}">${r.res}</b>`:''}
+    <div style="font-size:12px;color:var(--text2);margin-top:3px">${r.c} cumple · ${r.nc} no cumple · ${r.na} no aplica${r.sin?` · <b style="color:var(--red-dark)">${r.sin} sin responder</b>`:''} · Conforme = 100% · con observaciones ≥ 85%</div>`;
+  document.getElementById('bpm-acc-req').style.display=r.nc?'':'none';
+}
+// Firma
+function prepFirmaBPM(){
+  const cv=document.getElementById('bpm-firma');if(cv._listo)return;cv._listo=true;
+  const ctx=cv.getContext('2d');let dib=false;
+  const pos=e=>{const r=cv.getBoundingClientRect();const t=e.touches?.[0]||e;return[(t.clientX-r.left)*cv.width/r.width,(t.clientY-r.top)*cv.height/r.height];};
+  const ini=e=>{e.preventDefault();dib=true;const[x,y]=pos(e);ctx.beginPath();ctx.moveTo(x,y);};
+  const mov=e=>{if(!dib)return;e.preventDefault();const[x,y]=pos(e);ctx.lineWidth=2.2;ctx.lineCap='round';ctx.strokeStyle='#111';ctx.lineTo(x,y);ctx.stroke();_bpm.firma=true;};
+  const fin=()=>{dib=false;};
+  cv.addEventListener('mousedown',ini);cv.addEventListener('mousemove',mov);window.addEventListener('mouseup',fin);
+  cv.addEventListener('touchstart',ini,{passive:false});cv.addEventListener('touchmove',mov,{passive:false});cv.addEventListener('touchend',fin);
+}
+function bpmLimpiarFirma(){const cv=document.getElementById('bpm-firma');cv.getContext('2d').clearRect(0,0,cv.width,cv.height);_bpm.firma=false;}
+// PDF (se carga la librería solo cuando se necesita)
+function cargarJsPDF(){
+  if(window.jspdf?.jsPDF)return Promise.resolve(window.jspdf.jsPDF);
+  return new Promise((ok,mal)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
+    s.onload=()=>ok(window.jspdf.jsPDF);s.onerror=()=>mal(new Error('No se pudo cargar el generador de PDF (revisa la conexión)'));document.head.appendChild(s);});
+}
+async function pdfBPM(v){
+  const jsPDF=await cargarJsPDF();
+  const doc=new jsPDF({unit:'mm',format:'letter'});
+  const W=216,M=14;let y=16;
+  const linea=()=>{doc.setDrawColor(200);doc.line(M,y,W-M,y);};
+  const salto=h=>{if(y+h>268){doc.addPage();y=16;}};
+  doc.setFont('helvetica','bold');doc.setFontSize(14);doc.text('VERIFICACIÓN DE BUENAS PRÁCTICAS DE MANUFACTURA (BPM)',W/2,y,{align:'center'});y+=6;
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(90);doc.text('Conductores · Transporte de alimentos · Res. 2674/2013 y 2505/2004',W/2,y,{align:'center'});y+=7;doc.setTextColor(0);
+  const dato=(l,val,x,yy)=>{doc.setFont('helvetica','bold');doc.text(l,x,yy);const w=doc.getTextWidth(l);doc.setFont('helvetica','normal');doc.text(String(val||'—'),x+w+2,yy);};
+  doc.setFontSize(10);
+  dato('Regional:',v.regional,M,y);dato('Fecha:',fmtF(v.fecha),120,y);y+=6;
+  dato('Conductor:',v.nombre,M,y);dato('C.C.:',v.cedula,120,y);y+=6;
+  dato('Vehículo:',v.placa,M,y);dato('Verificó:',v.evaluador,120,y);y+=4;linea();y+=6;
+  let n=0;
+  BPM_SECCIONES.forEach(s=>{
+    salto(12);doc.setFillColor(238,242,246);doc.rect(M,y-4,W-2*M,6,'F');doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.text(s.t.toUpperCase(),M+2,y);doc.text('C',W-M-26,y);doc.text('NC',W-M-17,y);doc.text('NA',W-M-7,y);y+=6;
+    doc.setFont('helvetica','normal');doc.setFontSize(9.5);
+    s.items.forEach(([k,t])=>{n++;
+      const txt=doc.splitTextToSize(`${n}. ${t}`,W-2*M-34);const obs=v.respuestas.find(x=>x.k===k)?.obs;
+      const h=txt.length*4.3+(obs?4.1:0)+1.2;salto(h);
+      doc.text(txt,M+2,y);
+      const r=v.respuestas.find(x=>x.k===k)?.r;const cx={C:W-M-25,NC:W-M-15.5,NA:W-M-5.5}[r];
+      if(cx){doc.setFont('helvetica','bold');doc.setTextColor(r==='C'?46:r==='NC'?198:96,r==='C'?125:r==='NC'?40:125,r==='C'?50:r==='NC'?40:139);doc.text('X',cx,y);doc.setTextColor(0);doc.setFont('helvetica','normal');}
+      if(obs){doc.setFontSize(8.5);doc.setTextColor(198,40,40);doc.text(doc.splitTextToSize('Hallazgo: '+obs,W-2*M-40)[0],M+6,y+txt.length*4.3);doc.setTextColor(0);doc.setFontSize(9.5);}
+      y+=h;doc.setDrawColor(230);doc.line(M,y-3,W-M,y-3);
+    });
+    y+=2;
+  });
+  salto(30);y+=2;linea();y+=7;doc.setFontSize(11);doc.setFont('helvetica','bold');
+  doc.text(`Cumplimiento: ${v.puntaje==null?'—':v.puntaje+'%'}   ·   Resultado: ${v.resultado||'—'}`,M,y);y+=5;
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text(`${v.cumple} cumple · ${v.no_cumple} no cumple · ${v.no_aplica} no aplica`,M,y);y+=7;
+  const bloque=(tit,txt)=>{if(!txt)return;doc.setFont('helvetica','bold');doc.setFontSize(9.5);salto(12);doc.text(tit,M,y);y+=5;doc.setFont('helvetica','normal');
+    doc.splitTextToSize(txt,W-2*M).forEach(l=>{salto(5);doc.text(l,M,y);y+=4.6;});y+=2;};
+  bloque('Observaciones generales',v.observaciones);bloque('Acciones correctivas acordadas',v.acciones);
+  if(y+30>274){doc.addPage();y=16;}y+=2;
+  if(v.firma)doc.addImage(v.firma,'PNG',M,y,70,16);
+  if(v.firmaEv){try{const ip=doc.getImageProperties(v.firmaEv);const h=16,w=Math.min(70,h*ip.width/ip.height);doc.addImage(v.firmaEv,ip.fileType||'PNG',120,y,w,h);}catch(e){}}
+  y+=20;doc.setDrawColor(120);doc.line(M,y,M+75,y);doc.line(120,y,W-M,y);y+=4;doc.setFontSize(9);
+  doc.text('Firma del conductor'+(v.firma?'':' (no firmó)'),M,y);doc.text('Verificó: '+(v.evaluador||'')+(v.firmaEv?' · firma digital':''),120,y);
+  const nP=doc.getNumberOfPages();for(let i=1;i<=nP;i++){doc.setPage(i);doc.setFontSize(7.5);doc.setTextColor(130);doc.text(`Generado en FlotaOps el ${new Date().toLocaleString('es-CO')} · Página ${i} de ${nP}`,M,274);}
+  return doc.output('blob');
+}
+async function guardarBPM(){
+  const condId=document.getElementById('bpm-cond').value,fecha=document.getElementById('bpm-fecha').value;
+  const evaluador=document.getElementById('bpm-evaluador').value.trim();
+  const c=(_aud?.conds||[]).find(x=>x.id===condId);
+  const r=calcBPM();
+  if(!c){toast('Elige el conductor',true);return;}
+  if(!fecha){toast('Pon la fecha',true);return;}
+  if(!evaluador){toast('Escribe quién realiza la verificación',true);return;}
+  if(r.sin){toast(`Faltan ${r.sin} punto(s) por responder`,true);return;}
+  const faltaObs=BPM_ITEMS.filter(i=>_bpm.resp[i.k]==='NC'&&!(_bpm.obs[i.k]||'').trim());
+  if(faltaObs.length){toast('Describe qué se encontró en cada punto que no cumple',true);return;}
+  const acciones=document.getElementById('bpm-acc').value.trim();
+  if(r.nc&&!acciones){toast('Escribe las acciones correctivas acordadas',true);return;}
+  if(!_bpm.firmaEv&&!confirm('No tienes tu firma digital cargada. ¿Guardar la verificación sin tu firma?'))return;
+  try{localStorage.setItem('bpm_evaluador',evaluador);}catch(e){}
+  const btn=document.getElementById('bpm-btn');btn.disabled=true;btn.textContent='Guardando…';
+  const reg=_bpm.reg;const vh=(_aud?.vhs||[]).find(x=>x.id===document.getElementById('bpm-vh').value);
+  const v={regional:rNombre(reg),fecha,nombre:c.nombre,cedula:c.cedula,placa:vh?.placa||null,evaluador,
+    respuestas:BPM_ITEMS.map(i=>({k:i.k,r:_bpm.resp[i.k],obs:_bpm.resp[i.k]==='NC'?(_bpm.obs[i.k]||'').trim():undefined})),
+    cumple:r.c,no_cumple:r.nc,no_aplica:r.na,puntaje:r.pct,resultado:r.res,
+    observaciones:document.getElementById('bpm-obs').value.trim()||null,acciones:acciones||null,
+    firma:_bpm.firma?document.getElementById('bpm-firma').toDataURL('image/png'):null,firmaEv:_bpm.firmaEv||null};
+  try{
+    const blob=await pdfBPM(v);
+    const path=`${reg}/verificacion_bpm/${crypto.randomUUID?crypto.randomUUID():Date.now()}.pdf`;
+    const{error:eUp}=await db.storage.from('auditoria-docs').upload(path,blob,{contentType:'application/pdf',upsert:false});
+    if(eUp)throw eUp;
+    const periodo=`${MESES[+fecha.slice(5,7)-1]} ${fecha.slice(0,4)}`;
+    const{data:docN,error:eD}=await db.from('auditoria_documentos').insert({
+      requisito:'verificacion_bpm',regional_id:reg,conductor_id:c.id,persona_nombre:c.nombre,persona_cedula:c.cedula||null,persona_cargo:c.cargo||'Conductor',
+      titulo:periodo,fecha_expedicion:fecha,fecha_vencimiento:sumarMesesFecha(fecha,1),
+      archivo_path:path,archivo_nombre:`Verificacion_BPM_${c.nombre.replace(/[^A-Za-z0-9]+/g,'_')}_${fecha}.pdf`.slice(0,200),
+      observaciones:`Verificación digital · ${r.pct}% · ${r.res}`}).select('id').single();
+    if(eD)throw eD;
+    // La nueva verificación reemplaza a la anterior del mismo conductor
+    await db.from('auditoria_documentos').update({activo:false}).eq('requisito','verificacion_bpm').eq('regional_id',reg).eq('conductor_id',c.id).eq('activo',true).neq('id',docN.id);
+    const{error:eV}=await db.from('bpm_verificaciones').insert({regional_id:reg,conductor_id:c.id,persona_nombre:c.nombre,persona_cedula:c.cedula||null,
+      vehiculo_id:vh?.id||null,placa:vh?.placa||null,fecha,evaluador,respuestas:v.respuestas,cumple:r.c,no_cumple:r.nc,no_aplica:r.na,
+      puntaje:r.pct,resultado:r.res,observaciones:v.observaciones,acciones:v.acciones,documento_id:docN.id});
+    if(eV)toast('El PDF quedó guardado, pero no el detalle: '+(/bpm_verificaciones/.test(eV.message)?'falta ejecutar verificacion_bpm.sql':eV.message),true);
+    else toast(`Verificación guardada ✓ · ${r.pct}% ${r.res}`);
+    cerrarModal('modal-bpm');refrescarAud();actualizarBadgeAuditorias();
+  }catch(e){toast('Error: '+e.message,true);}
+  finally{btn.disabled=false;btn.textContent='Guardar verificación';}
 }
 
 // ── AUDITORÍAS · Carga masiva ─────────────────────────────────
