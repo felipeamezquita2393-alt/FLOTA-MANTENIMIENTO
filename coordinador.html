@@ -2108,7 +2108,7 @@ function adminRH(){return USER_ROL==='gerente'||USER_ROL==='gestion_humana';}
 const PAGINAS_ROL={
   gerencia:['dashboard','gerencial','checklists','criticidad'],
   gestion_humana:['conductores','auditorias','rotacion','ausentismo'],
-  auxiliar_operaciones:['disponibilidad','disp-operativa','checklists'],
+  auxiliar_operaciones:['dashboard','disponibilidad','checklists'],
 };
 function puedePagina(pg){const l=PAGINAS_ROL[USER_ROL];return!l||l.includes(pg);}
 function aplicarMenuRol(){
@@ -2129,7 +2129,7 @@ async function checkAuth(){
   const regNom=perfil.nombre_regional||null;
   // Roles: gerente = Coordinación nacional (administra todo) · gerencia = solo consulta
   //        gestion_humana = Calidad y Personal de todas las regionales · coordinador = su regional
-  //        auxiliar_operaciones = solo consulta de Checklists y Disponibilidad de su regional
+  //        auxiliar_operaciones = solo consulta de Dashboard, Disponibilidad y Checklists de su regional
   const ROL_TXT={gerente:'Coordinación nacional',gerencia:'Gerencia (consulta)',gestion_humana:'Gestión humana',auxiliar_operaciones:'Auxiliar de operaciones (consulta)',coordinador:'Coordinador'};
   if(!ROL_TXT[USER_ROL])USER_ROL='coordinador';
   if(USER_ROL==='gestion_humana'){GH_TODAS=!perfil.regional_id;if(perfil.regional_id)REGIONAL_ID=perfil.regional_id;}
@@ -2211,7 +2211,6 @@ async function init(){
   }
   aplicarMenuRol();
   if(USER_ROL==='gestion_humana'){ir('conductores');actualizarBadgeAuditorias();return;}
-  if(USER_ROL==='auxiliar_operaciones'){ir('disponibilidad');return;}
   await cargarDashboard();
   if(puedeModulo('calidad'))actualizarBadgeAuditorias();
 }
