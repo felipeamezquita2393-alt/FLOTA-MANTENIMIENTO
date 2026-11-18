@@ -62,7 +62,7 @@ tr:hover td{background:var(--bg2)}
 .field textarea{resize:vertical;min-height:72px}
 .form2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .rot-cuadro td,.rot-cuadro th{padding:4px 6px;border:0.5px solid var(--border)}
-body.rol-gerencia .page .btn-primary,body.rol-gerencia .page .btn-red,body.rol-gerencia .modal .btn-primary{display:none!important}
+body.solo-consulta .page .btn-primary,body.solo-consulta .page .btn-red,body.solo-consulta .modal .btn-primary{display:none!important}
 .oculto-rol{display:none!important}
 .rh-sel{font-size:12px;padding:6px 8px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text)}
 @media(max-width:900px){.rh-grid2{grid-template-columns:1fr!important}}
@@ -2108,6 +2108,7 @@ function adminRH(){return USER_ROL==='gerente'||USER_ROL==='gestion_humana';}
 const PAGINAS_ROL={
   gerencia:['dashboard','gerencial','checklists','criticidad'],
   gestion_humana:['conductores','auditorias','rotacion','ausentismo'],
+  auxiliar_operaciones:['disponibilidad','disp-operativa','checklists'],
 };
 function puedePagina(pg){const l=PAGINAS_ROL[USER_ROL];return!l||l.includes(pg);}
 function aplicarMenuRol(){
@@ -2128,17 +2129,23 @@ async function checkAuth(){
   const regNom=perfil.nombre_regional||null;
   // Roles: gerente = Coordinación nacional (administra todo) · gerencia = solo consulta
   //        gestion_humana = Calidad y Personal de todas las regionales · coordinador = su regional
-  const ROL_TXT={gerente:'Coordinación nacional',gerencia:'Gerencia (consulta)',gestion_humana:'Gestión humana',coordinador:'Coordinador'};
+  //        auxiliar_operaciones = solo consulta de Checklists y Disponibilidad de su regional
+  const ROL_TXT={gerente:'Coordinación nacional',gerencia:'Gerencia (consulta)',gestion_humana:'Gestión humana',auxiliar_operaciones:'Auxiliar de operaciones (consulta)',coordinador:'Coordinador'};
   if(!ROL_TXT[USER_ROL])USER_ROL='coordinador';
   if(USER_ROL==='gestion_humana'){GH_TODAS=!perfil.regional_id;if(perfil.regional_id)REGIONAL_ID=perfil.regional_id;}
-  document.getElementById('nav-user').textContent=`${USER_EMAIL} · ${ROL_TXT[USER_ROL]}${USER_ROL==='gestion_humana'&&regNom?' · '+regNom:''}`;
+  document.getElementById('nav-user').textContent=`${USER_EMAIL} · ${ROL_TXT[USER_ROL]}${(USER_ROL==='gestion_humana'||USER_ROL==='auxiliar_operaciones')&&regNom?' · '+regNom:''}`;
   document.body.classList.add('rol-'+USER_ROL);
+  if(USER_ROL==='gerencia'||USER_ROL==='auxiliar_operaciones')document.body.classList.add('solo-consulta');
   if(verTodas()){
     REGIONAL_ID=null;
     const snavGer=document.getElementById('snav-gerencial');
     if(snavGer&&USER_ROL!=='gestion_humana')snavGer.style.display='';
   }
   else if(USER_ROL==='gestion_humana'){/* regional fija: REGIONAL_ID ya asignado */}
+  else if(USER_ROL==='auxiliar_operaciones'){
+    if(perfil.regional_id){REGIONAL_ID=perfil.regional_id;}
+    else{document.body.innerHTML='<p style="font-family:sans-serif;padding:40px;text-align:center">Tu usuario no tiene regional asignada. Contacta al administrador.</p>';return false;}
+  }
   else{
     USER_ROL='coordinador';
     if(perfil.regional_id){REGIONAL_ID=perfil.regional_id;}
@@ -2204,6 +2211,7 @@ async function init(){
   }
   aplicarMenuRol();
   if(USER_ROL==='gestion_humana'){ir('conductores');actualizarBadgeAuditorias();return;}
+  if(USER_ROL==='auxiliar_operaciones'){ir('disponibilidad');return;}
   await cargarDashboard();
   if(puedeModulo('calidad'))actualizarBadgeAuditorias();
 }
