@@ -327,7 +327,7 @@ body.solo-consulta .page .btn-primary,body.solo-consulta .page .btn-red,body.sol
       <div class="field"><label>Tipo de cargo</label><input type="text" id="rq-tipo" maxlength="40" list="rq-tipos"><datalist id="rq-tipos"><option value="CONDUCTOR"><option value="OPERATIVO"><option value="ADMINISTRATIVO"><option value="AUXILIARES"></datalist></div>
       <div class="field"><label>Empresa</label><input type="text" id="rq-empresa" maxlength="60" list="rq-empresas"><datalist id="rq-empresas"><option value="TRASLADAR"><option value="SOLITEMP"><option value="SERCARGA"></datalist></div>
       <div class="field"><label>Motivo de la requisición *</label><select id="rq-motivo"><option>REEMPLAZO</option><option>MAYOR CUPO</option><option>TEMPORADA</option><option>TRASLADO A NOMINA</option></select></div>
-      <div class="field"><label>Fecha de requisición *</label><input type="date" id="rq-freq"></div>
+      <div class="field"><label>Fecha de activación de la requisición *</label><input type="date" id="rq-freq"></div>
       <div class="field"><label>Estado de la requisición</label><select id="rq-estado"><option>VACANTE</option><option>CERRADO</option><option>ANULADO</option></select></div>
       <div class="field"><label>Estado del proceso</label><input type="text" id="rq-proceso" maxlength="60" list="rq-procesos"><datalist id="rq-procesos"><option value="1. RECLUTAMIENTO"><option value="11. CERRADO"></datalist></div>
       <div class="field"><label>Solicitante</label><input type="text" id="rq-solic" maxlength="80"></div>
@@ -335,6 +335,7 @@ body.solo-consulta .page .btn-primary,body.solo-consulta .page .btn-red,body.sol
       <div style="grid-column:1/-1;font-size:12px;font-weight:600;color:var(--text2);margin-top:6px;border-top:0.5px solid var(--border);padding-top:10px">Persona que sale</div>
       <div class="field"><label>Nombre</label><input type="text" id="rq-snom" maxlength="120"></div>
       <div class="field"><label>Cédula</label><input type="text" id="rq-sced" maxlength="20" inputmode="numeric"></div>
+      <div class="field"><label>Fecha de salida <span style="font-size:11px;color:var(--text3)">(cuenta en la rotación)</span></label><input type="date" id="rq-fsal"></div>
       <div class="field"><label>Motivo de salida</label><input type="text" id="rq-smot" maxlength="60" list="rq-smots"><datalist id="rq-smots"><option value="RENUNCIA"><option value="SIN JUSTA CAUSA"><option value="CON JUSTA CAUSA"><option value="NO RENOVACIÓN DE CONTRATO"><option value="RESTRICCION MEDICA"><option value="PROMOCIÓN"><option value="TRASLADO DE CIUDAD"></datalist></div>
       <div class="field"><label>Promoción</label><select id="rq-promo"><option>NO PROMOCIÓN</option><option>PROMOCIÓN</option></select></div>
       <div style="grid-column:1/-1;font-size:12px;font-weight:600;color:var(--text2);margin-top:6px;border-top:0.5px solid var(--border);padding-top:10px">Persona que ingresa</div>
@@ -433,6 +434,29 @@ body.solo-consulta .page .btn-primary,body.solo-consulta .page .btn-red,body.sol
   </div>
 </div>
 
+<!-- Modal seguimiento de hallazgo BPM -->
+<div class="modal-overlay" id="modal-bh">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">Seguimiento del hallazgo</div>
+    <input type="hidden" id="bh-id">
+    <div id="bh-info" style="font-size:13px;background:var(--bg2);border-radius:var(--r);padding:10px;margin-bottom:12px"></div>
+    <div class="form2">
+      <div class="field" style="grid-column:1/-1"><label>Medida tomada / acción correctiva *</label><textarea id="bh-medida" rows="2" maxlength="400" style="width:100%;font:inherit;padding:8px;border:1px solid var(--border);border-radius:var(--r)"></textarea></div>
+      <div class="field"><label>Responsable</label><input type="text" id="bh-resp" maxlength="120"></div>
+      <div class="field"><label>Fecha compromiso</label><input type="date" id="bh-fcomp"></div>
+      <div class="field" style="grid-column:1/-1"><label class="chk" style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="bh-cerrar" onchange="document.getElementById('bh-cierre-wrap').style.display=this.checked?'grid':'none'"> Hallazgo corregido (cerrar)</label></div>
+      <div id="bh-cierre-wrap" style="grid-column:1/-1;display:none;grid-template-columns:1fr 2fr;gap:10px">
+        <div class="field"><label>Fecha de cierre</label><input type="date" id="bh-fcierre"></div>
+        <div class="field"><label>¿Cómo se verificó la corrección? *</label><input type="text" id="bh-cobs" maxlength="300" placeholder="Ej. Se revisó en turno, ya cumple"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarModal('modal-bh')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarHallazgoBPM()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal verificación de BPM (formulario digital) -->
 <div class="modal-overlay" id="modal-bpm">
   <div class="modal" style="max-width:760px;max-height:94vh;overflow-y:auto">
@@ -452,6 +476,7 @@ body.solo-consulta .page .btn-primary,body.solo-consulta .page .btn-red,body.sol
           <input type="file" id="bpm-firma-ev-file" accept="image/png,image/jpeg" style="display:none" onchange="subirFirmaEvaluador(this)">
         </div></div>
     </div>
+    <div id="bpm-pend" style="display:none;margin-top:12px;padding:10px 12px;background:#FFF8E1;border:1px solid #FFE082;border-radius:var(--r);font-size:12px"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin:16px 0 8px;flex-wrap:wrap">
       <div style="font-size:12px;color:var(--text2)">Marca cada punto: <b style="color:var(--green-dark)">C</b> cumple · <b style="color:var(--red-dark)">NC</b> no cumple · <b>NA</b> no aplica</div>
       <button class="btn btn-sm" type="button" onclick="bpmTodoCumple()">Marcar los vacíos como C</button>
@@ -460,7 +485,7 @@ body.solo-consulta .page .btn-primary,body.solo-consulta .page .btn-red,body.sol
     <div id="bpm-resultado" style="margin-top:12px;padding:12px;border-radius:var(--r);background:var(--bg2);font-size:13px"></div>
     <div class="form2" style="margin-top:12px">
       <div class="field" style="grid-column:1/-1"><label>Observaciones generales</label><textarea id="bpm-obs" rows="2" maxlength="600" style="width:100%;font:inherit;padding:8px;border:1px solid var(--border);border-radius:var(--r)"></textarea></div>
-      <div class="field" style="grid-column:1/-1"><label>Acciones correctivas acordadas <span id="bpm-acc-req" style="color:var(--red-dark);display:none">* (hay puntos que no cumplen)</span></label><textarea id="bpm-acc" rows="2" maxlength="600" style="width:100%;font:inherit;padding:8px;border:1px solid var(--border);border-radius:var(--r)"></textarea></div>
+      <div class="field" style="grid-column:1/-1"><label>Compromisos generales <span style="font-size:11px;color:var(--text3)">(opcional · la medida de cada punto va arriba)</span><span id="bpm-acc-req" style="display:none"></span></label><textarea id="bpm-acc" rows="2" maxlength="600" style="width:100%;font:inherit;padding:8px;border:1px solid var(--border);border-radius:var(--r)"></textarea></div>
 
     </div>
     <div class="modal-footer">
@@ -488,6 +513,7 @@ body.solo-consulta .page .btn-primary,body.solo-consulta .page .btn-red,body.sol
       <div class="field"><label>Fin de contrato <span style="font-size:11px;color:var(--text3)">(si es a término)</span></label><input type="date" id="fc-fin"></div>
     </div>
     <div class="modal-footer">
+      <button class="btn btn-red" id="fc-eliminar" onclick="eliminarConductor()" style="margin-right:auto;display:none">Eliminar conductor</button>
       <button class="btn" onclick="cerrarModal('modal-fcond')">Cancelar</button>
       <button class="btn btn-primary" onclick="guardarFichaCond()">Guardar</button>
     </div>
@@ -501,11 +527,14 @@ body.solo-consulta .page .btn-primary,body.solo-consulta .page .btn-red,body.sol
     <input type="hidden" id="rt-id">
     <div style="font-size:13px;margin-bottom:12px" id="rt-nombre"></div>
     <div class="form2">
-      <div class="field"><label>Fecha de retiro *</label><input type="date" id="rt-fecha"></div>
+      <div class="field"><label>Fecha de retiro *</label><input type="date" id="rt-fecha" onchange="if(!document.getElementById('rt-factiv').dataset.tocado)document.getElementById('rt-factiv').value=this.value"></div>
       <div class="field"><label>Motivo *</label><select id="rt-motivo">
         <option>Renuncia</option><option>Terminación de contrato</option><option>Fin de contrato temporal</option>
         <option>Despido con justa causa</option><option>Despido sin justa causa</option><option>Traslado a otra área</option><option>Otro</option></select></div>
       <div class="field" style="grid-column:1/-1"><label>Observación</label><input type="text" id="rt-obs" maxlength="300"></div>
+      <div class="field" style="grid-column:1/-1"><label>¿Desde cuándo se activa la requisición para reemplazarlo?</label>
+        <input type="date" id="rt-factiv" oninput="this.dataset.tocado='1'">
+        <div style="font-size:11px;color:var(--text3);margin-top:3px">Desde esta fecha se cuentan los días de contratación. La salida cuenta en la rotación con la fecha de retiro.</div></div>
     </div>
     <div style="font-size:11px;color:var(--text3);margin-top:8px">El conductor deja de contar en la planta y en las auditorías. Sus documentos e historial se conservan y se puede reintegrar.</div>
     <div class="modal-footer">
@@ -969,6 +998,7 @@ body.solo-consulta .page .btn-primary,body.solo-consulta .page .btn-red,body.sol
     <div class="snav-sec" data-modulo="calidad" style="display:none">Calidad</div>
     <div class="snav-item" data-modulo="calidad" style="display:none" data-page="conductores" onclick="ir('conductores')"><span>Conductores</span></div>
     <div class="snav-item" data-modulo="calidad" style="display:none" data-page="auditorias" onclick="ir('auditorias')"><span>Auditorías</span><span class="badge b-red" id="badge-aud" style="display:none"></span></div>
+    <div class="snav-item" data-modulo="calidad" style="display:none" data-page="bpm" onclick="ir('bpm')"><span>Historial BPM</span><span class="badge b-red" id="badge-bpm" style="display:none"></span></div>
     <div class="snav-sec" data-modulo="personal" style="display:none">Personal</div>
     <div class="snav-item" data-modulo="personal" style="display:none" data-page="rotacion" onclick="ir('rotacion')"><span>Rotación</span></div>
     <div class="snav-item" data-modulo="personal" style="display:none" data-page="ausentismo" onclick="ir('ausentismo')"><span>Ausentismo</span></div>
@@ -1813,6 +1843,35 @@ body.solo-consulta .page .btn-primary,body.solo-consulta .page .btn-red,body.sol
     <div id="cp-lista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px"></div>
   </div>
 
+    <!-- HISTORIAL BPM (hallazgos y medidas) -->
+    <div id="page-bpm" class="page">
+      <div class="card" style="padding:14px 18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:16px;font-weight:700">Historial de verificaciones BPM</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px">Qué no cumplió cada conductor, la medida tomada y su cierre.</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-sm" onclick="exportarHallazgosBPM()">⬇ Excel</button>
+            <button class="btn btn-sm btn-primary" onclick="ir('auditorias');setTimeout(()=>abrirBPM(),400)">📋 Nueva verificación</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+          <select id="bh-reg" class="rh-sel" onchange="cargarHistorialBPM()"></select>
+          <select id="bh-anio" class="rh-sel" onchange="pintarHistorialBPM()"></select>
+          <select id="bh-estado" class="rh-sel" onchange="pintarHistorialBPM()"><option value="abierto">Hallazgos abiertos</option><option value="cerrado">Hallazgos cerrados</option><option value="">Todos los hallazgos</option></select>
+          <input type="text" id="bh-buscar" class="rh-sel" placeholder="Buscar conductor o cédula…" oninput="pintarHistorialBPM()" style="min-width:220px">
+        </div>
+      </div>
+      <div class="metrics" id="bh-metricas"></div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px" class="rh-grid2">
+        <div class="card"><div class="card-hdr"><span class="card-title">Puntos que más fallan</span></div><div id="bh-puntos"></div></div>
+        <div class="card"><div class="card-hdr"><span class="card-title">Conductores con más hallazgos</span></div><div id="bh-conductores"></div></div>
+      </div>
+      <div class="card"><div class="card-hdr"><span class="card-title">Hallazgos y medidas tomadas</span><span id="bh-count" style="font-size:12px;color:var(--text2)"></span></div><div id="bh-tabla"></div></div>
+      <div class="card"><div class="card-hdr"><span class="card-title">Verificaciones realizadas</span></div><div id="bh-verif"></div></div>
+    </div>
+
     <!-- ROTACIÓN DE PERSONAL -->
   <div id="page-rotacion" class="page">
     <div class="card" style="padding:14px 18px">
@@ -2145,7 +2204,7 @@ function adminRH(){return USER_ROL==='gerente'||USER_ROL==='gestion_humana';}
 // Páginas que puede abrir cada rol (además la base de datos limita lo que puede ver y cambiar)
 const PAGINAS_ROL={
   gerencia:['dashboard','gerencial','checklists','criticidad'],
-  gestion_humana:['conductores','auditorias','rotacion','ausentismo'],
+  gestion_humana:['conductores','auditorias','bpm','rotacion','ausentismo'],
   auxiliar_operaciones:['dashboard','disponibilidad','checklists'],
 };
 function puedePagina(pg){const l=PAGINAS_ROL[USER_ROL];return!l||l.includes(pg);}
@@ -2218,6 +2277,7 @@ function ir(page){
   if(page==='gerencial')cargarPanelGerencial();
   if(page==='reportes')initReportes();
   if(page==='auditorias')cargarAuditorias();
+  if(page==='bpm')cargarHistorialBPM();
   if(page==='conductores')cargarConductoresPage();
   if(page==='rotacion')cargarRotacion();
   if(page==='ausentismo')cargarAusentismo();
@@ -2248,9 +2308,9 @@ async function init(){
     });
   }
   aplicarMenuRol();
-  if(USER_ROL==='gestion_humana'){ir('conductores');actualizarBadgeAuditorias();return;}
+  if(USER_ROL==='gestion_humana'){ir('conductores');actualizarBadgeAuditorias();actualizarBadgeBPM();return;}
   await cargarDashboard();
-  if(puedeModulo('calidad'))actualizarBadgeAuditorias();
+  if(puedeModulo('calidad')){actualizarBadgeAuditorias();actualizarBadgeBPM();}
 }
 
 async function cargarDashboard(){
@@ -6589,7 +6649,7 @@ function tarjetaCond(c){
       <div style="display:flex;flex-direction:column;gap:4px">
         <button class="btn btn-sm" onclick="abrirFichaCond('${c.id}')">Editar</button>
         ${!ret&&puedeModulo('personal')?`<button class="btn btn-sm" onclick="novedadCond('${c.id}')" title="Vacaciones, incapacidad, restricción médica…">Novedad</button>`:''}
-        ${ret?`<button class="btn btn-sm" onclick="reintegrarCond('${c.id}')">Reintegrar</button>`:`<button class="btn btn-sm btn-red" onclick="abrirRetiro('${c.id}')">Retirar</button>`}
+        ${ret?`<button class="btn btn-sm" onclick="reintegrarCond('${c.id}')">Reintegrar</button>`:`<button class="btn btn-sm btn-red" onclick="abrirRetiroCond('${c.id}')">Retirar</button>`}
       </div>
     </div>
     ${docs?`<div style="margin-top:10px">${docs}</div>`:''}
@@ -6623,7 +6683,24 @@ function abrirFichaCond(id){
   document.getElementById('fc-wrap-emp').style.display=(c?.vinculacion==='temporal')?'':'none';
   const emps=[...new Set(_cp.conds.map(x=>x.empresa_temporal).filter(Boolean))];
   document.getElementById('fc-empresas').innerHTML=emps.map(e=>`<option value="${esc(e)}">`).join('');
+  document.getElementById('fc-eliminar').style.display=c&&USER_ROL==='gerente'?'':'none'; // solo Coordinación nacional
   document.getElementById('modal-fcond').classList.add('open');
+}
+// Eliminar un conductor mal digitado o duplicado (solo Coordinación nacional; la base de datos también lo exige)
+async function eliminarConductor(){
+  if(USER_ROL!=='gerente')return;
+  const id=document.getElementById('fc-id').value;const c=_cp.conds.find(x=>x.id===id);if(!c)return;
+  const[rd,ra]=await Promise.all([
+    db.from('auditoria_documentos').select('id',{count:'exact',head:true}).eq('conductor_id',id),
+    db.from('rrhh_ausentismo').select('id',{count:'exact',head:true}).eq('conductor_id',id)]);
+  const nd=rd.count||0,na=ra.count||0;
+  const msg=`Vas a ELIMINAR a ${c.nombre} (C.C. ${c.cedula||'—'}).\n\n`+
+    (nd||na?`También se borran ${nd} documento(s) y ${na} ausencia(s) suyas.\n`:'')+
+    `Sus requisiciones y verificaciones BPM se conservan con su nombre.\n\nÚsalo solo si quedó mal digitado o duplicado. Si la persona se fue de la empresa, usa "Retirar".\n\nEscribe ELIMINAR para confirmar:`;
+  if((prompt(msg)||'').trim().toUpperCase()!=='ELIMINAR'){toast('No se eliminó');return;}
+  const{error}=await db.rpc('eliminar_conductor',{p_id:id});
+  if(error){toast('Error: '+(/eliminar_conductor/.test(error.message)?'falta ejecutar requisicion_activacion_eliminar_conductor.sql':error.message),true);return;}
+  toast(`${c.nombre} eliminado`);cerrarModal('modal-fcond');_aud=null;cargarConductoresPage();
 }
 async function guardarFichaCond(){
   const id=document.getElementById('fc-id').value;
@@ -6643,26 +6720,29 @@ async function guardarFichaCond(){
   toast(id?'Conductor actualizado ✓':'Conductor agregado ✓');cerrarModal('modal-fcond');
   _aud=null;cargarConductoresPage();
 }
-function abrirRetiro(id){
+function abrirRetiroCond(id){
   const c=_cp.conds.find(x=>x.id===id);if(!c)return;
   document.getElementById('rt-id').value=id;
   document.getElementById('rt-nombre').innerHTML=`<b>${esc(c.nombre)}</b> · C.C. ${esc(c.cedula||'')}`;
   document.getElementById('rt-fecha').value=hoy();
   document.getElementById('rt-motivo').value=c.vinculacion==='temporal'?'Fin de contrato temporal':'Renuncia';
   document.getElementById('rt-obs').value='';
+  const fa=document.getElementById('rt-factiv');fa.value=hoy();delete fa.dataset.tocado;
   document.getElementById('modal-retiro').classList.add('open');
 }
 async function guardarRetiro(){
   const id=document.getElementById('rt-id').value,f=document.getElementById('rt-fecha').value;
   if(!f){toast('La fecha de retiro es obligatoria',true);return;}
-  const{error}=await db.from('conductores').update({activo:false,fecha_retiro:f,motivo_retiro:document.getElementById('rt-motivo').value,
+  const fa=document.getElementById('rt-factiv').value||f;
+  if(fa<f&&!confirm('La requisición quedaría activa antes de la fecha de retiro. ¿Continuar?'))return;
+  const{error}=await db.from('conductores').update({activo:false,fecha_retiro:f,fecha_activacion_req:fa,motivo_retiro:document.getElementById('rt-motivo').value,
     observacion_retiro:document.getElementById('rt-obs').value.trim()||null}).eq('id',id);
   if(error){toast('Error: '+error.message,true);return;}
   toast(puedeModulo('personal')?'Conductor retirado · se abrió la vacante en Rotación':'Conductor retirado');cerrarModal('modal-retiro');_aud=null;cargarConductoresPage();
 }
 async function reintegrarCond(id){
   if(!confirm('¿Reintegrar este conductor? Volverá a contar en la planta y en las auditorías.'))return;
-  const{error}=await db.from('conductores').update({activo:true,fecha_retiro:null,motivo_retiro:null,observacion_retiro:null,fecha_ingreso:hoy()}).eq('id',id);
+  const{error}=await db.from('conductores').update({activo:true,fecha_retiro:null,fecha_activacion_req:null,motivo_retiro:null,observacion_retiro:null,fecha_ingreso:hoy()}).eq('id',id);
   if(error){toast('Error: '+error.message,true);return;}
   toast('Conductor reintegrado. Revisa la fecha de ingreso en Editar.');_aud=null;cargarConductoresPage();
 }
@@ -6722,7 +6802,7 @@ function aplicarAccesosMenu(){
   document.querySelectorAll('[data-modulo="personal"]').forEach(e=>e.style.display=per?'':'none');
   document.querySelectorAll('[data-solo-gerente]').forEach(e=>e.style.display=USER_ROL==='gerente'?'':'none');
 }
-const PAGINAS_MODULO={conductores:'calidad',auditorias:'calidad',rotacion:'personal',ausentismo:'personal'};
+const PAGINAS_MODULO={conductores:'calidad',auditorias:'calidad',bpm:'calidad',rotacion:'personal',ausentismo:'personal'};
 function abrirAccesos(){
   document.getElementById('acc-calidad').checked=!!MOD_VISIBLE.calidad;
   document.getElementById('acc-personal').checked=!!MOD_VISIBLE.personal;
@@ -6826,7 +6906,7 @@ function indexarReqMes(){
   const k=(reg,f)=>`${reg}|${+f.slice(0,4)}|${+f.slice(5,7)}`;
   (_rot||[]).forEach(r=>{
     if(!r.regional_id||!esConductorReq(r))return;
-    if(esSalida(r)&&r.fecha_requisicion){const x=_reqMes[k(r.regional_id,r.fecha_requisicion)]??={sal:0,ing:0};x.sal++;}
+    if(esSalida(r)&&fechaSalida(r)){const x=_reqMes[k(r.regional_id,fechaSalida(r))]??={sal:0,ing:0};x.sal++;}
     const fi=fechaIngreso(r);
     if(fi&&r.ingresa_nombre&&normTxt(r.estado_requisicion)!=='ANULADO'){const x=_reqMes[k(r.regional_id,fi)]??={sal:0,ing:0};x.ing++;}
   });
@@ -6955,7 +7035,7 @@ async function traerMesRot(){
   if(!a||!a.conductores){toast('Esta regional no tiene conductores cargados en el aplicativo',true);return;}
   ['teo:teoricos','ini:inicial','fin:final'].forEach(x=>{const[el,k]=x.split(':');if(a[k]!=null)document.getElementById('rm-'+el).value=a[k];});
   const{desde,hasta}=periodoRH(anio,mes);
-  const req=(_rot||[]).filter(r=>r.regional_id===reg&&normTxt(r.tipo_cargo)==='CONDUCTOR'&&esSalida(r)&&r.fecha_requisicion>=desde&&r.fecha_requisicion<=hasta).length;
+  const req=(_rot||[]).filter(r=>r.regional_id===reg&&normTxt(r.tipo_cargo)==='CONDUCTOR'&&esSalida(r)&&fechaSalida(r)>=desde&&fechaSalida(r)<=hasta).length;
   document.getElementById('rm-hint').textContent=`Calculado con ${a.conductores} conductores del listado. Requisiciones de conductores con salida en el mes: ${req}. Revisa antes de guardar.`;
   calcMesRot();
 }
@@ -7027,6 +7107,7 @@ function esSalida(r){
   const m=normTxt(r.motivo_salida);
   return!NO_ES_SALIDA.some(x=>m.startsWith(x));
 }
+function fechaSalida(r){return r.fecha_salida||r.fecha_requisicion;} // fecha en que salió la persona (rotación)
 function fechaIngreso(r){return r.fecha_contratacion_real||r.fecha_contratacion;}
 function guardarMetaRot(){try{localStorage.setItem('rot_meta',document.getElementById('rot-meta').value);}catch(e){}}
 async function cargarRotacion(){
@@ -7065,7 +7146,7 @@ function pintarRotacion(){
   const base=basePersonas(reg&&reg!=='__sin'?reg:'');
   const rows=filtrarRot();
   const enP=f=>f&&f>=desde&&f<=hasta;
-  const salidas=rows.filter(r=>esSalida(r)&&enP(r.fecha_requisicion));
+  const salidas=rows.filter(r=>esSalida(r)&&enP(fechaSalida(r)));
   const ingresos=rows.filter(r=>r.ingresa_nombre&&normTxt(r.estado_requisicion)!=='ANULADO'&&enP(fechaIngreso(r)));
   const tiempos=ingresos.filter(r=>r.fecha_requisicion&&fechaIngreso(r)).map(r=>Math.max(0,diasEntre(r.fecha_requisicion,fechaIngreso(r))));
   const prom=tiempos.length?Math.round(tiempos.reduce((a,b)=>a+b,0)/tiempos.length):null;
@@ -7092,7 +7173,7 @@ function pintarRotacion(){
   // Gráfica mensual del año
   const sal=Array(12).fill(0),ing=Array(12).fill(0),tm=Array.from({length:12},()=>[]);
   rows.forEach(r=>{
-    if(esSalida(r)&&r.fecha_requisicion?.startsWith(String(anio)))sal[+r.fecha_requisicion.slice(5,7)-1]++;
+    if(esSalida(r)&&fechaSalida(r)?.startsWith(String(anio)))sal[+fechaSalida(r).slice(5,7)-1]++;
     const fi=fechaIngreso(r);
     if(r.ingresa_nombre&&fi?.startsWith(String(anio))&&normTxt(r.estado_requisicion)!=='ANULADO'){const m=+fi.slice(5,7)-1;ing[m]++;if(r.fecha_requisicion)tm[m].push(Math.max(0,diasEntre(r.fecha_requisicion,fi)));}
   });
@@ -7116,15 +7197,15 @@ function pintarRotacion(){
   // Vacantes abiertas
   document.getElementById('rot-vac-count').textContent=abiertas.length?`${abiertas.length} abierta(s)`:'';
   document.getElementById('rot-vacantes').innerHTML=abiertas.length?`<div class="tbl-wrap"><table><thead><tr><th>Requisición</th><th>Cargo</th><th>Regional / ciudad</th><th>Reemplaza a</th><th>Días abierta</th><th>Estado</th><th></th></tr></thead><tbody>
-    ${abiertas.map(r=>{const d=r.fecha_requisicion?diasEntre(r.fecha_requisicion,hoy()):null;
+    ${abiertas.map(r=>{const porActivar=r.fecha_requisicion>hoy();const d=r.fecha_requisicion&&!porActivar?diasEntre(r.fecha_requisicion,hoy()):null;
       return`<tr><td>${r.consecutivo??'—'}${r.origen==='automatica'?'<span class="badge b-amber" style="font-size:10px;margin-left:4px" title="Creada al retirar al conductor">auto</span>':''}<div style="font-size:11px;color:var(--text3)">${r.fecha_requisicion?fmtF(r.fecha_requisicion):''}</div></td><td>${esc(r.cargo||'')}</td>
       <td style="font-size:12px">${esc(r.regional_id?rNombre(r.regional_id):'—')}<div style="color:var(--text3)">${esc(r.ciudad||'')}</div></td><td style="font-size:12px">${esc(r.sale_nombre||'—')}</td>
-      <td style="font-weight:700;color:${d>meta?'var(--red)':'inherit'}">${d??'—'}</td><td><span class="badge b-amber">${esc(r.estado_proceso||r.estado_requisicion||'Abierta')}</span></td>
+      <td style="font-weight:700;color:${d>meta?'var(--red)':'inherit'}">${porActivar?`<span class="badge b-gray" title="Se activa el ${fmtF(r.fecha_requisicion)}">Por activar</span>`:(d??'—')}</td><td><span class="badge b-amber">${esc(porActivar?'Se activa '+fmtF(r.fecha_requisicion):(r.estado_proceso||r.estado_requisicion||'Abierta'))}</span></td>
       <td><button class="btn btn-sm" onclick="abrirRequisicion('${r.id}')">Editar</button></td></tr>`;}).join('')}</tbody></table></div>`
     :'<div style="font-size:13px;color:var(--green-dark)">No hay vacantes abiertas.</div>';
   // Tabla: quién salió y quién lo reemplazó
   const q=normTxt(document.getElementById('rot-buscar').value);
-  const lista=rows.filter(r=>enP(r.fecha_requisicion)||enP(fechaIngreso(r))).filter(r=>!q||[r.sale_nombre,r.ingresa_nombre,r.sale_cedula,r.ingresa_cedula,r.cargo].some(x=>normTxt(x).includes(q)));
+  const lista=rows.filter(r=>enP(fechaSalida(r))||enP(r.fecha_requisicion)||enP(fechaIngreso(r))).filter(r=>!q||[r.sale_nombre,r.ingresa_nombre,r.sale_cedula,r.ingresa_cedula,r.cargo].some(x=>normTxt(x).includes(q)));
   document.getElementById('rot-tabla').innerHTML=lista.length?`<div class="tbl-wrap"><table><thead><tr><th>Requisición</th><th>Cargo</th><th>Regional</th><th>Sale</th><th>Motivo</th><th>Ingresa</th><th>Contratación</th><th>Días</th><th></th></tr></thead><tbody>
     ${lista.map(r=>{const fi=fechaIngreso(r);const d=fi&&r.fecha_requisicion?Math.max(0,diasEntre(r.fecha_requisicion,fi)):null;
       return`<tr><td>${r.consecutivo??'—'}${r.origen==='automatica'?'<span class="badge b-amber" style="font-size:10px;margin-left:4px" title="Creada al retirar al conductor">auto</span>':''}<div style="font-size:11px;color:var(--text3)">${r.fecha_requisicion?fmtF(r.fecha_requisicion):''}</div></td>
@@ -7139,7 +7220,7 @@ function pintarRotacion(){
     :'<div style="font-size:13px;color:var(--text2)">No hay movimientos en el periodo. Usa <b>⬆ Importar Excel</b> para cargar el archivo de requisiciones.</div>';
 }
 const RQ_CAMPOS={consecutivo:'rq-consec',ciudad:'rq-ciudad',cargo:'rq-cargo',tipo_cargo:'rq-tipo',empresa:'rq-empresa',motivo_requisicion:'rq-motivo',
-  fecha_requisicion:'rq-freq',estado_requisicion:'rq-estado',estado_proceso:'rq-proceso',solicitante:'rq-solic',responsable:'rq-resp',
+  fecha_requisicion:'rq-freq',fecha_salida:'rq-fsal',estado_requisicion:'rq-estado',estado_proceso:'rq-proceso',solicitante:'rq-solic',responsable:'rq-resp',
   sale_nombre:'rq-snom',sale_cedula:'rq-sced',motivo_salida:'rq-smot',promocion:'rq-promo',ingresa_nombre:'rq-inom',ingresa_cedula:'rq-iced',
   fecha_contratacion_real:'rq-fcon',fuente_ingreso:'rq-fuente',observaciones:'rq-obs'};
 function abrirRequisicion(id,preset){
@@ -7161,7 +7242,8 @@ async function guardarRequisicion(){
   Object.entries(RQ_CAMPOS).forEach(([k,el])=>{const v=document.getElementById(el).value.trim();d[k]=v===''?null:v;});
   d.consecutivo=d.consecutivo==null?null:parseInt(d.consecutivo,10);
   ['sale_cedula','ingresa_cedula'].forEach(k=>{if(d[k])d[k]=soloDigitos(d[k])||null;});
-  if(!d.regional_id||!d.cargo||!d.fecha_requisicion){toast('Regional, cargo y fecha de requisición son obligatorios',true);return;}
+  if(!d.regional_id||!d.cargo||!d.fecha_requisicion){toast('Regional, cargo y fecha de activación son obligatorios',true);return;}
+  if(d.fecha_salida&&d.fecha_requisicion<d.fecha_salida&&!confirm('La requisición se activa antes de la salida de la persona. ¿Continuar?'))return;
   if(d.ingresa_nombre&&d.fecha_contratacion_real&&normTxt(d.estado_requisicion)==='VACANTE')d.estado_requisicion='CERRADO';
   const{error}=id?await db.from('rrhh_requisiciones').update(d).eq('id',id):await db.from('rrhh_requisiciones').insert(d);
   if(error){toast('Error: '+(error.code==='23505'?'ese consecutivo ya existe':error.message),true);return;}
@@ -7242,7 +7324,7 @@ function exportarRotacion(){
   const anio=+document.getElementById('rot-anio').value,mes=document.getElementById('rot-mes').value;const{desde,hasta}=periodoRH(anio,mes);
   const enP=f=>f&&f>=desde&&f<=hasta;
   const filas=filtrarRot().filter(r=>enP(r.fecha_requisicion)||enP(fechaIngreso(r))).map(r=>({'Consecutivo':r.consecutivo,'Regional':r.regional_id?rNombre(r.regional_id):'','Ciudad':r.ciudad||'',
-    'Fecha requisición':r.fecha_requisicion||'','Cargo':r.cargo||'','Tipo':r.tipo_cargo||'','Empresa':r.empresa||'','Motivo requisición':r.motivo_requisicion||'',
+    'Fecha salida':fechaSalida(r)||'','Fecha activación requisición':r.fecha_requisicion||'','Cargo':r.cargo||'','Tipo':r.tipo_cargo||'','Empresa':r.empresa||'','Motivo requisición':r.motivo_requisicion||'',
     'Sale':r.sale_nombre||'','CC sale':r.sale_cedula||'','Motivo salida':r.motivo_salida||'','Cuenta como retiro':esSalida(r)?'Sí':'No',
     'Ingresa':r.ingresa_nombre||'','CC ingresa':r.ingresa_cedula||'','Fecha contratación':fechaIngreso(r)||'',
     'Días contratación':fechaIngreso(r)&&r.fecha_requisicion?Math.max(0,diasEntre(r.fecha_requisicion,fechaIngreso(r))):'','Estado':r.estado_requisicion||''}));
@@ -7493,11 +7575,12 @@ async function abrirBPM(condId){
   if(!_aud||_aud.reg!==reg)await cargarAuditorias();
   const conds=(_aud?.conds||[]).filter(c=>c.activo!==false).sort((a,b)=>a.nombre.localeCompare(b.nombre));
   if(!conds.length){toast('Primero registra los conductores de la regional',true);return;}
-  _bpm={reg,resp:{},obs:{},firma:false};
+  _bpm={reg,resp:{},obs:{},med:{},pend:[],firma:false};
   document.getElementById('bpm-reg-nombre').textContent=rNombre(reg);
   document.getElementById('bpm-fecha').value=hoy();
   document.getElementById('bpm-cond').innerHTML='<option value="">— Elegir —</option>'+conds.map(c=>`<option value="${c.id}">${esc(c.nombre)} · ${esc(c.cedula||'')}</option>`).join('');
   document.getElementById('bpm-cond').value=condId||'';
+  document.getElementById('bpm-cond').onchange=pendientesBPMConductor;
   document.getElementById('bpm-vh').innerHTML='<option value="">— Sin vehículo —</option>'+(_aud?.vhs||[]).filter(v=>v.activo!==false).sort((a,b)=>a.placa.localeCompare(b.placa)).map(v=>`<option value="${v.id}">${esc(v.placa)}</option>`).join('');
   document.getElementById('bpm-evaluador').value=(()=>{try{return localStorage.getItem('bpm_evaluador')||'';}catch(e){return'';}})();
   document.getElementById('bpm-obs').value='';document.getElementById('bpm-acc').value='';
@@ -7506,6 +7589,7 @@ async function abrirBPM(condId){
   pintarItemsBPM();
   document.getElementById('modal-bpm').classList.add('open');
   cargarFirmaEvaluador();
+  if(condId)pendientesBPMConductor();else document.getElementById('bpm-pend').style.display='none';
 }
 // Firma digital de quien verifica: una imagen por usuario, guardada en el almacenamiento privado (firmas/<usuario>/)
 async function cargarFirmaEvaluador(){
@@ -7541,13 +7625,16 @@ async function subirFirmaEvaluador(input){
 function pintarItemsBPM(){
   let n=0;
   document.getElementById('bpm-items').innerHTML=BPM_SECCIONES.map(s=>`<div style="font-size:12px;font-weight:700;color:var(--text2);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.3px">${esc(s.t)}</div>
-    ${s.items.map(([k,t])=>{n++;const r=_bpm.resp[k];
+    ${s.items.map(([k,t])=>{n++;const r=_bpm.resp[k];const pend=(_bpm.pend||[]).find(p=>p.item_k===k);
       const b=(v,col)=>`<button type="button" onclick="setBPM('${k}','${v}')" style="min-width:40px;padding:5px 8px;font-size:12px;font-weight:700;border:1px solid ${r===v?col:'var(--border)'};background:${r===v?col:'#fff'};color:${r===v?'#fff':'var(--text2)'};border-radius:var(--r);cursor:pointer">${v}</button>`;
       return`<div style="padding:7px 0;border-bottom:0.5px solid var(--border)">
         <div style="display:flex;gap:10px;align-items:center;justify-content:space-between">
           <div style="font-size:13px;flex:1"><span style="color:var(--text3);margin-right:4px">${n}.</span>${esc(t)}</div>
           <div style="display:flex;gap:4px;flex-shrink:0">${b('C','#2E7D32')}${b('NC','#C62828')}${b('NA','#78909C')}</div></div>
-        ${r==='NC'?`<input type="text" placeholder="¿Qué se encontró? *" maxlength="200" value="${esc(_bpm.obs[k]||'')}" oninput="_bpm.obs['${k}']=this.value" style="width:100%;margin-top:6px;font-size:12px;padding:6px 8px;border:1px solid #EF9A9A;border-radius:var(--r)">`:''}
+        ${r==='NC'?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
+          <input type="text" placeholder="¿Qué se encontró? *" maxlength="200" value="${esc(_bpm.obs[k]||'')}" oninput="_bpm.obs['${k}']=this.value" style="font-size:12px;padding:6px 8px;border:1px solid #EF9A9A;border-radius:var(--r)">
+          <input type="text" placeholder="Medida tomada *" maxlength="300" value="${esc(_bpm.med[k]||'')}" oninput="_bpm.med['${k}']=this.value" style="font-size:12px;padding:6px 8px;border:1px solid #FFCC80;border-radius:var(--r)"></div>`:''}
+        ${pend&&r!=='NC'?`<div style="font-size:11px;color:#B26A00;margin-top:3px">⚠ Pendiente desde ${fmtF(pend.fecha)}: ${esc(pend.hallazgo)}${r==='C'?' · se cerrará al guardar':''}</div>`:''}
       </div>`;}).join('')}`).join('');
   resumenBPM();
 }
@@ -7594,12 +7681,13 @@ async function pdfBPM(v){
     salto(12);doc.setFillColor(238,242,246);doc.rect(M,y-4,W-2*M,6,'F');doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.text(s.t.toUpperCase(),M+2,y);doc.text('C',W-M-26,y);doc.text('NC',W-M-17,y);doc.text('NA',W-M-7,y);y+=6;
     doc.setFont('helvetica','normal');doc.setFontSize(9.5);
     s.items.forEach(([k,t])=>{n++;
-      const txt=doc.splitTextToSize(`${n}. ${t}`,W-2*M-34);const obs=v.respuestas.find(x=>x.k===k)?.obs;
-      const h=txt.length*4.3+(obs?4.1:0)+1.2;salto(h);
+      const txt=doc.splitTextToSize(`${n}. ${t}`,W-2*M-34);const rr=v.respuestas.find(x=>x.k===k);const obs=rr?.obs?`${rr.obs}${rr.medida?' · Medida: '+rr.medida:''}`:null;
+      doc.setFontSize(8.5);const obsL=obs?doc.splitTextToSize('Hallazgo: '+obs,W-2*M-40).slice(0,3):[];doc.setFontSize(9.5);
+      const h=txt.length*4.3+obsL.length*3.7+(obsL.length?0.6:0)+1.2;salto(h);
       doc.text(txt,M+2,y);
       const r=v.respuestas.find(x=>x.k===k)?.r;const cx={C:W-M-25,NC:W-M-15.5,NA:W-M-5.5}[r];
       if(cx){doc.setFont('helvetica','bold');doc.setTextColor(r==='C'?46:r==='NC'?198:96,r==='C'?125:r==='NC'?40:125,r==='C'?50:r==='NC'?40:139);doc.text('X',cx,y);doc.setTextColor(0);doc.setFont('helvetica','normal');}
-      if(obs){doc.setFontSize(8.5);doc.setTextColor(198,40,40);doc.text(doc.splitTextToSize('Hallazgo: '+obs,W-2*M-40)[0],M+6,y+txt.length*4.3);doc.setTextColor(0);doc.setFontSize(9.5);}
+      if(obsL.length){doc.setFontSize(8.5);doc.setTextColor(198,40,40);obsL.forEach((l,i)=>doc.text(l,M+6,y+txt.length*4.3+i*3.7));doc.setTextColor(0);doc.setFontSize(9.5);}
       y+=h;doc.setDrawColor(230);doc.line(M,y-3,W-M,y-3);
     });
     y+=2;
@@ -7628,16 +7716,15 @@ async function guardarBPM(){
   if(!fecha){toast('Pon la fecha',true);return;}
   if(!evaluador){toast('Escribe quién realiza la verificación',true);return;}
   if(r.sin){toast(`Faltan ${r.sin} punto(s) por responder`,true);return;}
-  const faltaObs=BPM_ITEMS.filter(i=>_bpm.resp[i.k]==='NC'&&!(_bpm.obs[i.k]||'').trim());
-  if(faltaObs.length){toast('Describe qué se encontró en cada punto que no cumple',true);return;}
+  const faltaObs=BPM_ITEMS.filter(i=>_bpm.resp[i.k]==='NC'&&(!(_bpm.obs[i.k]||'').trim()||!(_bpm.med[i.k]||'').trim()));
+  if(faltaObs.length){toast('En cada punto que no cumple escribe qué se encontró y la medida tomada',true);return;}
   const acciones=document.getElementById('bpm-acc').value.trim();
-  if(r.nc&&!acciones){toast('Escribe las acciones correctivas acordadas',true);return;}
   if(!_bpm.firmaEv&&!confirm('No tienes tu firma digital cargada. ¿Guardar la verificación sin tu firma?'))return;
   try{localStorage.setItem('bpm_evaluador',evaluador);}catch(e){}
   const btn=document.getElementById('bpm-btn');btn.disabled=true;btn.textContent='Guardando…';
   const reg=_bpm.reg;const vh=(_aud?.vhs||[]).find(x=>x.id===document.getElementById('bpm-vh').value);
   const v={regional:rNombre(reg),fecha,nombre:c.nombre,cedula:c.cedula,placa:vh?.placa||null,evaluador,
-    respuestas:BPM_ITEMS.map(i=>({k:i.k,r:_bpm.resp[i.k],obs:_bpm.resp[i.k]==='NC'?(_bpm.obs[i.k]||'').trim():undefined})),
+    respuestas:BPM_ITEMS.map(i=>({k:i.k,r:_bpm.resp[i.k],obs:_bpm.resp[i.k]==='NC'?(_bpm.obs[i.k]||'').trim():undefined,medida:_bpm.resp[i.k]==='NC'?(_bpm.med[i.k]||'').trim():undefined})),
     cumple:r.c,no_cumple:r.nc,no_aplica:r.na,puntaje:r.pct,resultado:r.res,
     observaciones:document.getElementById('bpm-obs').value.trim()||null,acciones:acciones||null,
     firmaEv:_bpm.firmaEv||null};
@@ -7655,14 +7742,135 @@ async function guardarBPM(){
     if(eD)throw eD;
     // La nueva verificación reemplaza a la anterior del mismo conductor
     await db.from('auditoria_documentos').update({activo:false}).eq('requisito','verificacion_bpm').eq('regional_id',reg).eq('conductor_id',c.id).eq('activo',true).neq('id',docN.id);
-    const{error:eV}=await db.from('bpm_verificaciones').insert({regional_id:reg,conductor_id:c.id,persona_nombre:c.nombre,persona_cedula:c.cedula||null,
+    const{data:verN,error:eV}=await db.from('bpm_verificaciones').insert({regional_id:reg,conductor_id:c.id,persona_nombre:c.nombre,persona_cedula:c.cedula||null,
       vehiculo_id:vh?.id||null,placa:vh?.placa||null,fecha,evaluador,respuestas:v.respuestas,cumple:r.c,no_cumple:r.nc,no_aplica:r.na,
-      puntaje:r.pct,resultado:r.res,observaciones:v.observaciones,acciones:v.acciones,documento_id:docN.id});
+      puntaje:r.pct,resultado:r.res,observaciones:v.observaciones,acciones:v.acciones,documento_id:docN.id}).select('id').single();
+    if(!eV){
+      // Historial: cada "No cumple" queda como hallazgo abierto con su medida
+      const nc=v.respuestas.filter(x=>x.r==='NC').map(x=>({verificacion_id:verN.id,regional_id:reg,conductor_id:c.id,persona_nombre:c.nombre,persona_cedula:c.cedula||null,
+        placa:vh?.placa||null,fecha,item_k:x.k,item_texto:BPM_TXT(x.k),hallazgo:x.obs,medida:x.medida,responsable:evaluador}));
+      if(nc.length){const{error:eH}=await db.from('bpm_hallazgos').insert(nc);if(eH)toast('No se guardó el historial de hallazgos: '+(/bpm_hallazgos/.test(eH.message)?'falta ejecutar bpm_hallazgos.sql':eH.message),true);}
+      // Lo que estaba pendiente y ahora cumple se cierra solo
+      const ok=v.respuestas.filter(x=>x.r==='C').map(x=>x.k);
+      const cerrar=(_bpm.pend||[]).filter(p=>ok.includes(p.item_k)).map(p=>p.id);
+      if(cerrar.length)await db.from('bpm_hallazgos').update({estado:'cerrado',fecha_cierre:fecha,cierre_obs:`Cumplió en la verificación del ${fmtF(fecha)}`,cerrado_por:evaluador,updated_at:new Date().toISOString()}).in('id',cerrar);
+    }
     if(eV)toast('El PDF quedó guardado, pero no el detalle: '+(/bpm_verificaciones/.test(eV.message)?'falta ejecutar verificacion_bpm.sql':eV.message),true);
     else toast(`Verificación guardada ✓ · ${r.pct}% ${r.res}`);
-    cerrarModal('modal-bpm');refrescarAud();actualizarBadgeAuditorias();
+    cerrarModal('modal-bpm');refrescarAud();actualizarBadgeAuditorias();actualizarBadgeBPM();
+    if(document.getElementById('page-bpm').classList.contains('active'))cargarHistorialBPM();
   }catch(e){toast('Error: '+e.message,true);}
   finally{btn.disabled=false;btn.textContent='Guardar verificación';}
+}
+
+// ── CALIDAD · Historial BPM: hallazgos (no cumple) y medidas tomadas ──
+let _bh=null;
+const BPM_TXT=k=>BPM_ITEMS.find(i=>i.k===k)?.t||k;
+async function cargarHistorialBPM(){
+  const box=document.getElementById('bh-tabla');box.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  if(!document.getElementById('bh-reg').options.length)selRegionalesRH('bh-reg');
+  const reg=document.getElementById('bh-reg').value;
+  let qh=db.from('bpm_hallazgos').select('*').order('fecha',{ascending:false});
+  let qv=db.from('bpm_verificaciones').select('id,regional_id,conductor_id,persona_nombre,persona_cedula,placa,fecha,evaluador,puntaje,resultado,no_cumple,documento_id,auditoria_documentos(archivo_path)').order('fecha',{ascending:false});
+  if(reg){qh=qh.eq('regional_id',reg);qv=qv.eq('regional_id',reg);}
+  const[rh,rv]=await Promise.all([qh,qv]);
+  if(rh.error||rv.error){const m=(rh.error||rv.error).message;box.innerHTML=`<div style="color:var(--red-dark)">${/bpm_/.test(m)?'Falta ejecutar bpm_hallazgos.sql en Supabase.':esc(m)}</div>`;return;}
+  _bh={h:rh.data||[],v:rv.data||[]};
+  const anios=[...new Set(_bh.v.map(x=>+x.fecha.slice(0,4)).concat(_bh.h.map(x=>+x.fecha.slice(0,4))).concat([new Date().getFullYear()]))].sort((a,b)=>b-a);
+  llenarSelect('bh-anio',[['','Todos los años'],...anios.map(a=>[a,a])],document.getElementById('bh-anio').value||String(new Date().getFullYear()));
+  pintarHistorialBPM();actualizarBadgeBPM();
+}
+function pintarHistorialBPM(){
+  if(!_bh)return;
+  const anio=document.getElementById('bh-anio').value,est=document.getElementById('bh-estado').value,q=normTxt(document.getElementById('bh-buscar').value);
+  const enA=f=>!anio||f.startsWith(anio);
+  const busc=x=>!q||normTxt(x.persona_nombre).includes(q)||(x.persona_cedula||'').includes(q);
+  const V=_bh.v.filter(x=>enA(x.fecha)&&busc(x)),Hall=_bh.h.filter(x=>enA(x.fecha)&&busc(x));
+  const abiertos=Hall.filter(x=>x.estado==='abierto');
+  const vencidos=abiertos.filter(x=>x.fecha_compromiso&&x.fecha_compromiso<hoy());
+  const prom=V.filter(x=>x.puntaje!=null);const pr=prom.length?Math.round(prom.reduce((a,x)=>a+Number(x.puntaje),0)/prom.length*10)/10:null;
+  const porCond={};Hall.forEach(x=>{const k=x.conductor_id||normTxt(x.persona_nombre);(porCond[k]??={n:0,ab:0,nombre:x.persona_nombre,puntos:{}}).n++;if(x.estado==='abierto')porCond[k].ab++;porCond[k].puntos[x.item_k]=(porCond[k].puntos[x.item_k]||0)+1;});
+  const reinc=Object.values(porCond).filter(c=>Object.values(c.puntos).some(n=>n>1));
+  document.getElementById('bh-metricas').innerHTML=
+    metrica('Verificaciones',V.length,`${new Set(V.map(x=>x.conductor_id||x.persona_nombre)).size} conductor(es)`,'var(--blue)')+
+    metrica('Cumplimiento promedio',pr==null?'—':pr+'%',`${V.filter(x=>x.resultado==='Conforme').length} conformes · ${V.filter(x=>x.resultado==='No conforme').length} no conformes`,pr==null?null:pr>=95?'var(--green)':pr>=85?'var(--amber)':'var(--red)')+
+    metrica('Hallazgos abiertos',abiertos.length,vencidos.length?`<b style="color:var(--red-dark)">${vencidos.length} con compromiso vencido</b>`:`${Hall.length-abiertos.length} cerrado(s)`,abiertos.length?'var(--red)':'var(--green)')+
+    metrica('Reincidentes',reinc.length,'Conductores que repitieron el mismo punto',reinc.length?'var(--amber)':null);
+  // Puntos que más fallan
+  const pp={};Hall.forEach(x=>{pp[x.item_k]=(pp[x.item_k]||0)+1;});const ppo=Object.entries(pp).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  document.getElementById('bh-puntos').innerHTML=ppo.length?ppo.map(([k,n])=>`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px;font-size:12px"><span>${esc(Hall.find(x=>x.item_k===k)?.item_texto||BPM_TXT(k))}</span><b>${n}</b></div>
+    <div style="height:7px;background:var(--bg2);border-radius:4px;overflow:hidden;margin-top:3px"><div style="height:100%;width:${Math.round(n/ppo[0][1]*100)}%;background:#E53935"></div></div></div>`).join(''):'<div style="font-size:13px;color:var(--green-dark)">Sin incumplimientos en el periodo ✓</div>';
+  const co=Object.values(porCond).sort((a,b)=>b.n-a.n).slice(0,8);
+  document.getElementById('bh-conductores').innerHTML=co.length?`<table style="font-size:12px"><tbody>${co.map(c=>`<tr><td><b>${esc(c.nombre)}</b>${Object.values(c.puntos).some(n=>n>1)?' <span class="badge b-amber" style="font-size:10px">reincide</span>':''}</td><td style="text-align:center">${c.n} hallazgo(s)</td><td style="text-align:center">${c.ab?`<span class="badge b-red">${c.ab} abierto(s)</span>`:'<span class="badge b-green">cerrados</span>'}</td></tr>`).join('')}</tbody></table>`:'<div style="font-size:13px;color:var(--text2)">—</div>';
+  // Hallazgos
+  const lista=Hall.filter(x=>!est||x.estado===est);
+  document.getElementById('bh-count').textContent=`${lista.length} registro(s)`;
+  document.getElementById('bh-tabla').innerHTML=lista.length?`<div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Conductor</th><th>Punto que no cumplió</th><th>Hallazgo</th><th>Medida tomada</th><th>Estado</th><th></th></tr></thead><tbody>
+    ${lista.map(x=>{const venc=x.estado==='abierto'&&x.fecha_compromiso&&x.fecha_compromiso<hoy();
+      const rep=Hall.filter(y=>y.item_k===x.item_k&&(y.conductor_id?y.conductor_id===x.conductor_id:y.persona_nombre===x.persona_nombre)).length;
+      return`<tr><td style="font-size:12px;white-space:nowrap">${fmtF(x.fecha)}</td>
+      <td style="font-size:12px"><b>${esc(x.persona_nombre)}</b><div style="color:var(--text3)">${esc([x.persona_cedula?'C.C. '+x.persona_cedula:'',x.placa].filter(Boolean).join(' · '))}</div></td>
+      <td style="font-size:12px">${esc(x.item_texto)}${rep>1?` <span class="badge b-amber" style="font-size:10px">${rep}ª vez</span>`:''}</td>
+      <td style="font-size:12px;color:var(--red-dark)">${esc(x.hallazgo)}</td>
+      <td style="font-size:12px">${x.medida?esc(x.medida):'<span style="color:var(--red-dark)">Sin medida</span>'}${x.responsable||x.fecha_compromiso?`<div style="color:${venc?'var(--red-dark)':'var(--text3)'}">${esc(x.responsable||'')}${x.fecha_compromiso?' · compromiso '+fmtF(x.fecha_compromiso):''}${venc?' · vencido':''}</div>`:''}</td>
+      <td style="font-size:12px">${x.estado==='cerrado'?`<span class="badge b-green">Cerrado</span><div style="color:var(--text3);margin-top:2px">${x.fecha_cierre?fmtF(x.fecha_cierre):''}${x.cierre_obs?' · '+esc(x.cierre_obs):''}</div>`:'<span class="badge b-red">Abierto</span>'}</td>
+      <td><button class="btn btn-sm" onclick="abrirHallazgoBPM('${x.id}')">${x.estado==='cerrado'?'Ver':'Seguimiento'}</button></td></tr>`;}).join('')}</tbody></table></div>`
+    :`<div style="font-size:13px;color:var(--text2)">${est==='abierto'?'No hay hallazgos abiertos ✓':'Sin registros.'}</div>`;
+  // Verificaciones
+  document.getElementById('bh-verif').innerHTML=V.length?`<div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Conductor</th><th>Vehículo</th><th>Cumplimiento</th><th>Resultado</th><th>No cumple</th><th>Verificó</th><th></th></tr></thead><tbody>
+    ${V.map(x=>{const col=x.resultado==='Conforme'?'b-green':x.resultado==='No conforme'?'b-red':'b-amber';const pth=x.auditoria_documentos?.archivo_path;
+      return`<tr><td style="font-size:12px">${fmtF(x.fecha)}</td><td style="font-size:12px"><b>${esc(x.persona_nombre)}</b></td><td style="font-size:12px">${esc(x.placa||'—')}</td>
+      <td style="font-weight:700">${x.puntaje!=null?Number(x.puntaje)+'%':'—'}</td><td><span class="badge ${col}">${esc(x.resultado||'—')}</span></td>
+      <td style="text-align:center">${x.no_cumple||0}</td><td style="font-size:12px">${esc(x.evaluador||'')}</td>
+      <td>${pth?`<a href="#" onclick="abrirArchivoAud('${escJs(pth)}');return false">PDF</a>`:''}</td></tr>`;}).join('')}</tbody></table></div>`:'<div style="font-size:13px;color:var(--text2)">Sin verificaciones en el periodo.</div>';
+}
+function abrirHallazgoBPM(id){
+  const x=_bh.h.find(h=>h.id===id);if(!x)return;
+  document.getElementById('bh-id').value=id;
+  document.getElementById('bh-info').innerHTML=`<b>${esc(x.persona_nombre)}</b> · ${fmtF(x.fecha)}${x.placa?' · '+esc(x.placa):''}<div style="margin-top:4px">${esc(x.item_texto)}</div><div style="color:var(--red-dark);margin-top:2px">Hallazgo: ${esc(x.hallazgo)}</div>`;
+  document.getElementById('bh-medida').value=x.medida||'';document.getElementById('bh-resp').value=x.responsable||'';document.getElementById('bh-fcomp').value=x.fecha_compromiso||'';
+  const c=x.estado==='cerrado';document.getElementById('bh-cerrar').checked=c;document.getElementById('bh-cierre-wrap').style.display=c?'grid':'none';
+  document.getElementById('bh-fcierre').value=x.fecha_cierre||hoy();document.getElementById('bh-cobs').value=x.cierre_obs||'';
+  document.getElementById('modal-bh').classList.add('open');
+}
+async function guardarHallazgoBPM(){
+  const id=document.getElementById('bh-id').value,cerrar=document.getElementById('bh-cerrar').checked;
+  const d={medida:document.getElementById('bh-medida').value.trim()||null,responsable:document.getElementById('bh-resp').value.trim()||null,
+    fecha_compromiso:document.getElementById('bh-fcomp').value||null,estado:cerrar?'cerrado':'abierto',updated_at:new Date().toISOString(),
+    fecha_cierre:cerrar?(document.getElementById('bh-fcierre').value||hoy()):null,cierre_obs:cerrar?document.getElementById('bh-cobs').value.trim():null,
+    cerrado_por:cerrar?(USER_EMAIL||null):null};
+  if(!d.medida){toast('Escribe la medida tomada',true);return;}
+  if(cerrar&&!d.cierre_obs){toast('Escribe cómo se verificó la corrección',true);return;}
+  const{error}=await db.from('bpm_hallazgos').update(d).eq('id',id);
+  if(error){toast('Error: '+error.message,true);return;}
+  toast(cerrar?'Hallazgo cerrado ✓':'Seguimiento guardado ✓');cerrarModal('modal-bh');cargarHistorialBPM();
+}
+async function actualizarBadgeBPM(){
+  const b=document.getElementById('badge-bpm');if(!b||!puedeModulo('calidad'))return;
+  let q=db.from('bpm_hallazgos').select('id',{count:'exact',head:true}).eq('estado','abierto');
+  if(REGIONAL_ID)q=q.eq('regional_id',REGIONAL_ID);
+  const{count,error}=await q;if(error)return;
+  b.textContent=count||'';b.style.display=count?'':'none';
+}
+function exportarHallazgosBPM(){
+  if(!_bh)return;const anio=document.getElementById('bh-anio').value;
+  const filas=_bh.h.filter(x=>!anio||x.fecha.startsWith(anio)).map(x=>({'Fecha':x.fecha,'Regional':rNombre(x.regional_id),'Conductor':x.persona_nombre,'Cédula':x.persona_cedula||'','Vehículo':x.placa||'',
+    'Punto que no cumplió':x.item_texto,'Hallazgo':x.hallazgo,'Medida tomada':x.medida||'','Responsable':x.responsable||'','Fecha compromiso':x.fecha_compromiso||'',
+    'Estado':x.estado==='cerrado'?'Cerrado':'Abierto','Fecha cierre':x.fecha_cierre||'','Cómo se verificó':x.cierre_obs||''}));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(filas),'Hallazgos BPM');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(_bh.v.filter(x=>!anio||x.fecha.startsWith(anio)).map(x=>({'Fecha':x.fecha,'Conductor':x.persona_nombre,'Cédula':x.persona_cedula||'','Vehículo':x.placa||'','Cumplimiento %':x.puntaje,'Resultado':x.resultado,'No cumple':x.no_cumple,'Verificó':x.evaluador||''}))),'Verificaciones');
+  XLSX.writeFile(wb,`Historial_BPM_${anio||'todo'}.xlsx`);
+}
+// Al elegir conductor en el formulario: mostrar lo que tiene pendiente de verificaciones anteriores
+async function pendientesBPMConductor(){
+  const id=document.getElementById('bpm-cond').value,box=document.getElementById('bpm-pend');
+  _bpm.pend=[];box.style.display='none';
+  if(!id)return pintarItemsBPM();
+  const{data}=await db.from('bpm_hallazgos').select('id,item_k,item_texto,hallazgo,medida,fecha').eq('conductor_id',id).eq('estado','abierto').order('fecha',{ascending:false});
+  _bpm.pend=data||[];
+  if(_bpm.pend.length){box.innerHTML=`<b>⚠ Tiene ${_bpm.pend.length} hallazgo(s) abierto(s) de verificaciones anteriores.</b> Revísalos: si ahora marcas "C" se cierran solos.
+    <ul style="margin:6px 0 0 18px;padding:0">${_bpm.pend.map(p=>`<li>${esc(p.item_texto)} · <span style="color:var(--red-dark)">${esc(p.hallazgo)}</span> (${fmtF(p.fecha)})${p.medida?` · medida: ${esc(p.medida)}`:''}</li>`).join('')}</ul>`;box.style.display='';}
+  pintarItemsBPM();
 }
 
 // ── AUDITORÍAS · Carga masiva ─────────────────────────────────
