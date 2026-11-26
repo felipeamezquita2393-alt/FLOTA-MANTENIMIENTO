@@ -1431,16 +1431,16 @@ body.solo-consulta [onclick*="cp-import"],body.solo-consulta [onclick*="abrirRet
             </select>
             <span id="docs-count" style="font-size:12px;color:var(--text2)"></span>
             <button id="btn-vista-tabla" onclick="switchVistaDoc('tabla')"
-              style="font-size:11px;padding:4px 10px;border:1px solid var(--accent);border-radius:var(--r);background:var(--accent-light);cursor:pointer;color:var(--accent);font-weight:500">
+              style="display:none;font-size:11px;padding:4px 10px;border:1px solid var(--accent);border-radius:var(--r);background:var(--accent-light);cursor:pointer;color:var(--accent);font-weight:500">
               ☰ Tabla
             </button>
             <button id="btn-vista-capsulas" onclick="switchVistaDoc('capsulas')"
-              style="font-size:11px;padding:4px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);cursor:pointer;color:var(--text2)">
+              style="display:none;font-size:11px;padding:4px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);cursor:pointer;color:var(--text2)">
               ⊞ Cápsulas
             </button>
           </div>
         </div>
-        <div class="tbl-wrap">
+        <div class="tbl-wrap" style="display:none">
           <table><thead><tr>
             <th>Placa</th><th>Regional</th><th>Documento</th>
             <th>Vencimiento</th><th style="text-align:center">Días</th>
@@ -1449,7 +1449,7 @@ body.solo-consulta [onclick*="cp-import"],body.solo-consulta [onclick*="abrirRet
           <tbody id="docs-body"><tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr></tbody>
           </table>
         </div>
-        <div id="docs-capsulas" style="display:none;padding:4px 0"></div>
+        <div id="docs-capsulas" style="padding:4px 0"></div>
       </div>
     </div>
 
@@ -6571,8 +6571,10 @@ async function cargarConductoresPage(){
 }
 const REQS_COND=()=>AUD_REQ.filter(r=>r.roster&&!r.soloAud);
 // Estado de los documentos de un conductor según la evaluación de auditoría
+// El auxiliar de operaciones solo consulta estos dos documentos del conductor
+const DOCS_COND_AUXILIAR=['curso_manipulacion','curso_single_pallet'];
 function docsDeConductor(c){
-  return REQS_COND().map(req=>{
+  return REQS_COND().filter(req=>USER_ROL!=='auxiliar_operaciones'||DOCS_COND_AUXILIAR.includes(req.k)).map(req=>{
     const r=(_aud?.resAll||_aud?.res)?.find(x=>x.req.k===req.k);
     const it=r?.items.find(i=>i.conductor?.id===c.id);
     return{req,item:it||{estado:'faltante',detalle:'Sin documento'}};
@@ -8414,7 +8416,7 @@ async function eliminarSoporte(id,url){
 
 
 // ── VISTA CÁPSULAS DOCUMENTOS ────────────────────────────────
-let _vistaDoc = 'tabla';
+let _vistaDoc = 'capsulas'; // solo se usa la vista de cápsulas
 
 async function switchVistaDoc(vista){
   _vistaDoc = vista;
@@ -8486,7 +8488,7 @@ function renderCapsulasDoc(){
       const badgeColor = estado==='vencido'?'var(--red-dark)':estado==='proximo'?'var(--amber-dark)':'var(--green-dark)';
       const diasTxt = dias===null?'—':dias<0?`Vencido ${Math.abs(dias)}d`:dias===0?'Hoy':`${dias}d`;
       const lupa = d.archivo_url
-        ? `<a href="${safeUrl(d.archivo_url)}" target="_blank" rel="noopener" title="Ver documento" style="font-size:14px;text-decoration:none;margin-left:4px">🔍</a>`
+        ? `<a href="#" onclick="verDocVh('${escJs(d.archivo_url)}');return false" title="Ver documento" style="font-size:14px;text-decoration:none;margin-left:4px">🔍</a>`
         : `<span style="font-size:10px;color:var(--text3);margin-left:4px">Sin archivo</span>`;
 
       return `<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border)">
