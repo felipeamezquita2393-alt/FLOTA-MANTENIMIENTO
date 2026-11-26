@@ -5703,7 +5703,7 @@ function evaluarReqAud(req,{docs,vhs,dv,lavs,cls,conds,prog,hoyD}){
     });
     out.estado=peor(out.items.map(i=>i.estado));
     const c=e=>out.items.filter(i=>i.estado===e).length;
-    const partes=[`${c('vigente')} de ${aplica.length} al día`];
+    const partes=[`${c('vigente')+c('proximo')} de ${aplica.length} al día`];
     if(c('proximo'))partes.push(`${c('proximo')} por vencer`);
     if(c('vencido'))partes.push(`${c('vencido')} vencido(s)`);
     if(c('soporte'))partes.push(`${c('soporte')} sin soporte`);
@@ -5727,7 +5727,7 @@ function evaluarReqAud(req,{docs,vhs,dv,lavs,cls,conds,prog,hoyD}){
     });
     out.estado=peor(out.items.map(i=>i.estado));
     const c=e=>out.items.filter(i=>i.estado===e).length;
-    out.detalle=`${c('vigente')} de ${activos.length} conductores al día`+(c('proximo')?` · ${c('proximo')} por vencer`:'')+(c('vencido')?` · ${c('vencido')} vencido(s)`:'')+(c('soporte')?` · ${c('soporte')} sin soporte`:'')+(c('faltante')?` · ${c('faltante')} sin documento`:'');
+    out.detalle=`${c('vigente')+c('proximo')} de ${activos.length} conductores al día`+(c('proximo')?` · ${c('proximo')} por vencer`:'')+(c('vencido')?` · ${c('vencido')} vencido(s)`:'')+(c('soporte')?` · ${c('soporte')} sin soporte`:'')+(c('faltante')?` · ${c('faltante')} sin documento`:'');
     return out;
   }
   if(req.alcance==='persona'){
@@ -5740,7 +5740,7 @@ function evaluarReqAud(req,{docs,vhs,dv,lavs,cls,conds,prog,hoyD}){
     });
     out.estado=peor(out.items.map(i=>i.estado));
     const c=e=>out.items.filter(i=>i.estado===e).length;
-    out.detalle=`${out.items.length} persona(s) · ${c('vigente')} al día`+(c('proximo')?` · ${c('proximo')} por vencer`:'')+(c('vencido')?` · ${c('vencido')} vencido(s)`:'');
+    out.detalle=`${out.items.length} persona(s) · ${c('vigente')+c('proximo')} al día`+(c('proximo')?` · ${c('proximo')} por vencer`:'')+(c('vencido')?` · ${c('vencido')} vencido(s)`:'');
     return out;
   }
   // Requisitos con programación (p. ej. capacitaciones): se evalúa lo programado contra lo ejecutado
@@ -5772,9 +5772,11 @@ function evaluarReqAud(req,{docs,vhs,dv,lavs,cls,conds,prog,hoyD}){
   return out;
 }
 
+// "Por vencer" sigue estando al día (el documento está vigente); solo es un aviso para renovarlo a tiempo
+const alDiaEst=e=>e==='vigente'||e==='proximo';
 function pintarAuditorias(){
   const{res,docs}=_aud;
-  const ok=res.filter(r=>r.estado==='vigente').length;
+  const ok=res.filter(r=>alDiaEst(r.estado)).length;
   // Conteo por elemento (cada conductor, vehículo o documento), no por requisito
   const elems=[];res.forEach(r=>{if(r.items.length)r.items.forEach(i=>elems.push(i.estado));else elems.push(r.estado);});
   const venc=elems.filter(e=>['vencido','faltante','atrasado'].includes(e)).length;
@@ -5813,7 +5815,7 @@ function pintarAuditorias(){
 
   document.getElementById('aud-cats').innerHTML=AUD_CATS.map(cat=>{
     const filas=res.filter(r=>r.req.cat===cat.k);
-    const okc=filas.filter(r=>r.estado==='vigente').length;
+    const okc=filas.filter(r=>alDiaEst(r.estado)).length;
     return`<div class="card"><div class="card-hdr"><span class="card-title">${esc(cat.nombre)}</span><span style="font-size:12px;color:var(--text2)">${okc} de ${filas.length} al día</span></div>
       <div class="tbl-wrap"><table><tbody>${filas.map(r=>filaReqAud(r)).join('')}</tbody></table></div></div>`;
   }).join('');
@@ -6584,7 +6586,7 @@ function pintarConductoresPage(){
   document.getElementById('cp-m-op-sub').textContent=noOp.length?`${noOp.length} no operativo(s): `+Object.entries(motH).map(([t,n])=>`${t} ${n}`).join(' · '):`Todos los activos operativos${req?` · ${pctOp}% de los requeridos`:''}`;
   const emp={};activos.filter(c=>c.vinculacion==='temporal').forEach(c=>{const e=(c.empresa_temporal||'Sin empresa').trim();emp[e]=(emp[e]||0)+1;});
   document.getElementById('cp-m-vinc-sub').textContent=Object.entries(emp).map(([e,n])=>`${e}: ${n}`).join(' · ')||'Sin temporales';
-  const alDia=activos.filter(c=>docsDeConductor(c).every(d=>d.item.estado==='vigente')).length;
+  const alDia=activos.filter(c=>docsDeConductor(c).every(d=>alDiaEst(d.item.estado))).length;
   const pctDocs=activos.length?Math.round(alDia/activos.length*100):null;
   document.getElementById('cp-m-docs').textContent=pctDocs==null?'—':pctDocs+'%';
   document.getElementById('cp-m-docs').style.color=pctDocs==null?'inherit':colorPct(pctDocs);
@@ -6599,7 +6601,7 @@ function pintarConductoresPage(){
     if(fe==='retirados'&&c.activo!==false)return false;
     if(fv&&(c.vinculacion||'directo')!==fv)return false;
     if(q&&!normTxt(c.nombre).includes(q)&&!(c.cedula||'').includes(q))return false;
-    if(fd){const ok=docsDeConductor(c).every(d=>d.item.estado==='vigente');if(fd==='ok'&&!ok)return false;if(fd==='pend'&&ok)return false;}
+    if(fd){const ok=docsDeConductor(c).every(d=>alDiaEst(d.item.estado));if(fd==='ok'&&!ok)return false;if(fd==='pend'&&ok)return false;}
     return true;
   });
   document.getElementById('cp-count').textContent=`${lista.length} conductor(es)`;
@@ -7535,7 +7537,7 @@ function pintarMatrizCond(){
       <span style="white-space:nowrap">${i.doc.archivo_path?`<a href="#" style="font-size:11px" onclick="abrirArchivoAud('${escJs(i.doc.archivo_path)}');return false">Ver</a> · <a href="#" style="font-size:11px" onclick="abrirDocAud('${req.k}','${i.doc.id}');return false">Renovar</a>`
         :`<a href="#" style="font-size:11px;font-weight:600" onclick="abrirDocAud('${req.k}',null,null,{completaId:'${i.doc.id}'});return false">Cargar soporte</a>`}</span></div></td>`;
   };
-  const completos=activos.filter(c=>reqs.every(r=>porReq[r.k]?.[c.id]?.estado==='vigente')).length;
+  const completos=activos.filter(c=>reqs.every(r=>alDiaEst(porReq[r.k]?.[c.id]?.estado))).length;
   document.getElementById('aud-matriz-res').textContent=`${completos} de ${activos.length} conductores con todo al día`;
   box.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Conductor</th>${reqs.map(r=>`<th style="text-align:center">${esc(r.nombre)}</th>`).join('')}</tr></thead><tbody>
     ${filas.map(c=>`<tr><td><b>${esc(c.nombre)}</b><div style="font-size:11px;color:var(--text3)">C.C. ${esc(c.cedula||'—')} · ${esc(c.cargo||'Conductor')}</div></td>${reqs.map(r=>celda(r,c)).join('')}</tr>`).join('')
