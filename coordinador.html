@@ -5551,7 +5551,7 @@ const AUD_REQ=[
   {k:'rotacion_productos_plagas',cat:'plagas',nombre:'Cuadro de rotación de productos (sustancias de control de plagas)',alcance:'general',vig:12,aviso:30,tituloLbl:'Proveedor / periodo'},
   {k:'ft_hds_plagas',cat:'plagas',nombre:'Fichas técnicas y hojas de seguridad de las sustancias (según manual de aliados)',alcance:'general',vig:null,multi:true,tituloLbl:'Sustancia'},
   {k:'concepto_sanitario_vehiculo',cat:'vehiculo',nombre:'Certificado de concepto sanitario del vehículo',alcance:'vehiculo',docTipo:'acta_sanitaria',vig:12,aviso:30},
-  {k:'mantenimiento_frio',cat:'vehiculo',nombre:'Certificado de mantenimiento de la unidad de frío',alcance:'vehiculo',soloRefrigerado:true,vig:6,aviso:30},
+  {k:'mantenimiento_frio',cat:'vehiculo',nombre:'Certificado de mantenimiento de la unidad de frío',alcance:'vehiculo',soloRefrigerado:true,vig:3,aviso:15},
   {k:'examen_medico',cat:'personal',nombre:'Examen médico ocupacional',corto:'Examen médico',alcance:'persona',roster:true,vig:12,aviso:30},
   {k:'concepto_medico',cat:'personal',nombre:'Concepto médico apto para manipulación de alimentos',corto:'Concepto médico manipulación',alcance:'persona',roster:true,vig:12,aviso:30},
   {k:'curso_manipulacion',cat:'personal',nombre:'Curso de manipulación de alimentos',corto:'Curso manipulación de alimentos',alcance:'persona',roster:true,vig:12,aviso:30},
@@ -7773,8 +7773,17 @@ async function cargarHistorialBPM(){
   let qh=db.from('bpm_hallazgos').select('*').order('fecha',{ascending:false});
   let qv=db.from('bpm_verificaciones').select('id,regional_id,conductor_id,persona_nombre,persona_cedula,placa,fecha,evaluador,puntaje,resultado,no_cumple,documento_id,auditoria_documentos(archivo_path)').order('fecha',{ascending:false});
   if(reg){qh=qh.eq('regional_id',reg);qv=qv.eq('regional_id',reg);}
-  const[rh,rv]=await Promise.all([qh,qv]);
-  if(rh.error||rv.error){const m=(rh.error||rv.error).message;box.innerHTML=`<div style="color:var(--red-dark)">${/bpm_/.test(m)?'Falta ejecutar bpm_hallazgos.sql en Supabase.':esc(m)}</div>`;return;}
+  let[rh,rv]=await Promise.all([qh,qv]);
+  // Si el enlace al PDF no se puede traer, se cargan las verificaciones sin él
+  if(rv.error&&/relationship|auditoria_documentos/i.test(rv.error.message)){
+    let q2=db.from('bpm_verificaciones').select('id,regional_id,conductor_id,persona_nombre,persona_cedula,placa,fecha,evaluador,puntaje,resultado,no_cumple,documento_id').order('fecha',{ascending:false});
+    if(reg)q2=q2.eq('regional_id',reg);rv=await q2;
+  }
+  if(rh.error||rv.error){
+    const e=rh.error||rv.error,m=e.message||'';
+    const falta=/does not exist|no existe|schema cache|Could not find the table/i.test(m);
+    const cual=rh.error?'bpm_hallazgos.sql':'verificacion_bpm.sql';
+    box.innerHTML=`<div style="color:var(--red-dark);font-size:13px">${falta?`Falta ejecutar <b>${cual}</b> en Supabase.`:'No se pudo cargar el historial.'}<div style="color:var(--text3);margin-top:4px">Detalle: ${esc(m)}</div></div>`;return;}
   _bh={h:rh.data||[],v:rv.data||[]};
   const anios=[...new Set(_bh.v.map(x=>+x.fecha.slice(0,4)).concat(_bh.h.map(x=>+x.fecha.slice(0,4))).concat([new Date().getFullYear()]))].sort((a,b)=>b-a);
   llenarSelect('bh-anio',[['','Todos los años'],...anios.map(a=>[a,a])],document.getElementById('bh-anio').value||String(new Date().getFullYear()));
