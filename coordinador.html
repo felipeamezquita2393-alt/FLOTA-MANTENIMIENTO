@@ -144,7 +144,7 @@ body.solo-consulta .page .btn-primary,body.solo-consulta .page .btn-red,body.sol
         <div class="field"><label>Tiro</label>
           <select id="fv-tiro"><option value="">Seleccionar...</option><option value="sencillo">Sencillo</option><option value="doble">Doble troque</option><option value="turbo">Turbo</option><option value="otro">Otro</option></select></div>
         <div class="field"><label>Ambiente</label>
-          <select id="fv-ambiente"><option value="seco">Seco</option><option value="refrigerado">Refrigerado</option></select></div>
+          <select id="fv-ambiente"><option value="refrigerado">Refrigerado</option><option value="seco">Seco</option></select></div>
         <div class="field"><label>Marca furgón</label><input type="text" id="fv-marca-furgon" placeholder="Ej: Haceb, Carrier"></div>
         <div class="field"><label>Sello electrónico</label>
           <select id="fv-sello"><option value="false">No</option><option value="true">Sí</option></select></div>
@@ -3745,7 +3745,7 @@ async function abrirFicha(vhId){
   document.getElementById('fv-marca').value        = v.marca||'';
   document.getElementById('fv-modelo').value       = v.modelo_anio||'';
   document.getElementById('fv-tiro').value         = v.tiro||'';
-  document.getElementById('fv-ambiente').value     = v.ambiente||'seco';
+  document.getElementById('fv-ambiente').value     = v.ambiente||'refrigerado';
   document.getElementById('fv-sello').value        = String(v.sello_electronico||false);
   document.getElementById('fv-marca-furgon').value = v.marca_furgon||'';
   document.getElementById('fv-poseedor').value     = v.poseedor||'';
@@ -3773,7 +3773,7 @@ function abrirNuevaFicha(){
   ['fv-placa','fv-marca','fv-modelo','fv-marca-furgon','fv-poseedor','fv-motor','fv-chasis','fv-color','fv-obs'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('fv-tipo').value='camion';
   document.getElementById('fv-figura').value='titular';
-  document.getElementById('fv-ambiente').value='seco';
+  document.getElementById('fv-ambiente').value='refrigerado';
   document.getElementById('fv-sello').value='false';
   document.getElementById('fv-km').value='0';
   document.getElementById('fv-estado').value='disponible';
@@ -5962,7 +5962,7 @@ function onAudReq(vhSel){
   if(esVh){
     const reg=sr.value;
     const sv=document.getElementById('aud-vh');sv.innerHTML='';
-    const vhs=(_aud&&_aud.reg===reg?_aud.vhs:[]).filter(v=>!req.soloRefrigerado||v.ambiente==='refrigerado');
+    const vhs=[...(_aud&&_aud.reg===reg?_aud.vhs:[])].sort((a,b)=>req.soloRefrigerado?((b.ambiente==='refrigerado')-(a.ambiente==='refrigerado'))||a.placa.localeCompare(b.placa):a.placa.localeCompare(b.placa));
     if(!vhs.length)sv.add(new Option('No hay vehículos que apliquen en esta regional',''));
     vhs.forEach(v=>sv.add(new Option(v.placa,v.id)));
     if(typeof vhSel==='string'&&vhSel)sv.value=vhSel;
@@ -7994,8 +7994,9 @@ function destinoCelda(r){
   if(!req)return'<span style="font-size:12px;color:var(--text3)">Elige el requisito</span>';
   const st='font-size:12px;padding:5px;border:0.5px solid var(--border);border-radius:var(--r);width:100%';
   if(req.alcance==='vehiculo'){
-    const vhs=(_aud?.vhs||[]).filter(v=>!req.soloRefrigerado||v.ambiente==='refrigerado');
-    return`<select style="${st}" onchange="setMas(${r.id},'destino',this.value)"><option value="">— Vehículo —</option>${vhs.map(v=>`<option value="v:${v.id}"${r.destino==='v:'+v.id?' selected':''}>${esc(v.placa)}</option>`).join('')}</select>`;
+    // Todos los vehículos de la regional; los refrigerados primero (si uno no está marcado como refrigerado, igual se puede elegir)
+    const vhs=[...(_aud?.vhs||[])].sort((a,b)=>req.soloRefrigerado?((b.ambiente==='refrigerado')-(a.ambiente==='refrigerado'))||a.placa.localeCompare(b.placa):a.placa.localeCompare(b.placa));
+    return`<select style="${st}" onchange="setMas(${r.id},'destino',this.value)"><option value="">— Vehículo —</option>${vhs.map(v=>`<option value="v:${v.id}"${r.destino==='v:'+v.id?' selected':''}>${esc(v.placa)}${req.soloRefrigerado&&v.ambiente!=='refrigerado'?' (no marcado refrigerado)':''}</option>`).join('')}</select>`;
   }
   const progs=(_aud?.prog||[]).filter(p=>p.requisito===req.k);
   if(req.prog&&progs.length){
