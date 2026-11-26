@@ -64,6 +64,7 @@ tr:hover td{background:var(--bg2)}
 .rot-cuadro td,.rot-cuadro th{padding:4px 6px;border:0.5px solid var(--border)}
 body.solo-consulta .page .btn-primary,body.solo-consulta .page .btn-red,body.solo-consulta .modal .btn-primary{display:none!important}
 .oculto-rol{display:none!important}
+body.solo-consulta [onclick*="cp-import"],body.solo-consulta [onclick*="abrirRetiro("],body.solo-consulta [onclick*="reactivar("],body.solo-consulta [onclick*="abrirNuevoVh"],body.solo-consulta [onclick*="eliminarSoporte"],body.solo-consulta [onclick*="abrirDocForm"]{display:none!important}
 .rh-sel{font-size:12px;padding:6px 8px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text)}
 @media(max-width:900px){.rh-grid2{grid-template-columns:1fr!important}}
 .full{grid-column:1/-1}
@@ -1989,6 +1990,12 @@ body.solo-consulta .page .btn-primary,body.solo-consulta .page .btn-red,body.sol
           <input type="text" id="aud-cond-buscar" placeholder="Buscar conductor…" oninput="pintarMatrizCond()" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--r)"></div></div>
       <div id="aud-matriz"></div>
     </div>
+    <div class="card">
+      <div class="card-hdr"><span class="card-title">Documentos por vehículo</span>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span id="aud-matriz-vh-res" style="font-size:12px;color:var(--text2)"></span>
+          <input type="text" id="aud-vh-buscar" placeholder="Buscar placa…" oninput="pintarMatrizVh()" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--r)"></div></div>
+      <div id="aud-matriz-vh"></div>
+    </div>
     <div id="aud-cats"></div>
   </div>
 
@@ -2205,7 +2212,7 @@ function adminRH(){return USER_ROL==='gerente'||USER_ROL==='gestion_humana';}
 const PAGINAS_ROL={
   gerencia:['dashboard','gerencial','checklists','criticidad'],
   gestion_humana:['conductores','auditorias','bpm','rotacion','ausentismo'],
-  auxiliar_operaciones:['dashboard','disponibilidad','checklists'],
+  auxiliar_operaciones:['dashboard','disponibilidad','checklists','flota','documentos','conductores'],
 };
 function puedePagina(pg){const l=PAGINAS_ROL[USER_ROL];return!l||l.includes(pg);}
 function aplicarMenuRol(){
@@ -2256,7 +2263,7 @@ async function cerrarSesion(){await db.auth.signOut();window.location.href='logi
 // ── Nav ──
 function ir(page){
   if(!puedePagina(page)){toast('Tu usuario no tiene acceso a esta sección',true);return;}
-  if(PAGINAS_MODULO[page]&&!puedeModulo(PAGINAS_MODULO[page])){toast('Este módulo aún no está habilitado para tu usuario',true);return;}
+  if(PAGINAS_MODULO[page]&&!puedeModulo(PAGINAS_MODULO[page])&&!(PAGINAS_ROL[USER_ROL]||[]).includes(page)){toast('Este módulo aún no está habilitado para tu usuario',true);return;}
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.snav-item').forEach(a=>a.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
@@ -4082,7 +4089,7 @@ async function cargarDocumentos(){
       const estadoLabel=d.estado==='vencido'?'Vencido':d.estado==='proximo'?'Próximo 30d':'Vigente';
       // Lupa si tiene archivo
       const lupaBtn=d.archivo_url
-        ?`<a href="${safeUrl(d.archivo_url)}" target="_blank" rel="noopener" title="Ver documento" style="text-decoration:none;font-size:16px;cursor:pointer">🔍</a>`
+        ?`<a href="#" onclick="verDocVh('${escJs(d.archivo_url)}');return false" title="Ver documento" style="text-decoration:none;font-size:16px;cursor:pointer">🔍</a>`
         :'';
       return`<tr>
         <td style="font-weight:600">${esc(d.vehiculos?.placa||'—')} ${lupaBtn}</td>
@@ -5617,7 +5624,7 @@ async function cargarAuditorias(){
     const [rDocs,rVhs,rDv,rLav,rCl,rCond]=await Promise.all([
       db.from('auditoria_documentos').select('*').eq('activo',true).eq('regional_id',reg).order('fecha_vencimiento',{ascending:false,nullsFirst:true}),
       db.from('vehiculos').select('id,placa,tipo,ambiente').eq('activo',true).neq('tipo','remolque').eq('regional_id',reg).order('placa'),
-      db.from('documentos_vehiculo').select('id,tipo,vehiculo_id,fecha_vencimiento,numero_documento').in('tipo',['fumigacion','acta_sanitaria']).eq('regional_id',reg),
+      db.from('documentos_vehiculo').select('id,tipo,vehiculo_id,fecha_expedicion,fecha_vencimiento,numero_documento,archivo_url,archivo_nombre').eq('regional_id',reg),
       db.from('lavados').select('vehiculo_id,tipo,estado,recibe_nombre').eq('regional_id',reg).gte('fecha',mesIni).eq('estado','ejecutado'),
       db.from('checklists').select('vehiculo_id').eq('regional_id',reg).gte('fecha',hace7),
       db.from('conductores').select('id,nombre,cedula,cargo,telefono,activo').eq('regional_id',reg).order('nombre'),
@@ -5628,7 +5635,7 @@ async function cargarAuditorias(){
     const prog=rProg.error?null:(rProg.data||[]);
     const resAll=AUD_REQ.map(req=>evaluarReqAud(req,{docs,vhs,dv,lavs,cls,conds,prog,hoyD}));
     const res=resAll.filter(r=>!r.req.noAud); // lo que no es de auditoría solo se ve en Conductores
-    _aud={reg,docs,vhs,conds,prog,res,resAll};
+    _aud={reg,docs,vhs,conds,prog,res,resAll,dv};
     pintarAuditorias();
   }catch(e){
     const msg=/auditoria_documentos/.test(e.message||'')?'Falta ejecutar auditorias.sql en Supabase.':e.message;
@@ -5699,7 +5706,7 @@ function evaluarReqAud(req,{docs,vhs,dv,lavs,cls,conds,prog,hoyD}){
       }
       if(!ult){out.items.push({etiqueta:v.placa,detalle:'Sin documento',estado:'faltante',vehiculo:v});return;}
       const st=req.docTipo?audEstadoFecha(ult.fecha_vencimiento,aviso):estadoDocAud(ult,aviso);
-      out.items.push({etiqueta:v.placa,detalle:req.docTipo?`${fmtF(ult.fecha_vencimiento)} · ${diasTxt(st.dias)}`:detDocAud(ult,st),estado:st.estado,dias:st.dias,venc:ult.fecha_vencimiento,doc:req.docTipo?null:ult,vehiculo:v});
+      out.items.push({etiqueta:v.placa,detalle:req.docTipo?`${fmtF(ult.fecha_vencimiento)} · ${diasTxt(st.dias)}`:detDocAud(ult,st),estado:st.estado,dias:st.dias,venc:ult.fecha_vencimiento,doc:req.docTipo?null:ult,dv:req.docTipo?ult:null,vehiculo:v});
     });
     out.estado=peor(out.items.map(i=>i.estado));
     const c=e=>out.items.filter(i=>i.estado===e).length;
@@ -5819,7 +5826,7 @@ function pintarAuditorias(){
     return`<div class="card"><div class="card-hdr"><span class="card-title">${esc(cat.nombre)}</span><span style="font-size:12px;color:var(--text2)">${okc} de ${filas.length} al día</span></div>
       <div class="tbl-wrap"><table><tbody>${filas.map(r=>filaReqAud(r)).join('')}</tbody></table></div></div>`;
   }).join('');
-  pintarMatrizCond();
+  pintarMatrizCond();pintarMatrizVh();
   pintarProgramacion();
 }
 
@@ -5865,6 +5872,9 @@ function detalleReqAud(r){
     if(i.prog){
       acc=`${(i.soportes||[]).filter(x=>x.archivo_path).map((x,n)=>`<button class="btn btn-sm" onclick="abrirArchivoAud('${escJs(x.archivo_path)}')" title="${esc(x.archivo_nombre||'')}">Soporte ${n+1}</button>`).join(' ')}
         <button class="btn btn-sm btn-primary" onclick="abrirDocAud('${r.req.k}',null,null,{progId:'${i.prog.id}'})">+ Soporte</button>`;
+    }else if(i.dv){
+      // Documento del vehículo (se gestiona en Documentos): aquí solo se consulta
+      acc=i.dv.archivo_url?`<button class="btn btn-sm" onclick="verDocVh('${escJs(i.dv.archivo_url)}')">Ver archivo</button>`:'<span style="font-size:12px;color:var(--text3)">Sin archivo cargado</span>';
     }else if(d){
       acc=`${d.archivo_path?`<button class="btn btn-sm" onclick="abrirArchivoAud('${escJs(d.archivo_path)}')">Ver archivo</button>
       <button class="btn btn-sm" onclick="abrirDocAud('${r.req.k}','${d.id}')">${r.req.k==='verificacion_bpm'?'📋 Nueva verificación':'Renovar'}</button>`
@@ -6630,8 +6640,9 @@ async function novedadCond(id){
   document.getElementById('au-cond').value=id;
   document.getElementById('au-wrap-otra').style.display='none';
 }
+const soloConsulta=()=>USER_ROL==='gerencia'||USER_ROL==='auxiliar_operaciones';
 function tarjetaCond(c){
-  const ret=c.activo===false;
+  const ret=c.activo===false;const sv=soloConsulta();
   const vinc=(c.vinculacion||'directo')==='temporal'
     ?`<span class="badge b-amber">Temporal${c.empresa_temporal?' · '+esc(c.empresa_temporal):''}</span>`:'<span class="badge b-blue" style="background:#E3F2FD;color:#1565C0">Directo</span>';
   let fin='';
@@ -6640,7 +6651,8 @@ function tarjetaCond(c){
   const docs=ret?'':docsDeConductor(c).map(({req,item})=>{
     const d=item.doc;
     let acc;
-    if(!d)acc=`<a href="#" onclick="docCond('${req.k}','nuevo','${c.id}');return false">Cargar</a>`;
+    if(sv)acc=d?.archivo_path?`<a href="#" onclick="abrirArchivoAud('${escJs(d.archivo_path)}');return false">Ver</a>`:'<span style="color:var(--text3)">sin archivo</span>';
+    else if(!d)acc=`<a href="#" onclick="docCond('${req.k}','nuevo','${c.id}');return false">Cargar</a>`;
     else if(!d.archivo_path)acc=`<a href="#" onclick="docCond('${req.k}','completar','${d.id}');return false">Cargar soporte</a>`;
     else acc=`<a href="#" onclick="abrirArchivoAud('${escJs(d.archivo_path)}');return false">Ver</a> · <a href="#" onclick="docCond('${req.k}','renovar','${d.id}');return false">Renovar</a>`;
     return`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:0.5px solid var(--border)">
@@ -6656,7 +6668,7 @@ function tarjetaCond(c){
         ${fin}
         ${ret?`<div style="font-size:11px;color:var(--text2);margin-top:4px">Retiro: ${c.fecha_retiro?fmtF(c.fecha_retiro):'—'} · ${esc(c.motivo_retiro||'')}${c.observacion_retiro?' · '+esc(c.observacion_retiro):''}</div>`:''}
       </div>
-      <div style="display:flex;flex-direction:column;gap:4px">
+      <div style="display:${sv?'none':'flex'};flex-direction:column;gap:4px">
         <button class="btn btn-sm" onclick="abrirFichaCond('${c.id}')">Editar</button>
         ${!ret&&puedeModulo('personal')?`<button class="btn btn-sm" onclick="novedadCond('${c.id}')" title="Vacaciones, incapacidad, restricción médica…">Novedad</button>`:''}
         ${ret?`<button class="btn btn-sm" onclick="reintegrarCond('${c.id}')">Reintegrar</button>`:`<button class="btn btn-sm btn-red" onclick="abrirRetiroCond('${c.id}')">Retirar</button>`}
@@ -6808,8 +6820,11 @@ async function cargarAccesosModulos(){
 function puedeModulo(m){return USER_ROL==='gerente'||(USER_ROL==='gestion_humana'&&(m==='calidad'||m==='personal'))||(USER_ROL==='coordinador'&&!!MOD_VISIBLE[m]);}
 function aplicarAccesosMenu(){
   const cal=puedeModulo('calidad'),per=puedeModulo('personal');
-  document.querySelectorAll('[data-modulo="calidad"]').forEach(e=>e.style.display=cal?'':'none');
-  document.querySelectorAll('[data-modulo="personal"]').forEach(e=>e.style.display=per?'':'none');
+  // Roles de consulta con páginas puntuales de un módulo (ej. auxiliar de operaciones → Conductores)
+  const pr=(typeof PAGINAS_ROL!=='undefined'&&PAGINAS_ROL[USER_ROL])||[];
+  const ver=(e,ok)=>ok||(e.dataset.page?pr.includes(e.dataset.page):Object.entries(PAGINAS_MODULO).some(([pg,m])=>m===e.dataset.modulo&&pr.includes(pg)));
+  document.querySelectorAll('[data-modulo="calidad"]').forEach(e=>e.style.display=ver(e,cal)?'':'none');
+  document.querySelectorAll('[data-modulo="personal"]').forEach(e=>e.style.display=ver(e,per)?'':'none');
   document.querySelectorAll('[data-solo-gerente]').forEach(e=>e.style.display=USER_ROL==='gerente'?'':'none');
 }
 const PAGINAS_MODULO={conductores:'calidad',auditorias:'calidad',bpm:'calidad',rotacion:'personal',ausentismo:'personal'};
@@ -7525,6 +7540,45 @@ function exportarAusentismo(){
 }
 
 // ── AUDITORÍAS · Tabla por conductor ──────────────────────────
+// Abre un documento del vehículo con un enlace firmado nuevo (el guardado puede haber vencido)
+async function verDocVh(url){
+  const w=window.open('','_blank');
+  try{
+    const m=String(url).match(/\/object\/sign\/documentos-vehiculos\/([^?]+)/);
+    if(m){const{data}=await db.storage.from('documentos-vehiculos').createSignedUrl(decodeURIComponent(m[1]),600);if(data?.signedUrl){if(w)w.location=data.signedUrl;else location.href=data.signedUrl;return;}}
+  }catch(e){}
+  const ok=/^https:\/\/sixtqtopppbclxqdardb\.supabase\.co\//.test(String(url))?url:null;
+  if(!ok){w?.close();toast('No se pudo abrir el documento',true);return;}
+  if(w)w.location=ok;else window.open(ok,'_blank');
+}
+// Documentos por vehículo: solo lo que pide la auditoría
+function pintarMatrizVh(){
+  const box=document.getElementById('aud-matriz-vh');if(!box||!_aud)return;
+  const reqs=AUD_REQ.filter(r=>r.alcance==='vehiculo'&&!r.noAud);
+  const extra=[];
+  const q=normTxt(document.getElementById('aud-vh-buscar')?.value||'');
+  const vhs=(_aud.vhs||[]).filter(v=>!q||normTxt(v.placa).includes(q));
+  if(!(_aud.vhs||[]).length){box.innerHTML='<div style="font-size:13px;color:var(--text2)">No hay vehículos activos en esta regional.</div>';return;}
+  const porReq={};_aud.res.filter(r=>r.req.alcance==='vehiculo').forEach(r=>{porReq[r.req.k]={};r.items.forEach(i=>{if(i.vehiculo)porReq[r.req.k][i.vehiculo.id]=i;});});
+  const ver=(dv,d)=>dv?.archivo_url?`<a href="#" style="font-size:11px" onclick="verDocVh('${escJs(dv.archivo_url)}');return false">Ver</a>`
+    :d?.archivo_path?`<a href="#" style="font-size:11px" onclick="abrirArchivoAud('${escJs(d.archivo_path)}');return false">Ver</a>`:'<span style="font-size:11px;color:var(--text3)">sin archivo</span>';
+  const celdaReq=(req,v)=>{
+    const i=porReq[req.k]?.[v.id];
+    if(!i||(!i.doc&&!i.dv))return`<td style="text-align:center">${badgeAud('faltante')}</td>`;
+    return`<td style="text-align:center"><div style="display:flex;flex-direction:column;align-items:center;gap:3px">${badgeAud(i.estado)}<span style="font-size:11px;color:var(--text3)">${i.venc?fmtF(i.venc):''}</span>${ver(i.dv,i.doc)}</div></td>`;
+  };
+  const celdaExtra=(tipo,v)=>{
+    const d=(_aud.dv||[]).filter(x=>x.tipo===tipo&&x.vehiculo_id===v.id).sort((a,b)=>(b.fecha_vencimiento||'').localeCompare(a.fecha_vencimiento||''))[0];
+    if(!d)return`<td style="text-align:center;color:var(--text3);font-size:12px">—</td>`;
+    const st=audEstadoFecha(d.fecha_vencimiento,30);
+    return`<td style="text-align:center"><div style="display:flex;flex-direction:column;align-items:center;gap:3px">${badgeAud(st.estado)}<span style="font-size:11px;color:var(--text3)">${fmtF(d.fecha_vencimiento)}</span>${ver(d,null)}</div></td>`;
+  };
+  const completos=(_aud.vhs||[]).filter(v=>reqs.every(r=>alDiaEst(porReq[r.k]?.[v.id]?.estado))).length;
+  document.getElementById('aud-matriz-vh-res').textContent=`${completos} de ${(_aud.vhs||[]).length} vehículos con lo de auditoría al día`;
+  box.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Vehículo</th>${reqs.map(r=>`<th style="text-align:center" title="${esc(r.nombre)}">${esc({fumigacion:'Fumigación',concepto_sanitario_vehiculo:'Concepto sanitario',mantenimiento_frio:'Mant. unidad de frío'}[r.k]||r.nombre.replace(/\s*\(.*\)$/,''))}</th>`).join('')}${extra.map(([,n])=>`<th style="text-align:center;color:var(--text3)">${n}<div style="font-size:10px;font-weight:400">consulta</div></th>`).join('')}</tr></thead><tbody>
+    ${vhs.map(v=>`<tr><td><b>${esc(v.placa)}</b></td>${reqs.map(r=>celdaReq(r,v)).join('')}${extra.map(([t])=>celdaExtra(t,v)).join('')}</tr>`).join('')||`<tr><td colspan="${reqs.length+1}" style="text-align:center;color:var(--text3)">Sin resultados</td></tr>`}
+  </tbody></table></div><div style="font-size:11px;color:var(--text3);margin-top:6px">El acta sanitaria y la fumigación se cargan en <a href="#" onclick="ir('documentos');return false">Documentos</a>; el mantenimiento de la unidad de frío, aquí en Auditorías.</div>`;
+}
 function pintarMatrizCond(){
   const box=document.getElementById('aud-matriz');if(!box||!_aud)return;
   const reqs=AUD_REQ.filter(r=>r.roster&&!r.noAud);
