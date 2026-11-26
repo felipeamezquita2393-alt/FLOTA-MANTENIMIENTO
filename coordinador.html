@@ -5825,6 +5825,7 @@ function pintarAuditorias(){
 
 // Acción directa para un elemento pendiente (cargar el soporte que falta en ese mismo registro)
 function accionItemAud(req,i){
+  if(req.k==='verificacion_bpm'&&i)return`<button class="btn btn-sm btn-primary" onclick="abrirBPM(${i.conductor?`'${i.conductor.id}'`:i.doc?.conductor_id?`'${i.doc.conductor_id}'`:''})">📋 Verificar</button>`;
   if(!i||req.docTipo||req.alcance==='sistema')return accionCargarAud(req);
   if(i.prog)return`<button class="btn btn-sm btn-primary" onclick="abrirDocAud('${req.k}',null,null,{progId:'${i.prog.id}'})">Cargar soporte</button>`;
   if(i.doc&&!i.doc.archivo_path)return`<button class="btn btn-sm btn-primary" onclick="abrirDocAud('${req.k}',null,null,{completaId:'${i.doc.id}'})">Cargar soporte</button>`;
@@ -5837,7 +5838,7 @@ function accionCargarAud(req){
   if(req.cron)return`<button class="btn btn-sm" onclick="document.getElementById('aud-prog').scrollIntoView({behavior:'smooth',block:'start'})">Ver cronograma</button>`;
   if(req.alcance==='sistema')return`<button class="btn btn-sm" onclick="ir('${req.ir}')">Abrir</button>`;
   if(req.docTipo)return`<button class="btn btn-sm" onclick="ir('documentos')" title="Se carga en Documentos del vehículo">Ir a documentos</button>`;
-  if(req.k==='verificacion_bpm')return`<button class="btn btn-sm btn-primary" onclick="abrirBPM()">📋 Verificar</button> <button class="btn btn-sm" onclick="abrirDocAud('${req.k}')">+ Cargar</button>`;
+  if(req.k==='verificacion_bpm')return`<button class="btn btn-sm btn-primary" onclick="abrirBPM()">📋 Verificar</button> <button class="btn btn-sm" onclick="abrirDocAud('${req.k}',null,null,{subirArchivo:true})" title="Solo para subir un formato escaneado">Subir escaneado</button>`;
   return`<button class="btn btn-sm btn-primary" onclick="abrirDocAud('${req.k}')">+ Cargar</button>`;
 }
 
@@ -5866,8 +5867,8 @@ function detalleReqAud(r){
         <button class="btn btn-sm btn-primary" onclick="abrirDocAud('${r.req.k}',null,null,{progId:'${i.prog.id}'})">+ Soporte</button>`;
     }else if(d){
       acc=`${d.archivo_path?`<button class="btn btn-sm" onclick="abrirArchivoAud('${escJs(d.archivo_path)}')">Ver archivo</button>
-      <button class="btn btn-sm" onclick="abrirDocAud('${r.req.k}','${d.id}')">Renovar</button>`
-      :`<button class="btn btn-sm btn-primary" onclick="abrirDocAud('${r.req.k}',null,null,{completaId:'${d.id}'})">Cargar soporte</button>`}
+      <button class="btn btn-sm" onclick="abrirDocAud('${r.req.k}','${d.id}')">${r.req.k==='verificacion_bpm'?'📋 Nueva verificación':'Renovar'}</button>`
+      :`<button class="btn btn-sm btn-primary" onclick="abrirDocAud('${r.req.k}',null,null,{completaId:'${d.id}'})">${r.req.k==='verificacion_bpm'?'📋 Verificar':'Cargar soporte'}</button>`}
       <button class="btn btn-sm btn-red" onclick="retirarDocAud('${d.id}')">Retirar</button>`;
     }else if(i.estado==='faltante')acc=accionItemAud(r.req,i);
     return`<tr><td style="font-size:12px"><b>${esc(i.etiqueta)}</b>${d?.numero_documento?` <span style="color:var(--text3)">· N.° ${esc(d.numero_documento)}</span>`:''}${d?.observaciones?`<div style="color:var(--text3);font-size:11px">${esc(d.observaciones)}</div>`:''}</td>
@@ -5894,6 +5895,12 @@ async function retirarDocAud(id){
 
 // ── Modal: cargar / renovar documento ──
 function abrirDocAud(reqK,reemplazaId,conductorId,opts={}){
+  // Verificación BPM: se hace con el formulario del aplicativo (renovar, cargar o completar llevan al formulario)
+  if(reqK==='verificacion_bpm'&&!opts.subirArchivo){
+    const dId=reemplazaId||opts.completaId;
+    const d=dId?(_aud?.docs||[]).find(x=>x.id===dId):null;
+    abrirBPM(conductorId||d?.conductor_id||undefined);return;
+  }
   const completa=opts.completaId?_aud?.docs.find(d=>d.id===opts.completaId):null;
   const prog=opts.progId?(_aud?.prog||[]).find(p=>p.id===opts.progId):null;
   prepSelectRegAud();
