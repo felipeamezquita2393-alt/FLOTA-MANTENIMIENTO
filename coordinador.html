@@ -62,7 +62,7 @@ tr:hover td{background:var(--bg2)}
 .field textarea{resize:vertical;min-height:72px}
 .form2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .rot-cuadro td,.rot-cuadro th{padding:4px 6px;border:0.5px solid var(--border)}
-body.solo-consulta .page .btn-primary,body.solo-consulta .page .btn-red,body.solo-consulta .modal .btn-primary{display:none!important}
+body.solo-consulta .page .btn-primary,body.solo-consulta .page .btn-red,body.solo-consulta .modal .btn-primary:not(#bpm-btn){display:none!important}
 .oculto-rol{display:none!important}
 body.solo-consulta [onclick*="cp-import"],body.solo-consulta [onclick*="abrirRetiro("],body.solo-consulta [onclick*="reactivar("],body.solo-consulta [onclick*="abrirNuevoVh"],body.solo-consulta [onclick*="eliminarSoporte"],body.solo-consulta [onclick*="abrirDocForm"]{display:none!important}
 .rh-sel{font-size:12px;padding:6px 8px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text)}
@@ -461,13 +461,14 @@ body.solo-consulta [onclick*="cp-import"],body.solo-consulta [onclick*="abrirRet
 <!-- Modal verificación de BPM (formulario digital) -->
 <div class="modal-overlay" id="modal-bpm">
   <div class="modal" style="max-width:760px;max-height:94vh;overflow-y:auto">
-    <div class="modal-title">Verificación de BPM al conductor</div>
+    <div class="modal-title" id="bpm-titulo">Verificación de BPM al conductor</div>
     <div style="font-size:12px;color:var(--text2);margin:-6px 0 12px">Buenas Prácticas de Manufactura en el transporte de alimentos. Al guardar se genera el PDF y queda como soporte en Auditorías.</div>
     <div class="form2">
       <div class="field"><label>Regional</label><div id="bpm-reg-nombre" style="font-weight:600;padding:8px 0"></div></div>
       <div class="field"><label>Fecha *</label><input type="date" id="bpm-fecha"></div>
-      <div class="field"><label>Conductor *</label><select id="bpm-cond"></select></div>
-      <div class="field"><label>Vehículo</label><select id="bpm-vh"></select></div>
+      <div class="field"><label id="bpm-lbl-cond">Conductor *</label><select id="bpm-cond"></select></div>
+      <div class="field" id="bpm-vh-wrap"><label id="bpm-lbl-vh">Vehículo</label><select id="bpm-vh"></select></div>
+      <div class="field" id="bpm-temp-wrap" style="display:none"><label>Temperatura registrada en el furgón (°C)</label><input type="number" id="bpm-temp" step="0.1" min="-40" max="40" placeholder="Ej. 3.5"></div>
       <div class="field"><label>Quién verifica *</label><input type="text" id="bpm-evaluador" maxlength="120" placeholder="Nombre de quien realiza la verificación"></div>
       <div class="field"><label>Firma digital de quien verifica</label>
         <div style="display:flex;align-items:center;gap:10px;min-height:48px">
@@ -988,6 +989,7 @@ body.solo-consulta [onclick*="cp-import"],body.solo-consulta [onclick*="abrirRet
     <div class="snav-item" data-page="alertas" onclick="ir('alertas')"><span>Alertas</span><span class="badge b-amber" id="badge-alertas" style="display:none"></span></div>
     <div class="snav-item" data-page="historial" onclick="ir('historial')"><span>Historial</span></div>
     <div class="snav-item" data-page="flota" onclick="ir('flota')"><span>Flota completa</span></div>
+    <div class="snav-item" data-page="insp-vh" id="nav-insp-vh" style="display:none" onclick="abrirBPMVehiculo()"><span>🚚 Inspección BPM vehículo</span></div>
     <div class="snav-sec">Registrar</div>
     <div class="snav-item" data-page="entrada" onclick="ir('entrada')"><span>Entrada a taller</span></div>
     <div class="snav-item" data-page="retorno" onclick="ir('retorno')"><span>Retorno al servicio</span></div>
@@ -1850,7 +1852,7 @@ body.solo-consulta [onclick*="cp-import"],body.solo-consulta [onclick*="abrirRet
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
           <div>
             <div style="font-size:16px;font-weight:700">Historial de verificaciones BPM</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:2px">Qué no cumplió cada conductor, la medida tomada y su cierre.</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px">Qué no cumplió cada conductor o vehículo, la medida tomada y su cierre.</div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn btn-sm" onclick="exportarHallazgosBPM()">⬇ Excel</button>
@@ -1860,6 +1862,7 @@ body.solo-consulta [onclick*="cp-import"],body.solo-consulta [onclick*="abrirRet
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
           <select id="bh-reg" class="rh-sel" onchange="cargarHistorialBPM()"></select>
           <select id="bh-anio" class="rh-sel" onchange="pintarHistorialBPM()"></select>
+          <select id="bh-tipo" class="rh-sel" onchange="pintarHistorialBPM()"><option value="">Conductores y vehículos</option><option value="conductor">Solo conductores</option><option value="vehiculo">Solo vehículos</option></select>
           <select id="bh-estado" class="rh-sel" onchange="pintarHistorialBPM()"><option value="abierto">Hallazgos abiertos</option><option value="cerrado">Hallazgos cerrados</option><option value="">Todos los hallazgos</option></select>
           <input type="text" id="bh-buscar" class="rh-sel" placeholder="Buscar conductor o cédula…" oninput="pintarHistorialBPM()" style="min-width:220px">
         </div>
@@ -1867,7 +1870,7 @@ body.solo-consulta [onclick*="cp-import"],body.solo-consulta [onclick*="abrirRet
       <div class="metrics" id="bh-metricas"></div>
       <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px" class="rh-grid2">
         <div class="card"><div class="card-hdr"><span class="card-title">Puntos que más fallan</span></div><div id="bh-puntos"></div></div>
-        <div class="card"><div class="card-hdr"><span class="card-title">Conductores con más hallazgos</span></div><div id="bh-conductores"></div></div>
+        <div class="card"><div class="card-hdr"><span class="card-title">Conductores / vehículos con más hallazgos</span></div><div id="bh-conductores"></div></div>
       </div>
       <div class="card"><div class="card-hdr"><span class="card-title">Hallazgos y medidas tomadas</span><span id="bh-count" style="font-size:12px;color:var(--text2)"></span></div><div id="bh-tabla"></div></div>
       <div class="card"><div class="card-hdr"><span class="card-title">Verificaciones realizadas</span></div><div id="bh-verif"></div></div>
@@ -1964,6 +1967,7 @@ body.solo-consulta [onclick*="cp-import"],body.solo-consulta [onclick*="abrirRet
           <button class="btn btn-sm" onclick="ir('conductores')">👥 Conductores</button>
           <button class="btn btn-sm" onclick="abrirMasiva()">⬆ Carga masiva</button>
           <button class="btn btn-sm" onclick="abrirBPM()">📋 Verificación BPM</button>
+          <button class="btn btn-sm" onclick="abrirBPMVehiculo()">🚚 Inspección BPM vehículo</button>
           <button class="btn btn-sm btn-primary" onclick="abrirDocAud()">+ Cargar documento</button>
         </div>
       </div>
@@ -2212,7 +2216,7 @@ function adminRH(){return USER_ROL==='gerente'||USER_ROL==='gestion_humana';}
 const PAGINAS_ROL={
   gerencia:['dashboard','gerencial','checklists','criticidad'],
   gestion_humana:['conductores','auditorias','bpm','rotacion','ausentismo'],
-  auxiliar_operaciones:['dashboard','disponibilidad','checklists','flota','documentos','conductores'],
+  auxiliar_operaciones:['dashboard','disponibilidad','checklists','flota','documentos','conductores','insp-vh'],
 };
 function puedePagina(pg){const l=PAGINAS_ROL[USER_ROL];return!l||l.includes(pg);}
 function aplicarMenuRol(){
@@ -2314,6 +2318,7 @@ async function init(){
       sel.disabled=true;sel.style.opacity='0.7';
     });
   }
+  { const nv=document.getElementById('nav-insp-vh'); if(nv&&(USER_ROL==='coordinador'||USER_ROL==='auxiliar_operaciones'))nv.style.display=''; }
   aplicarMenuRol();
   if(USER_ROL==='gestion_humana'){ir('conductores');actualizarBadgeAuditorias();actualizarBadgeBPM();return;}
   await cargarDashboard();
@@ -5559,6 +5564,7 @@ const AUD_REQ=[
   {k:'rotacion_productos_plagas',cat:'plagas',nombre:'Cuadro de rotación de productos (sustancias de control de plagas)',alcance:'general',vig:12,aviso:30,tituloLbl:'Proveedor / periodo'},
   {k:'ft_hds_plagas',cat:'plagas',nombre:'Fichas técnicas y hojas de seguridad de las sustancias (según manual de aliados)',alcance:'general',vig:null,multi:true,tituloLbl:'Sustancia'},
   {k:'concepto_sanitario_vehiculo',cat:'vehiculo',nombre:'Certificado de concepto sanitario del vehículo',alcance:'vehiculo',docTipo:'acta_sanitaria',vig:12,aviso:30},
+  {k:'inspeccion_bpm_vehiculo',cat:'vehiculo',nombre:'Inspección BPM del vehículo',alcance:'vehiculo',vig:1,aviso:7},
   {k:'mantenimiento_frio',cat:'vehiculo',nombre:'Certificado de mantenimiento de la unidad de frío',alcance:'vehiculo',soloRefrigerado:true,vig:3,aviso:15},
   {k:'examen_medico',cat:'personal',nombre:'Examen médico ocupacional',corto:'Examen médico',alcance:'persona',roster:true,vig:12,aviso:30},
   {k:'concepto_medico',cat:'personal',nombre:'Concepto médico apto para manipulación de alimentos',corto:'Concepto médico manipulación',alcance:'persona',roster:true,vig:12,aviso:30},
@@ -5832,6 +5838,7 @@ function pintarAuditorias(){
 
 // Acción directa para un elemento pendiente (cargar el soporte que falta en ese mismo registro)
 function accionItemAud(req,i){
+  if(req.k==='inspeccion_bpm_vehiculo'&&i)return`<button class="btn btn-sm btn-primary" onclick="abrirBPMVehiculo(${i.vehiculo?`'${i.vehiculo.id}'`:''})">🚚 Inspeccionar</button>`;
   if(req.k==='verificacion_bpm'&&i)return`<button class="btn btn-sm btn-primary" onclick="abrirBPM(${i.conductor?`'${i.conductor.id}'`:i.doc?.conductor_id?`'${i.doc.conductor_id}'`:''})">📋 Verificar</button>`;
   if(!i||req.docTipo||req.alcance==='sistema')return accionCargarAud(req);
   if(i.prog)return`<button class="btn btn-sm btn-primary" onclick="abrirDocAud('${req.k}',null,null,{progId:'${i.prog.id}'})">Cargar soporte</button>`;
@@ -5845,6 +5852,7 @@ function accionCargarAud(req){
   if(req.cron)return`<button class="btn btn-sm" onclick="document.getElementById('aud-prog').scrollIntoView({behavior:'smooth',block:'start'})">Ver cronograma</button>`;
   if(req.alcance==='sistema')return`<button class="btn btn-sm" onclick="ir('${req.ir}')">Abrir</button>`;
   if(req.docTipo)return`<button class="btn btn-sm" onclick="ir('documentos')" title="Se carga en Documentos del vehículo">Ir a documentos</button>`;
+  if(req.k==='inspeccion_bpm_vehiculo')return`<button class="btn btn-sm btn-primary" onclick="abrirBPMVehiculo()">🚚 Inspeccionar</button>`;
   if(req.k==='verificacion_bpm')return`<button class="btn btn-sm btn-primary" onclick="abrirBPM()">📋 Verificar</button> <button class="btn btn-sm" onclick="abrirDocAud('${req.k}',null,null,{subirArchivo:true})" title="Solo para subir un formato escaneado">Subir escaneado</button>`;
   return`<button class="btn btn-sm btn-primary" onclick="abrirDocAud('${req.k}')">+ Cargar</button>`;
 }
@@ -5906,6 +5914,10 @@ async function retirarDocAud(id){
 // ── Modal: cargar / renovar documento ──
 function abrirDocAud(reqK,reemplazaId,conductorId,opts={}){
   // Verificación BPM: se hace con el formulario del aplicativo (renovar, cargar o completar llevan al formulario)
+  if(reqK==='inspeccion_bpm_vehiculo'&&!opts.subirArchivo){
+    const d=(reemplazaId||opts.completaId)?(_aud?.docs||[]).find(x=>x.id===(reemplazaId||opts.completaId)):null;
+    abrirBPMVehiculo(d?.vehiculo_id||undefined);return;
+  }
   if(reqK==='verificacion_bpm'&&!opts.subirArchivo){
     const dId=reemplazaId||opts.completaId;
     const d=dId?(_aud?.docs||[]).find(x=>x.id===dId):null;
@@ -7577,7 +7589,7 @@ function pintarMatrizVh(){
   };
   const completos=(_aud.vhs||[]).filter(v=>reqs.every(r=>alDiaEst(porReq[r.k]?.[v.id]?.estado))).length;
   document.getElementById('aud-matriz-vh-res').textContent=`${completos} de ${(_aud.vhs||[]).length} vehículos con lo de auditoría al día`;
-  box.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Vehículo</th>${reqs.map(r=>`<th style="text-align:center" title="${esc(r.nombre)}">${esc({fumigacion:'Fumigación',concepto_sanitario_vehiculo:'Concepto sanitario',mantenimiento_frio:'Mant. unidad de frío'}[r.k]||r.nombre.replace(/\s*\(.*\)$/,''))}</th>`).join('')}${extra.map(([,n])=>`<th style="text-align:center;color:var(--text3)">${n}<div style="font-size:10px;font-weight:400">consulta</div></th>`).join('')}</tr></thead><tbody>
+  box.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Vehículo</th>${reqs.map(r=>`<th style="text-align:center" title="${esc(r.nombre)}">${esc({fumigacion:'Fumigación',concepto_sanitario_vehiculo:'Concepto sanitario',mantenimiento_frio:'Mant. unidad de frío',inspeccion_bpm_vehiculo:'Inspección BPM'}[r.k]||r.nombre.replace(/\s*\(.*\)$/,''))}</th>`).join('')}${extra.map(([,n])=>`<th style="text-align:center;color:var(--text3)">${n}<div style="font-size:10px;font-weight:400">consulta</div></th>`).join('')}</tr></thead><tbody>
     ${vhs.map(v=>`<tr><td><b>${esc(v.placa)}</b></td>${reqs.map(r=>celdaReq(r,v)).join('')}${extra.map(([t])=>celdaExtra(t,v)).join('')}</tr>`).join('')||`<tr><td colspan="${reqs.length+1}" style="text-align:center;color:var(--text3)">Sin resultados</td></tr>`}
   </tbody></table></div><div style="font-size:11px;color:var(--text3);margin-top:6px">El acta sanitaria y la fumigación se cargan en <a href="#" onclick="ir('documentos');return false">Documentos</a>; el mantenimiento de la unidad de frío, aquí en Auditorías.</div>`;
 }
@@ -7610,7 +7622,7 @@ function pintarMatrizCond(){
 
 // ── AUDITORÍAS · Formulario digital de verificación de BPM ────
 // Puntos basados en la Resolución 2674 de 2013 (BPM) y la 2505 de 2004 (transporte de alimentos perecederos)
-const BPM_SECCIONES=[
+const BPM_SEC_COND=[
   {t:'Presentación personal e higiene',items:[
     ['uniforme','Uniforme limpio, completo y en buen estado'],
     ['unas','Uñas cortas, limpias y sin esmalte'],
@@ -7620,42 +7632,125 @@ const BPM_SECCIONES=[
     ['manos','Se lava las manos correctamente antes del cargue y después de ir al baño'],
     ['habitos','No fuma, come, bebe ni escupe durante el cargue y descargue'],
   ]},
-  {t:'Vehículo y unidad de carga',items:[
-    ['furgon_limpio','Furgón limpio, sin olores, residuos ni presencia de plagas'],
-    ['furgon_estado','Paredes, piso y techo del furgón en buen estado (sin roturas ni óxido)'],
-    ['frio','Unidad de frío funcionando y temperatura dentro del rango requerido'],
-    ['termometro','Termómetro o registrador de temperatura funcionando'],
-    ['docs','Acta sanitaria y certificado de fumigación vigentes a bordo'],
-  ]},
   {t:'Conocimiento y documentos del conductor',items:[
     ['conoce_bpm','Responde correctamente preguntas básicas de BPM'],
     ['carne','Porta el curso de manipulación de alimentos vigente'],
   ]},
 ];
-const BPM_ITEMS=BPM_SECCIONES.flatMap(s=>s.items.map(([k,t])=>({k,t,sec:s.t})));
+// Inspección BPM del vehículo (furgón, unidad de frío, documentos y cabina)
+const BPM_SEC_VH=[
+  {t:'Furgón / unidad de carga',items:[
+    ['vh_limpio','Furgón limpio por dentro, sin residuos, derrames ni malos olores'],
+    ['vh_plagas','Sin presencia ni rastros de plagas (insectos, roedores, excrementos)'],
+    ['vh_estado','Paredes, piso y techo en buen estado, sin roturas, huecos ni óxido'],
+    ['vh_puertas','Empaques y cierre de puertas en buen estado (cierre hermético)'],
+    ['vh_superficies','Superficies interiores lisas, lavables y de material sanitario'],
+    ['vh_ajenos','Sin objetos ajenos a la carga (herramientas, químicos, objetos personales)'],
+    ['vh_estibas','Estibas o canastillas limpias y en buen estado'],
+  ]},
+  {t:'Unidad de frío',items:[
+    ['vh_frio','Unidad de frío funcionando correctamente'],
+    ['vh_temp','Temperatura del furgón dentro del rango requerido'],
+    ['vh_termometro','Termómetro o registrador de temperatura funcionando'],
+    ['vh_mant_frio','Mantenimiento de la unidad de frío vigente'],
+  ]},
+  {t:'Documentos y registros a bordo',items:[
+    ['vh_sanitario','Concepto sanitario del vehículo vigente'],
+    ['vh_fumigacion','Certificado de fumigación vigente'],
+    ['vh_lavado','Registro de lavado y desinfección al día'],
+  ]},
+  {t:'Cabina',items:[
+    ['vh_cabina','Cabina limpia y ordenada, sin basura ni alimentos expuestos'],
+    ['vh_kit','Elementos de limpieza y desinfección disponibles'],
+  ]},
+];
+// Para estos puntos se muestra lo que dice el aplicativo (requisito de Auditorías)
+const BPM_VH_APP={vh_mant_frio:'mantenimiento_frio',vh_sanitario:'concepto_sanitario_vehiculo',vh_fumigacion:'fumigacion'};
+const itemsDeSec=sec=>sec.flatMap(s=>s.items.map(([k,t])=>({k,t,sec:s.t})));
+let _bpmModo='conductor',BPM_SECCIONES=BPM_SEC_COND,BPM_ITEMS=itemsDeSec(BPM_SEC_COND);
+function modoBPM(m){
+  _bpmModo=m;BPM_SECCIONES=m==='vehiculo'?BPM_SEC_VH:BPM_SEC_COND;BPM_ITEMS=itemsDeSec(BPM_SECCIONES);
+  const vh=m==='vehiculo';
+  document.getElementById('bpm-titulo').textContent=vh?'Inspección BPM del vehículo':'Verificación de BPM al conductor';
+  document.getElementById('bpm-lbl-cond').textContent=vh?'Conductor asignado (opcional)':'Conductor *';
+  document.getElementById('bpm-lbl-vh').textContent=vh?'Vehículo *':'Vehículo';
+  document.getElementById('bpm-temp-wrap').style.display=vh?'':'none';
+  document.getElementById('bpm-vh-wrap').style.display=vh?'':'none';   // la verificación del conductor no lleva vehículo
+  document.getElementById('bpm-btn').textContent=vh?'Guardar inspección':'Guardar verificación';
+  document.getElementById('bpm-cond').onchange=vh?null:pendientesBPMConductor;
+  document.getElementById('bpm-vh').onchange=vh?pendientesBPMVehiculo:null;
+}
+// Quién puede hacer la inspección del vehículo: Calidad, y el personal operativo de la regional
+function puedeInspeccionVh(){return puedeModulo('calidad')||USER_ROL==='coordinador'||USER_ROL==='auxiliar_operaciones';}
+// Datos para la inspección cuando el usuario no tiene el módulo de Calidad (personal operativo)
+let _bpmOp=null;
+async function cargarCtxOperativo(){
+  const reg=REGIONAL_ID;
+  const[rv,rc,rd,ra]=await Promise.all([
+    db.from('vehiculos').select('id,placa,ambiente,activo,tipo').eq('regional_id',reg).eq('activo',true),
+    db.from('conductores').select('id,nombre,cedula,cargo,activo').eq('regional_id',reg),
+    db.from('documentos_vehiculo').select('tipo,vehiculo_id,fecha_vencimiento').eq('regional_id',reg).in('tipo',['acta_sanitaria','fumigacion']),
+    db.from('auditoria_documentos').select('requisito,vehiculo_id,fecha_vencimiento,activo').eq('regional_id',reg).eq('requisito','mantenimiento_frio').eq('activo',true)]);
+  const vhs=(rv.data||[]).filter(v=>(v.tipo||'')!=='remolque').map(v=>({...v}));
+  const ult=(arr,vid)=>arr.filter(d=>d.vehiculo_id===vid).sort((a,b)=>(b.fecha_vencimiento||'').localeCompare(a.fecha_vencimiento||''))[0];
+  const app={};
+  vhs.forEach(v=>{app[v.id]={};
+    const m={concepto_sanitario_vehiculo:ult((rd.data||[]).filter(d=>d.tipo==='acta_sanitaria'),v.id),fumigacion:ult((rd.data||[]).filter(d=>d.tipo==='fumigacion'),v.id),mantenimiento_frio:ult(ra.data||[],v.id)};
+    Object.entries(m).forEach(([k,d])=>{app[v.id][k]=d?{estado:audEstadoFecha(d.fecha_vencimiento,15).estado,venc:d.fecha_vencimiento,hay:true}:{hay:false};});});
+  _bpmOp={reg,vhs,conds:(rc.data||[]),app};
+}
+// Contexto del formulario: el de Auditorías (Calidad) o el operativo
+function _bpmCtx(){return _bpmOp&&_bpmModo==='vehiculo'&&!puedeModulo('calidad')?_bpmOp:(_aud||{});}
+async function abrirBPMVehiculo(vhId){
+  if(!puedeInspeccionVh()){toast('Tu usuario no puede hacer inspecciones de vehículos',true);return;}
+  if(!puedeModulo('calidad')){
+    if(!REGIONAL_ID){toast('Tu usuario no tiene regional asignada',true);return;}
+    await cargarCtxOperativo();
+  }
+  await abrirBPM(undefined,'vehiculo');
+  if(vhId){document.getElementById('bpm-vh').value=vhId;pendientesBPMVehiculo();}
+}
+async function pendientesBPMVehiculo(){
+  const id=document.getElementById('bpm-vh').value,box=document.getElementById('bpm-pend');
+  _bpm.pend=[];box.style.display='none';
+  if(!id)return pintarItemsBPM();
+  const{data}=await db.from('bpm_hallazgos').select('id,item_k,item_texto,hallazgo,medida,fecha').eq('vehiculo_id',id).eq('tipo','vehiculo').eq('estado','abierto').order('fecha',{ascending:false});
+  _bpm.pend=data||[];
+  if(_bpm.pend.length){box.innerHTML=`<b>⚠ Este vehículo tiene ${_bpm.pend.length} hallazgo(s) abierto(s) de inspecciones anteriores.</b> Si ahora marcas "C" se cierran solos.
+    <ul style="margin:6px 0 0 18px;padding:0">${_bpm.pend.map(p=>`<li>${esc(p.item_texto)} · <span style="color:var(--red-dark)">${esc(p.hallazgo)}</span> (${fmtF(p.fecha)})${p.medida?` · medida: ${esc(p.medida)}`:''}</li>`).join('')}</ul>`;box.style.display='';}
+  pintarItemsBPM();
+}
 let _bpm={resp:{},obs:{},firma:false};
-async function abrirBPM(condId){
-  if(!puedeModulo('calidad')){toast('No tienes acceso a Calidad',true);return;}
-  prepSelectRegAud();
-  const reg=document.getElementById('aud-reg').value;
-  if(!_aud||_aud.reg!==reg)await cargarAuditorias();
-  const conds=(_aud?.conds||[]).filter(c=>c.activo!==false).sort((a,b)=>a.nombre.localeCompare(b.nombre));
-  if(!conds.length){toast('Primero registra los conductores de la regional',true);return;}
-  _bpm={reg,resp:{},obs:{},med:{},pend:[],firma:false};
+async function abrirBPM(condId,modo='conductor'){
+  const operativo=modo==='vehiculo'&&!puedeModulo('calidad');
+  if(!operativo&&!puedeModulo('calidad')){toast('No tienes acceso a Calidad',true);return;}
+  let reg;
+  if(operativo){reg=_bpmOp.reg;_bpmModo='vehiculo';}
+  else{
+    prepSelectRegAud();
+    reg=document.getElementById('aud-reg').value;
+    if(!_aud||_aud.reg!==reg)await cargarAuditorias();
+    _bpmModo=modo;
+  }
+  const ctx=_bpmCtx();
+  const conds=(ctx.conds||[]).filter(c=>c.activo!==false).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  if(modo!=='vehiculo'&&!conds.length){toast('Primero registra los conductores de la regional',true);return;}
+  if(modo==='vehiculo'&&!(ctx.vhs||[]).length){toast('No hay vehículos activos en esta regional',true);return;}
+  _bpm={reg,resp:{},obs:{},med:{},pend:[],firma:false};const ctxConds=conds;
   document.getElementById('bpm-reg-nombre').textContent=rNombre(reg);
   document.getElementById('bpm-fecha').value=hoy();
-  document.getElementById('bpm-cond').innerHTML='<option value="">— Elegir —</option>'+conds.map(c=>`<option value="${c.id}">${esc(c.nombre)} · ${esc(c.cedula||'')}</option>`).join('');
+  document.getElementById('bpm-cond').innerHTML='<option value="">— Elegir —</option>'+ctxConds.map(c=>`<option value="${c.id}">${esc(c.nombre)} · ${esc(c.cedula||'')}</option>`).join('');
   document.getElementById('bpm-cond').value=condId||'';
-  document.getElementById('bpm-cond').onchange=pendientesBPMConductor;
-  document.getElementById('bpm-vh').innerHTML='<option value="">— Sin vehículo —</option>'+(_aud?.vhs||[]).filter(v=>v.activo!==false).sort((a,b)=>a.placa.localeCompare(b.placa)).map(v=>`<option value="${v.id}">${esc(v.placa)}</option>`).join('');
+  document.getElementById('bpm-vh').innerHTML=`<option value="">${modo==='vehiculo'?'— Elegir —':'— Sin vehículo —'}</option>`+(ctx.vhs||[]).filter(v=>v.activo!==false).sort((a,b)=>a.placa.localeCompare(b.placa)).map(v=>`<option value="${v.id}">${esc(v.placa)}</option>`).join('');
   document.getElementById('bpm-evaluador').value=(()=>{try{return localStorage.getItem('bpm_evaluador')||'';}catch(e){return'';}})();
-  document.getElementById('bpm-obs').value='';document.getElementById('bpm-acc').value='';
+  document.getElementById('bpm-obs').value='';document.getElementById('bpm-acc').value='';document.getElementById('bpm-temp').value='';
+  modoBPM(modo);
   const NOMBRES={'rocio.cortes@aldialogistica.com':'Rocío Cortés'};
   if(!document.getElementById('bpm-evaluador').value&&NOMBRES[USER_EMAIL])document.getElementById('bpm-evaluador').value=NOMBRES[USER_EMAIL];
   pintarItemsBPM();
   document.getElementById('modal-bpm').classList.add('open');
   cargarFirmaEvaluador();
-  if(condId)pendientesBPMConductor();else document.getElementById('bpm-pend').style.display='none';
+  if(modo==='conductor'&&condId)pendientesBPMConductor();else document.getElementById('bpm-pend').style.display='none';
 }
 // Firma digital de quien verifica: una imagen por usuario, guardada en el almacenamiento privado (firmas/<usuario>/)
 async function cargarFirmaEvaluador(){
@@ -7700,9 +7795,21 @@ function pintarItemsBPM(){
         ${r==='NC'?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
           <input type="text" placeholder="¿Qué se encontró? *" maxlength="200" value="${esc(_bpm.obs[k]||'')}" oninput="_bpm.obs['${k}']=this.value" style="font-size:12px;padding:6px 8px;border:1px solid #EF9A9A;border-radius:var(--r)">
           <input type="text" placeholder="Medida tomada *" maxlength="300" value="${esc(_bpm.med[k]||'')}" oninput="_bpm.med['${k}']=this.value" style="font-size:12px;padding:6px 8px;border:1px solid #FFCC80;border-radius:var(--r)"></div>`:''}
+        ${appBPM(k)}
         ${pend&&r!=='NC'?`<div style="font-size:11px;color:#B26A00;margin-top:3px">⚠ Pendiente desde ${fmtF(pend.fecha)}: ${esc(pend.hallazgo)}${r==='C'?' · se cerrará al guardar':''}</div>`:''}
       </div>`;}).join('')}`).join('');
   resumenBPM();
+}
+// En la inspección del vehículo: lo que el aplicativo tiene registrado para ese documento
+function appBPM(k){
+  if(_bpmModo!=='vehiculo'||!BPM_VH_APP[k])return'';
+  const vid=document.getElementById('bpm-vh')?.value;if(!vid)return'';
+  let i;
+  if(_bpmCtx()===_bpmOp){const a=_bpmOp.app[vid]?.[BPM_VH_APP[k]];i=a?.hay?{estado:a.estado,venc:a.venc,doc:{}}:null;}
+  else{const r=(_aud?.resAll||_aud?.res||[]).find(x=>x.req.k===BPM_VH_APP[k]);i=r?.items.find(x=>x.vehiculo?.id===vid);}
+  if(!i||(!i.doc&&!i.dv))return'<div style="font-size:11px;color:var(--red-dark);margin-top:3px">Según el aplicativo: no hay documento cargado</div>';
+  const ok=alDiaEst(i.estado);
+  return`<div style="font-size:11px;color:${ok?'var(--green-dark)':'var(--red-dark)'};margin-top:3px">Según el aplicativo: ${ok?'vigente':'vencido'}${i.venc?' hasta '+fmtF(i.venc):''}</div>`;
 }
 function setBPM(k,v){_bpm.resp[k]=_bpm.resp[k]===v?undefined:v;pintarItemsBPM();}
 function bpmTodoCumple(){BPM_ITEMS.forEach(i=>{if(!_bpm.resp[i.k])_bpm.resp[i.k]='C';});pintarItemsBPM();}
@@ -7732,16 +7839,23 @@ async function pdfBPM(v){
   const doc=new jsPDF({unit:'mm',format:'letter'});
   const W=216,M=14;let y=24;
   try{doc.addImage(LOGO_TRASLADAR,'JPEG',M,7,36,9);}catch(e){}
-  doc.setFontSize(8);doc.setTextColor(120);doc.text('Calidad · Verificación BPM',W-M,12,{align:'right'});doc.setTextColor(0);
+  const esVh=v.tipo==='vehiculo';
+  doc.setFontSize(8);doc.setTextColor(120);doc.text(esVh?'Calidad · Inspección BPM del vehículo':'Calidad · Verificación BPM',W-M,12,{align:'right'});doc.setTextColor(0);
   const linea=()=>{doc.setDrawColor(200);doc.line(M,y,W-M,y);};
   const salto=h=>{if(y+h>268){doc.addPage();y=16;}};
-  doc.setFont('helvetica','bold');doc.setFontSize(14);doc.text('VERIFICACIÓN DE BUENAS PRÁCTICAS DE MANUFACTURA (BPM)',W/2,y,{align:'center'});y+=6;
-  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(90);doc.text('Conductores · Transporte de alimentos · Res. 2674/2013 y 2505/2004',W/2,y,{align:'center'});y+=7;doc.setTextColor(0);
+  doc.setFont('helvetica','bold');doc.setFontSize(14);doc.text(esVh?'INSPECCIÓN DE BUENAS PRÁCTICAS DE MANUFACTURA (BPM) AL VEHÍCULO':'VERIFICACIÓN DE BUENAS PRÁCTICAS DE MANUFACTURA (BPM)',W/2,y,{align:'center'});y+=6;
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(90);doc.text(`${esVh?'Vehículos':'Conductores'} · Transporte de alimentos · Res. 2674/2013 y 2505/2004`,W/2,y,{align:'center'});y+=7;doc.setTextColor(0);
   const dato=(l,val,x,yy)=>{doc.setFont('helvetica','bold');doc.text(l,x,yy);const w=doc.getTextWidth(l);doc.setFont('helvetica','normal');doc.text(String(val||'—'),x+w+2,yy);};
   doc.setFontSize(10);
   dato('Regional:',v.regional,M,y);dato('Fecha:',fmtF(v.fecha),120,y);y+=6;
-  dato('Conductor:',v.nombre,M,y);dato('C.C.:',v.cedula,120,y);y+=6;
-  dato('Vehículo:',v.placa,M,y);dato('Verificó:',v.evaluador,120,y);y+=4;linea();y+=6;
+  if(esVh){
+    dato('Vehículo:',v.placa,M,y);dato('Temperatura:',v.temperatura!=null?v.temperatura+' °C':'—',120,y);y+=6;
+    dato('Conductor:',v.nombre,M,y);dato('Inspeccionó:',v.evaluador,120,y);y+=4;
+  }else{
+    dato('Conductor:',v.nombre,M,y);dato('C.C.:',v.cedula,120,y);y+=6;
+    dato('Verificó:',v.evaluador,M,y);y+=4;
+  }
+  linea();y+=6;
   let n=0;
   BPM_SECCIONES.forEach(s=>{
     salto(12);doc.setFillColor(238,242,246);doc.rect(M,y-4,W-2*M,6,'F');doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.text(s.t.toUpperCase(),M+2,y);doc.text('C',W-M-26,y);doc.text('NC',W-M-17,y);doc.text('NA',W-M-7,y);y+=6;
@@ -7776,9 +7890,12 @@ async function pdfBPM(v){
 async function guardarBPM(){
   const condId=document.getElementById('bpm-cond').value,fecha=document.getElementById('bpm-fecha').value;
   const evaluador=document.getElementById('bpm-evaluador').value.trim();
-  const c=(_aud?.conds||[]).find(x=>x.id===condId);
-  const r=calcBPM();
-  if(!c){toast('Elige el conductor',true);return;}
+  const c=(_bpmCtx().conds||[]).find(x=>x.id===condId);
+  const r=calcBPM();const esVh=_bpmModo==='vehiculo';
+  const vhSel=(_bpmCtx().vhs||[]).find(x=>x.id===document.getElementById('bpm-vh').value);
+  if(esVh&&!vhSel){toast('Elige el vehículo',true);return;}
+  if(!esVh&&!c){toast('Elige el conductor',true);return;}
+  const tempTxt=document.getElementById('bpm-temp').value;const temperatura=esVh&&tempTxt!==''?Number(tempTxt):null;
   if(!fecha){toast('Pon la fecha',true);return;}
   if(!evaluador){toast('Escribe quién realiza la verificación',true);return;}
   if(r.sin){toast(`Faltan ${r.sin} punto(s) por responder`,true);return;}
@@ -7788,32 +7905,38 @@ async function guardarBPM(){
   if(!_bpm.firmaEv&&!confirm('No tienes tu firma digital cargada. ¿Guardar la verificación sin tu firma?'))return;
   try{localStorage.setItem('bpm_evaluador',evaluador);}catch(e){}
   const btn=document.getElementById('bpm-btn');btn.disabled=true;btn.textContent='Guardando…';
-  const reg=_bpm.reg;const vh=(_aud?.vhs||[]).find(x=>x.id===document.getElementById('bpm-vh').value);
-  const v={regional:rNombre(reg),fecha,nombre:c.nombre,cedula:c.cedula,placa:vh?.placa||null,evaluador,
+  const reg=_bpm.reg;const vh=esVh?(_bpmCtx().vhs||[]).find(x=>x.id===document.getElementById('bpm-vh').value):null;
+  const nombreV=c?.nombre||(esVh?`Vehículo ${vh.placa}`:'');
+  const v={tipo:_bpmModo,temperatura,regional:rNombre(reg),fecha,nombre:c?.nombre||(esVh?'—':''),cedula:c?.cedula,placa:vh?.placa||null,evaluador,
     respuestas:BPM_ITEMS.map(i=>({k:i.k,r:_bpm.resp[i.k],obs:_bpm.resp[i.k]==='NC'?(_bpm.obs[i.k]||'').trim():undefined,medida:_bpm.resp[i.k]==='NC'?(_bpm.med[i.k]||'').trim():undefined})),
     cumple:r.c,no_cumple:r.nc,no_aplica:r.na,puntaje:r.pct,resultado:r.res,
-    observaciones:document.getElementById('bpm-obs').value.trim()||null,acciones:acciones||null,
+    observaciones:[temperatura!=null?`Temperatura del furgón: ${temperatura} °C`:'',document.getElementById('bpm-obs').value.trim()].filter(Boolean).join(' · ')||null,acciones:acciones||null,
     firmaEv:_bpm.firmaEv||null};
   try{
     const blob=await pdfBPM(v);
-    const path=`${reg}/verificacion_bpm/${crypto.randomUUID?crypto.randomUUID():Date.now()}.pdf`;
+    const reqK=esVh?'inspeccion_bpm_vehiculo':'verificacion_bpm';
+    const path=`${reg}/${reqK}/${crypto.randomUUID?crypto.randomUUID():Date.now()}.pdf`;
     const{error:eUp}=await db.storage.from('auditoria-docs').upload(path,blob,{contentType:'application/pdf',upsert:false});
     if(eUp)throw eUp;
     const periodo=`${MESES[+fecha.slice(5,7)-1]} ${fecha.slice(0,4)}`;
-    const{data:docN,error:eD}=await db.from('auditoria_documentos').insert({
-      requisito:'verificacion_bpm',regional_id:reg,conductor_id:c.id,persona_nombre:c.nombre,persona_cedula:c.cedula||null,persona_cargo:c.cargo||'Conductor',
-      titulo:periodo,fecha_expedicion:fecha,fecha_vencimiento:sumarMesesFecha(fecha,1),
-      archivo_path:path,archivo_nombre:`Verificacion_BPM_${c.nombre.replace(/[^A-Za-z0-9]+/g,'_')}_${fecha}.pdf`.slice(0,200),
-      observaciones:`Verificación digital · ${r.pct}% · ${r.res}`}).select('id').single();
+    const docData=esVh
+      ?{requisito:reqK,regional_id:reg,vehiculo_id:vh.id,titulo:periodo,fecha_expedicion:fecha,fecha_vencimiento:sumarMesesFecha(fecha,1),
+        archivo_path:path,archivo_nombre:`Inspeccion_BPM_${vh.placa}_${fecha}.pdf`,observaciones:`Inspección digital · ${r.pct}% · ${r.res}`}
+      :{requisito:reqK,regional_id:reg,conductor_id:c.id,persona_nombre:c.nombre,persona_cedula:c.cedula||null,persona_cargo:c.cargo||'Conductor',
+        titulo:periodo,fecha_expedicion:fecha,fecha_vencimiento:sumarMesesFecha(fecha,1),
+        archivo_path:path,archivo_nombre:`Verificacion_BPM_${c.nombre.replace(/[^A-Za-z0-9]+/g,'_')}_${fecha}.pdf`.slice(0,200),
+        observaciones:`Verificación digital · ${r.pct}% · ${r.res}`};
+    const{data:docN,error:eD}=await db.from('auditoria_documentos').insert(docData).select('id').single();
     if(eD)throw eD;
-    // La nueva verificación reemplaza a la anterior del mismo conductor
-    await db.from('auditoria_documentos').update({activo:false}).eq('requisito','verificacion_bpm').eq('regional_id',reg).eq('conductor_id',c.id).eq('activo',true).neq('id',docN.id);
-    const{data:verN,error:eV}=await db.from('bpm_verificaciones').insert({regional_id:reg,conductor_id:c.id,persona_nombre:c.nombre,persona_cedula:c.cedula||null,
+    // La nueva verificación reemplaza a la anterior del mismo conductor / vehículo
+    let qOld=db.from('auditoria_documentos').update({activo:false}).eq('requisito',reqK).eq('regional_id',reg).eq('activo',true).neq('id',docN.id);
+    await (esVh?qOld.eq('vehiculo_id',vh.id):qOld.eq('conductor_id',c.id));
+    const{data:verN,error:eV}=await db.from('bpm_verificaciones').insert({tipo:_bpmModo,regional_id:reg,conductor_id:c?.id||null,persona_nombre:nombreV,persona_cedula:c?.cedula||null,
       vehiculo_id:vh?.id||null,placa:vh?.placa||null,fecha,evaluador,respuestas:v.respuestas,cumple:r.c,no_cumple:r.nc,no_aplica:r.na,
       puntaje:r.pct,resultado:r.res,observaciones:v.observaciones,acciones:v.acciones,documento_id:docN.id}).select('id').single();
     if(!eV){
       // Historial: cada "No cumple" queda como hallazgo abierto con su medida
-      const nc=v.respuestas.filter(x=>x.r==='NC').map(x=>({verificacion_id:verN.id,regional_id:reg,conductor_id:c.id,persona_nombre:c.nombre,persona_cedula:c.cedula||null,
+      const nc=v.respuestas.filter(x=>x.r==='NC').map(x=>({tipo:_bpmModo,vehiculo_id:vh?.id||null,verificacion_id:verN.id,regional_id:reg,conductor_id:c?.id||null,persona_nombre:nombreV,persona_cedula:c?.cedula||null,
         placa:vh?.placa||null,fecha,item_k:x.k,item_texto:BPM_TXT(x.k),hallazgo:x.obs,medida:x.medida,responsable:evaluador}));
       if(nc.length){const{error:eH}=await db.from('bpm_hallazgos').insert(nc);if(eH)toast('No se guardó el historial de hallazgos: '+(/bpm_hallazgos/.test(eH.message)?'falta ejecutar bpm_hallazgos.sql':eH.message),true);}
       // Lo que estaba pendiente y ahora cumple se cierra solo
@@ -7821,28 +7944,29 @@ async function guardarBPM(){
       const cerrar=(_bpm.pend||[]).filter(p=>ok.includes(p.item_k)).map(p=>p.id);
       if(cerrar.length)await db.from('bpm_hallazgos').update({estado:'cerrado',fecha_cierre:fecha,cierre_obs:`Cumplió en la verificación del ${fmtF(fecha)}`,cerrado_por:evaluador,updated_at:new Date().toISOString()}).in('id',cerrar);
     }
-    if(eV)toast('El PDF quedó guardado, pero no el detalle: '+(/bpm_verificaciones/.test(eV.message)?'falta ejecutar verificacion_bpm.sql':eV.message),true);
-    else toast(`Verificación guardada ✓ · ${r.pct}% ${r.res}`);
-    cerrarModal('modal-bpm');refrescarAud();actualizarBadgeAuditorias();actualizarBadgeBPM();
+    if(eV)toast('El PDF quedó guardado, pero no el detalle: '+(/tipo|bpm_verificaciones/.test(eV.message)?'falta ejecutar inspeccion_bpm_vehiculo.sql':eV.message),true);
+    else toast(`${esVh?'Inspección':'Verificación'} guardada ✓ · ${r.pct}% ${r.res}`);
+    cerrarModal('modal-bpm');
+    if(puedeModulo('calidad')){refrescarAud();actualizarBadgeAuditorias();actualizarBadgeBPM();}
     if(document.getElementById('page-bpm').classList.contains('active'))cargarHistorialBPM();
   }catch(e){toast('Error: '+e.message,true);}
-  finally{btn.disabled=false;btn.textContent='Guardar verificación';}
+  finally{btn.disabled=false;btn.textContent=_bpmModo==='vehiculo'?'Guardar inspección':'Guardar verificación';}
 }
 
 // ── CALIDAD · Historial BPM: hallazgos (no cumple) y medidas tomadas ──
 let _bh=null;
-const BPM_TXT=k=>BPM_ITEMS.find(i=>i.k===k)?.t||k;
+const BPM_TXT=k=>itemsDeSec(BPM_SEC_COND).concat(itemsDeSec(BPM_SEC_VH)).find(i=>i.k===k)?.t||k;
 async function cargarHistorialBPM(){
   const box=document.getElementById('bh-tabla');box.innerHTML='<div class="loading"><div class="spinner"></div></div>';
   if(!document.getElementById('bh-reg').options.length)selRegionalesRH('bh-reg');
   const reg=document.getElementById('bh-reg').value;
   let qh=db.from('bpm_hallazgos').select('*').order('fecha',{ascending:false});
-  let qv=db.from('bpm_verificaciones').select('id,regional_id,conductor_id,persona_nombre,persona_cedula,placa,fecha,evaluador,puntaje,resultado,no_cumple,documento_id,auditoria_documentos(archivo_path)').order('fecha',{ascending:false});
+  let qv=db.from('bpm_verificaciones').select('*,auditoria_documentos(archivo_path)').order('fecha',{ascending:false});
   if(reg){qh=qh.eq('regional_id',reg);qv=qv.eq('regional_id',reg);}
   let[rh,rv]=await Promise.all([qh,qv]);
   // Si el enlace al PDF no se puede traer, se cargan las verificaciones sin él
   if(rv.error&&/relationship|auditoria_documentos/i.test(rv.error.message)){
-    let q2=db.from('bpm_verificaciones').select('id,regional_id,conductor_id,persona_nombre,persona_cedula,placa,fecha,evaluador,puntaje,resultado,no_cumple,documento_id').order('fecha',{ascending:false});
+    let q2=db.from('bpm_verificaciones').select('*').order('fecha',{ascending:false});
     if(reg)q2=q2.eq('regional_id',reg);rv=await q2;
   }
   if(rh.error||rv.error){
@@ -7859,7 +7983,8 @@ function pintarHistorialBPM(){
   if(!_bh)return;
   const anio=document.getElementById('bh-anio').value,est=document.getElementById('bh-estado').value,q=normTxt(document.getElementById('bh-buscar').value);
   const enA=f=>!anio||f.startsWith(anio);
-  const busc=x=>!q||normTxt(x.persona_nombre).includes(q)||(x.persona_cedula||'').includes(q);
+  const tipo=document.getElementById('bh-tipo').value;
+  const busc=x=>(!tipo||(x.tipo||'conductor')===tipo)&&(!q||normTxt(x.persona_nombre).includes(q)||(x.persona_cedula||'').includes(q)||normTxt(x.placa).includes(q));
   const V=_bh.v.filter(x=>enA(x.fecha)&&busc(x)),Hall=_bh.h.filter(x=>enA(x.fecha)&&busc(x));
   const abiertos=Hall.filter(x=>x.estado==='abierto');
   const vencidos=abiertos.filter(x=>x.fecha_compromiso&&x.fecha_compromiso<hoy());
@@ -7884,7 +8009,7 @@ function pintarHistorialBPM(){
     ${lista.map(x=>{const venc=x.estado==='abierto'&&x.fecha_compromiso&&x.fecha_compromiso<hoy();
       const rep=Hall.filter(y=>y.item_k===x.item_k&&(y.conductor_id?y.conductor_id===x.conductor_id:y.persona_nombre===x.persona_nombre)).length;
       return`<tr><td style="font-size:12px;white-space:nowrap">${fmtF(x.fecha)}</td>
-      <td style="font-size:12px"><b>${esc(x.persona_nombre)}</b><div style="color:var(--text3)">${esc([x.persona_cedula?'C.C. '+x.persona_cedula:'',x.placa].filter(Boolean).join(' · '))}</div></td>
+      <td style="font-size:12px">${x.tipo==='vehiculo'?'<span class="badge b-blue" style="font-size:10px">Vehículo</span> ':''}<b>${esc(x.persona_nombre)}</b><div style="color:var(--text3)">${esc([x.persona_cedula?'C.C. '+x.persona_cedula:'',x.placa].filter(Boolean).join(' · '))}</div></td>
       <td style="font-size:12px">${esc(x.item_texto)}${rep>1?` <span class="badge b-amber" style="font-size:10px">${rep}ª vez</span>`:''}</td>
       <td style="font-size:12px;color:var(--red-dark)">${esc(x.hallazgo)}</td>
       <td style="font-size:12px">${x.medida?esc(x.medida):'<span style="color:var(--red-dark)">Sin medida</span>'}${x.responsable||x.fecha_compromiso?`<div style="color:${venc?'var(--red-dark)':'var(--text3)'}">${esc(x.responsable||'')}${x.fecha_compromiso?' · compromiso '+fmtF(x.fecha_compromiso):''}${venc?' · vencido':''}</div>`:''}</td>
@@ -7894,7 +8019,7 @@ function pintarHistorialBPM(){
   // Verificaciones
   document.getElementById('bh-verif').innerHTML=V.length?`<div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Conductor</th><th>Vehículo</th><th>Cumplimiento</th><th>Resultado</th><th>No cumple</th><th>Verificó</th><th></th></tr></thead><tbody>
     ${V.map(x=>{const col=x.resultado==='Conforme'?'b-green':x.resultado==='No conforme'?'b-red':'b-amber';const pth=x.auditoria_documentos?.archivo_path;
-      return`<tr><td style="font-size:12px">${fmtF(x.fecha)}</td><td style="font-size:12px"><b>${esc(x.persona_nombre)}</b></td><td style="font-size:12px">${esc(x.placa||'—')}</td>
+      return`<tr><td style="font-size:12px">${fmtF(x.fecha)}</td><td style="font-size:12px">${x.tipo==='vehiculo'?'<span class="badge b-blue" style="font-size:10px">Inspección vehículo</span> ':''}<b>${esc(x.persona_nombre)}</b></td><td style="font-size:12px">${esc(x.placa||'—')}</td>
       <td style="font-weight:700">${x.puntaje!=null?Number(x.puntaje)+'%':'—'}</td><td><span class="badge ${col}">${esc(x.resultado||'—')}</span></td>
       <td style="text-align:center">${x.no_cumple||0}</td><td style="font-size:12px">${esc(x.evaluador||'')}</td>
       <td>${pth?`<a href="#" onclick="abrirArchivoAud('${escJs(pth)}');return false">PDF</a>`:''}</td></tr>`;}).join('')}</tbody></table></div>`:'<div style="font-size:13px;color:var(--text2)">Sin verificaciones en el periodo.</div>';
@@ -7929,7 +8054,7 @@ async function actualizarBadgeBPM(){
 }
 function exportarHallazgosBPM(){
   if(!_bh)return;const anio=document.getElementById('bh-anio').value;
-  const filas=_bh.h.filter(x=>!anio||x.fecha.startsWith(anio)).map(x=>({'Fecha':x.fecha,'Regional':rNombre(x.regional_id),'Conductor':x.persona_nombre,'Cédula':x.persona_cedula||'','Vehículo':x.placa||'',
+  const filas=_bh.h.filter(x=>!anio||x.fecha.startsWith(anio)).map(x=>({'Tipo':x.tipo==='vehiculo'?'Vehículo':'Conductor','Fecha':x.fecha,'Regional':rNombre(x.regional_id),'Conductor':x.persona_nombre,'Cédula':x.persona_cedula||'','Vehículo':x.placa||'',
     'Punto que no cumplió':x.item_texto,'Hallazgo':x.hallazgo,'Medida tomada':x.medida||'','Responsable':x.responsable||'','Fecha compromiso':x.fecha_compromiso||'',
     'Estado':x.estado==='cerrado'?'Cerrado':'Abierto','Fecha cierre':x.fecha_cierre||'','Cómo se verificó':x.cierre_obs||''}));
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(filas),'Hallazgos BPM');
